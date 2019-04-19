@@ -1,3 +1,7 @@
+const vec2 = glMatrix.vec2;
+const mat2d = glMatrix.mat2d;
+const mat4 = glMatrix.mat4;
+
 function loadSource(url) {
     return new Promise((resolve, reject) => {
         let request = new XMLHttpRequest;
@@ -73,8 +77,7 @@ class ProgramInfo {
     fetchLocations() {
         this.uniformLocations = {
             size: this.gl.getUniformLocation(this.program, "u_size"),
-            model: this.gl.getUniformLocation(this.program, "u_model"),
-            view: this.gl.getUniformLocation(this.program, "u_view"),
+            modelView: this.gl.getUniformLocation(this.program, "u_modelView"),
         };
 
         this.attributeLocations = {
@@ -86,8 +89,7 @@ class ProgramInfo {
         this.gl.useProgram(this.program);
 
         this.gl.uniform1f(this.uniformLocations.size, 20.0);
-        this.gl.uniformMatrix4fv(this.uniformLocations.model, false, data.matrices.model);
-        this.gl.uniformMatrix4fv(this.uniformLocations.view, false, data.matrices.view);
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, data.matrices.modelView);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.position);
         this.gl.vertexAttribPointer(
@@ -107,19 +109,14 @@ class ShaderData {
 
     initMatrices() {
         this.matrices = {
-            model: new Float32Array([
-                1000.0, 0.0, 0.0, 0.0,
-                0.0, 2000.0, 0.0, 0.0,
-                0.0, 0.0, 1.0, 0.0,
-                -12500.0, -104540.0, 0.0, 1.0,
-            ]),
-            view: new Float32Array([
-                2.0 / this.canvas.width, 0.0, 0.0, 0.0,
-                0.0, 2.0 / this.canvas.height, 0.0, 0.0,
-                0.0, 0.0, 1.0, 0.0,
-                -1.0, -1.0, 0.0, 1.0,
-            ]),
+            model: glMatrix.mat2d.create(),
+            modelView: glMatrix.mat4.create(),
         };
+
+        mat2d.scale(this.matrices.model, this.matrices.model, vec2.fromValues(1000.0, 2000.0));
+        mat2d.translate(this.matrices.model, this.matrices.model, vec2.fromValues(-12.5, -52.27));
+
+        this.calculateModelView();
     }
 
     async initBuffers(gl) {
@@ -137,6 +134,21 @@ class ShaderData {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+    }
+
+    calculateModelView() {
+        const modelView2d = mat2d.create();
+        mat2d.translate(modelView2d, modelView2d, vec2.fromValues(-1.0, -1.0));
+        mat2d.scale(modelView2d, modelView2d, vec2.fromValues(2.0 / this.canvas.width, 2.0 / this.canvas.height));
+        mat2d.multiply(modelView2d, modelView2d, this.matrices.model);
+
+        mat4.identity(this.matrices.modelView);
+        this.matrices.modelView[0] = modelView2d[0];
+        this.matrices.modelView[1] = modelView2d[1];
+        this.matrices.modelView[4] = modelView2d[2];
+        this.matrices.modelView[5] = modelView2d[3];
+        this.matrices.modelView[12] = modelView2d[4];
+        this.matrices.modelView[13] = modelView2d[5];
     }
 }
 
@@ -158,7 +170,10 @@ class Controller {
 
     initializeCanvas() {
         this.resizeCanvas();
-        addEventListener("resize", () => this.resizeCanvas());
+        addEventListener("resize", () => {
+            this.resizeCanvas();
+            this.shaderData.calculateModelView();
+        });
     }
 
     resizeCanvas() {
