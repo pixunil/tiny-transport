@@ -1,10 +1,13 @@
 precision highp float;
 
-attribute vec2 a_position;
+uniform mat4 u_model;
 
-varying vec4 v_position;
+attribute vec2 a_position;
+attribute vec2 a_center;
+
+varying vec2 v_center;
 
 void main() {
-    v_position = vec4(a_position, 0.0, 1.0);
-    gl_Position = v_position;
+    v_center = a_center;
+    gl_Position = u_model * vec4(a_position, 0.0, 1.0);
 }

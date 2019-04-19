@@ -40,7 +40,7 @@ async function loadShader(gl, type, source) {
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         const log = gl.getShaderInfoLog(shader);
-        deleteShader(shader);
+        gl.deleteShader(shader);
         throw {
             type: type,
             source: source,
@@ -69,9 +69,13 @@ async function initProgram(gl, shaders) {
 
     return {
         program: program,
+        uniforms: {
+            model: gl.getUniformLocation(program, "u_model"),
+        },
         attributes: {
             position: gl.getAttribLocation(program, "a_position"),
-        }
+            center: gl.getAttribLocation(program, "a_center"),
+        },
     };
 }
 
@@ -80,15 +84,27 @@ function initBuffers(gl) {
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
     const positions = [
-        -0.5, -0.5,
-        0.5, -0.5,
-        0.5, 0.5,
+        50.0, 50.0,
+        50.0, 250.0,
+        250.0, 50.0,
     ];
 
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
+    const centerBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, centerBuffer);
+
+    const centers = [
+        100.0, 100.0,
+        100.0, 100.0,
+        100.0, 100.0,
+    ];
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(centers), gl.STATIC_DRAW);
+
     return {
         position: positionBuffer,
+        center: centerBuffer,
     };
 }
 
@@ -98,6 +114,16 @@ function clear(gl) {
 }
 
 function draw(gl, programInfo, buffers) {
+    gl.useProgram(programInfo.program);
+
+    const model = new Float32Array([
+        2.0 / gl.canvas.width, 0.0, 0.0, 0.0,
+        0.0, 2.0 / gl.canvas.height, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        -1.0, -1.0, 0.0, 1.0,
+    ]);
+    gl.uniformMatrix4fv(programInfo.uniforms.model, false, model);
+
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
     gl.vertexAttribPointer(
         programInfo.attributes.position,
@@ -105,7 +131,16 @@ function draw(gl, programInfo, buffers) {
         false, 0, 0);
     gl.enableVertexAttribArray(programInfo.attributes.position);
 
-    gl.useProgram(programInfo.program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.center);
+    gl.vertexAttribPointer(
+        programInfo.attributes.center,
+        2, gl.FLOAT,
+        false, 0, 0);
+    gl.enableVertexAttribArray(programInfo.attributes.center);
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
 
     clear(gl);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -118,7 +153,7 @@ const sources = {
 
 addEventListener("load", () => {
     const canvas = document.querySelector("canvas");
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl", {alpha: false});
     resizeDependent(() => resizeCanvas(canvas, gl));
     clear(gl);
 
