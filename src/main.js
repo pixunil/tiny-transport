@@ -51,7 +51,12 @@ async function loadShader(gl, type, source) {
     return shader;
 }
 
-async function initProgram(gl, shaders) {
+async function initProgram(gl) {
+    const shaders = [
+        loadShader(gl, gl.VERTEX_SHADER, await sources.vertex),
+        loadShader(gl, gl.FRAGMENT_SHADER, await sources.fragment),
+    ];
+
     const program = gl.createProgram();
     for (const shader of shaders) {
         gl.attachShader(program, await shader);
@@ -71,6 +76,7 @@ async function initProgram(gl, shaders) {
         program: program,
         uniforms: {
             model: gl.getUniformLocation(program, "u_model"),
+            view: gl.getUniformLocation(program, "u_view"),
         },
         attributes: {
             position: gl.getAttribLocation(program, "a_position"),
@@ -79,33 +85,46 @@ async function initProgram(gl, shaders) {
     };
 }
 
-function initBuffers(gl) {
+async function initBuffers(gl) {
+    const data = JSON.parse(await sources.data);
+    let positions = [];
+    let centers = [];
+
+    for (let stop of data) {
+        positions.push(
+            stop.lon - 10.0, stop.lat - 10.0,
+            stop.lon - 10.0, stop.lat + 30.0,
+            stop.lon + 30.0, stop.lat - 10.0,
+        );
+        centers.push(
+            stop.lon, stop.lat,
+            stop.lon, stop.lat,
+            stop.lon, stop.lat,
+        );
+    }
+
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-    const positions = [
-        50.0, 50.0,
-        50.0, 250.0,
-        250.0, 50.0,
-    ];
-
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
     const centerBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, centerBuffer);
-
-    const centers = [
-        100.0, 100.0,
-        100.0, 100.0,
-        100.0, 100.0,
-    ];
-
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(centers), gl.STATIC_DRAW);
 
     return {
+        length: positions.length / 2,
         position: positionBuffer,
         center: centerBuffer,
     };
+}
+
+async function setUp(gl) {
+    let programInfo = initProgram(gl);
+    let buffers = initBuffers(gl);
+
+    programInfo = await programInfo;
+    buffers = await buffers;
+    resizeDependent(() => draw(gl, programInfo, buffers));
 }
 
 function clear(gl) {
@@ -117,12 +136,21 @@ function draw(gl, programInfo, buffers) {
     gl.useProgram(programInfo.program);
 
     const model = new Float32Array([
+        1000.0, 0.0, 0.0, 0.0,
+        0.0, 2000.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        -12500.0, -104540.0, 0.0, 1.0,
+    ]);
+
+    const view = new Float32Array([
         2.0 / gl.canvas.width, 0.0, 0.0, 0.0,
         0.0, 2.0 / gl.canvas.height, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
         -1.0, -1.0, 0.0, 1.0,
     ]);
+
     gl.uniformMatrix4fv(programInfo.uniforms.model, false, model);
+    gl.uniformMatrix4fv(programInfo.uniforms.view, false, view);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
     gl.vertexAttribPointer(
@@ -143,12 +171,13 @@ function draw(gl, programInfo, buffers) {
     gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
 
     clear(gl);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLES, 0, buffers.length);
 }
 
 const sources = {
     vertex: loadSource("shader.vert.glsl"),
     fragment: loadSource("shader.frag.glsl"),
+    data: loadSource("../data/vbb.json"),
 };
 
 addEventListener("load", () => {
@@ -157,13 +186,5 @@ addEventListener("load", () => {
     resizeDependent(() => resizeCanvas(canvas, gl));
     clear(gl);
 
-    initProgram(gl, [
-        sources.vertex.then(source => loadShader(gl, gl.VERTEX_SHADER, source)),
-        sources.fragment.then(source => loadShader(gl, gl.FRAGMENT_SHADER, source))
-    ]).then(programInfo => {
-        const buffers = initBuffers(gl);
-        resizeDependent(() => draw(gl, programInfo, buffers));
-    }).catch(error => {
-        console.error(error);
-    });
+    setUp(gl).catch(error => console.error(error));
 });
