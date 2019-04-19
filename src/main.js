@@ -72,19 +72,20 @@ class ProgramInfo {
 
     fetchLocations() {
         this.uniformLocations = {
+            size: this.gl.getUniformLocation(this.program, "u_size"),
             model: this.gl.getUniformLocation(this.program, "u_model"),
             view: this.gl.getUniformLocation(this.program, "u_view"),
         };
 
         this.attributeLocations = {
             position: this.gl.getAttribLocation(this.program, "a_position"),
-            center: this.gl.getAttribLocation(this.program, "a_center"),
         };
     }
 
     bind(data) {
         this.gl.useProgram(this.program);
 
+        this.gl.uniform1f(this.uniformLocations.size, 20.0);
         this.gl.uniformMatrix4fv(this.uniformLocations.model, false, data.matrices.model);
         this.gl.uniformMatrix4fv(this.uniformLocations.view, false, data.matrices.view);
 
@@ -94,13 +95,6 @@ class ProgramInfo {
             2, this.gl.FLOAT,
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.center);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.center,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.center);
     }
 }
 
@@ -129,34 +123,20 @@ class ShaderData {
     }
 
     async initBuffers(gl) {
-        this.buffers = {};
+        this.buffers = {
+            position: gl.createBuffer(),
+        };
 
         const data = JSON.parse(await sources.data);
-        this.length = 3 * data.length;
+        this.length = data.length;
 
         let positions = [];
-        let centers = [];
-
         for (let stop of data) {
-            positions.push(
-                stop.lon - 10.0, stop.lat - 10.0,
-                stop.lon - 10.0, stop.lat + 30.0,
-                stop.lon + 30.0, stop.lat - 10.0,
-            );
-            centers.push(
-                stop.lon, stop.lat,
-                stop.lon, stop.lat,
-                stop.lon, stop.lat,
-            );
+            positions.push(stop.lon, stop.lat);
         }
 
-        this.buffers.position = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-        this.buffers.center = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.center);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(centers), gl.STATIC_DRAW);
     }
 }
 
@@ -202,7 +182,7 @@ class Controller {
         this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ZERO, this.gl.ONE);
 
         this.clear();
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, this.shaderData.length);
+        this.gl.drawArrays(this.gl.POINTS, 0, this.shaderData.length);
     }
 }
 
