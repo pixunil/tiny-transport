@@ -110,11 +110,12 @@ class ShaderData {
     initMatrices() {
         this.matrices = {
             model: glMatrix.mat2d.create(),
+            view: glMatrix.mat2d.create(),
             modelView: glMatrix.mat4.create(),
         };
 
-        mat2d.scale(this.matrices.model, this.matrices.model, vec2.fromValues(1000.0, 2000.0));
-        mat2d.translate(this.matrices.model, this.matrices.model, vec2.fromValues(-12.5, -52.27));
+        mat2d.scale(this.matrices.model, this.matrices.model, vec2.fromValues(2000.0, 4000.0));
+        mat2d.translate(this.matrices.model, this.matrices.model, vec2.fromValues(-13.5, -52.53));
 
         this.calculateModelView();
     }
@@ -136,10 +137,27 @@ class ShaderData {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
     }
 
+    translateView(x, y) {
+        const view = mat2d.create();
+        mat2d.fromTranslation(view, vec2.fromValues(2 * x, -2 * y));
+        mat2d.multiply(this.matrices.view, view, this.matrices.view);
+        this.calculateModelView();
+    }
+
+    scaleView(scale, x, y) {
+        const translation = vec2.fromValues(2 * (x - this.canvas.width / 2), -2 * (y - this.canvas.height / 2));
+        const view = mat2d.create();
+        mat2d.translate(view, view, translation);
+        mat2d.scale(view, view, vec2.fromValues(scale, scale));
+        mat2d.translate(view, view, vec2.negate(translation, translation));
+        mat2d.multiply(this.matrices.view, view, this.matrices.view);
+        this.calculateModelView();
+    }
+
     calculateModelView() {
         const modelView2d = mat2d.create();
-        mat2d.translate(modelView2d, modelView2d, vec2.fromValues(-1.0, -1.0));
-        mat2d.scale(modelView2d, modelView2d, vec2.fromValues(2.0 / this.canvas.width, 2.0 / this.canvas.height));
+        mat2d.scale(modelView2d, modelView2d, vec2.fromValues(1.0 / this.canvas.width, 1.0 / this.canvas.height));
+        mat2d.multiply(modelView2d, modelView2d, this.matrices.view);
         mat2d.multiply(modelView2d, modelView2d, this.matrices.model);
 
         mat4.identity(this.matrices.modelView);
@@ -164,15 +182,28 @@ class Controller {
             this.programInfo.setUp(this.gl),
             this.shaderData.setUp(this.gl),
         ]);
-        this.draw();
-        addEventListener("resize", () => this.draw());
+        this.drawLoop();
+        this.addControlListeners();
     }
 
     initializeCanvas() {
         this.resizeCanvas();
-        addEventListener("resize", () => {
-            this.resizeCanvas();
-            this.shaderData.calculateModelView();
+        addEventListener("resize", () => this.resizeCanvas());
+    }
+
+    addControlListeners() {
+        addEventListener("resize", () => this.shaderData.calculateModelView());
+        addEventListener("mousemove", event => {
+            if (event.buttons) {
+                this.shaderData.translateView(event.movementX, event.movementY);
+            }
+        });
+        addEventListener("wheel", event => {
+            if (event.deltaY < 0) {
+                this.shaderData.scaleView(11 / 10, event.clientX, event.clientY);
+            } else {
+                this.shaderData.scaleView(10 / 11, event.clientX, event.clientY);
+            }
         });
     }
 
@@ -187,6 +218,11 @@ class Controller {
     clear() {
         this.gl.clearColor(0.85, 0.9, 0.9, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    }
+
+    drawLoop() {
+        this.draw();
+        requestAnimationFrame(() => this.drawLoop());
     }
 
     draw() {
