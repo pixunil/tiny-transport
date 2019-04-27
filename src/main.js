@@ -27,14 +27,14 @@ function loadSource(url) {
 }
 
 class ProgramInfo {
-    async setUp(gl) {
+    async setUp(gl, sources) {
         this.gl = gl;
 
-        await this.loadProgram();
+        await this.loadProgram(sources);
         this.fetchLocations();
     }
 
-    async loadProgram() {
+    async loadProgram(sources) {
         const shaders = [
             this.loadShader(this.gl.VERTEX_SHADER, await sources.vertex),
             this.loadShader(this.gl.FRAGMENT_SHADER, await sources.fragment),
@@ -75,28 +75,63 @@ class ProgramInfo {
     }
 
     fetchLocations() {
-        this.uniformLocations = {
-            size: this.gl.getUniformLocation(this.program, "u_size"),
-            modelView: this.gl.getUniformLocation(this.program, "u_modelView"),
-        };
+        this.uniformLocations = {};
+        const uniformCount = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_UNIFORMS);
+        for (let uniformIndex = 0; uniformIndex < uniformCount; uniformIndex++) {
+            const uniform = this.gl.getActiveUniform(this.program, uniformIndex);
+            const name = uniform.name.substr(2);
+            this.uniformLocations[name] = this.gl.getUniformLocation(this.program, uniform.name);
+        }
 
-        this.attributeLocations = {
-            position: this.gl.getAttribLocation(this.program, "a_position"),
-        };
+        this.attributeLocations = {};
+        const attributeCount = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_ATTRIBUTES);
+        for (let attributeIndex = 0; attributeIndex < attributeCount; attributeIndex++) {
+            const attribute = this.gl.getActiveAttrib(this.program, attributeIndex);
+            const name = attribute.name.substr(2);
+            this.attributeLocations[name] = this.gl.getAttribLocation(this.program, attribute.name);
+        }
     }
+}
 
-    bind(data) {
+class StationProgramInfo extends ProgramInfo {
+    run(data) {
         this.gl.useProgram(this.program);
 
         this.gl.uniform1f(this.uniformLocations.size, 20.0);
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, data.matrices.modelView);
 
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.position);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.stationPosition);
         this.gl.vertexAttribPointer(
             this.attributeLocations.position,
             2, this.gl.FLOAT,
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
+
+        this.gl.drawArrays(this.gl.POINTS, 0, data.sizes.station);
+    }
+}
+
+class LineProgramInfo extends ProgramInfo {
+    run(data) {
+        this.gl.useProgram(this.program);
+
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, data.matrices.modelView);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.linePosition);
+        this.gl.vertexAttribPointer(
+            this.attributeLocations.position,
+            2, this.gl.FLOAT,
+            false, 0, 0);
+        this.gl.enableVertexAttribArray(this.attributeLocations.position);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.lineColor);
+        this.gl.vertexAttribPointer(
+            this.attributeLocations.color,
+            3, this.gl.FLOAT,
+            false, 0, 0);
+        this.gl.enableVertexAttribArray(this.attributeLocations.color);
+
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, data.sizes.line);
     }
 }
 
@@ -122,19 +157,60 @@ class ShaderData {
 
     async initBuffers(gl) {
         this.buffers = {
-            position: gl.createBuffer(),
+            linePosition: gl.createBuffer(),
+            lineColor: gl.createBuffer(),
+            stationPosition: gl.createBuffer(),
         };
+        this.sizes = {};
 
         const data = JSON.parse(await sources.data);
-        this.length = data.length;
 
-        let positions = [];
-        for (let stop of data) {
-            positions.push(stop.lon, stop.lat);
+        let stationPositions = [];
+        for (let id in data.locations) {
+            const location = data.locations[id];
+            stationPositions.push(location.lon, location.lat);
         }
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.position);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+        this.sizes.station = stationPositions.length / 2;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.stationPosition);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stationPositions), gl.STATIC_DRAW);
+
+        let linePositions = [];
+        let lineColors = [];
+        for (let route of data.routes) {
+            const color = route.color.map(component => component / 255);
+            for (let i = 0; i < route.stops.length - 1; i++) {
+                let curr = data.locations[route.stops[i]];
+                let next = data.locations[route.stops[i + 1]];
+                curr = vec2.fromValues(curr.lon, curr.lat);
+                next = vec2.fromValues(next.lon, next.lat);
+
+                let direction = vec2.subtract(vec2.create(), curr, next);
+                direction[1] *= 2;
+                vec2.normalize(direction, direction);
+
+                linePositions.push(
+                    curr[0] + 0.004 * direction[1], curr[1] - 0.002 * direction[0],
+                    curr[0] - 0.004 * direction[1], curr[1] + 0.002 * direction[0],
+                    next[0] + 0.004 * direction[1], next[1] - 0.002 * direction[0],
+                    curr[0] - 0.004 * direction[1], curr[1] + 0.002 * direction[0],
+                    next[0] + 0.004 * direction[1], next[1] - 0.002 * direction[0],
+                    next[0] - 0.004 * direction[1], next[1] + 0.002 * direction[0],
+                );
+                lineColors.push(
+                    ...color, ...color,
+                    ...color, ...color,
+                    ...color, ...color,
+                );
+            }
+        }
+
+        this.sizes.line = linePositions.length / 2;
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.linePosition);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linePositions), gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.lineColor);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineColors), gl.STATIC_DRAW);
     }
 
     translateView(x, y) {
@@ -175,11 +251,15 @@ class Controller {
         this.gl = gl;
         this.initializeCanvas();
 
-        this.programInfo = new ProgramInfo();
+        this.programInfo = {
+            line: new LineProgramInfo(),
+            station: new StationProgramInfo(),
+        };
         this.shaderData = new ShaderData();
 
         await Promise.all([
-            this.programInfo.setUp(this.gl),
+            this.programInfo.line.setUp(this.gl, sources.line),
+            this.programInfo.station.setUp(this.gl, sources.station),
             this.shaderData.setUp(this.gl),
         ]);
         this.drawLoop();
@@ -226,20 +306,25 @@ class Controller {
     }
 
     draw() {
-        this.programInfo.bind(this.shaderData);
-
         this.gl.disable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ZERO, this.gl.ONE);
 
         this.clear();
-        this.gl.drawArrays(this.gl.POINTS, 0, this.shaderData.length);
+        this.programInfo.line.run(this.shaderData);
+        this.programInfo.station.run(this.shaderData);
     }
 }
 
 const sources = {
-    vertex: loadSource("shader.vert.glsl"),
-    fragment: loadSource("shader.frag.glsl"),
+    line: {
+        vertex: loadSource("shader/line.vert.glsl"),
+        fragment: loadSource("shader/line.frag.glsl"),
+    },
+    station: {
+        vertex: loadSource("shader/station.vert.glsl"),
+        fragment: loadSource("shader/station.frag.glsl"),
+    },
     data: loadSource("../data/vbb.json"),
 };
 
