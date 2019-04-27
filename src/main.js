@@ -124,14 +124,12 @@ class LineProgramInfo extends ProgramInfo {
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.lineColor);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.color,
-            3, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.color);
-
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, data.sizes.line);
+        data.sizes.line.reduce((first, count, index) => {
+            this.gl.uniform3fv(this.uniformLocations.color, data.lineColors[index]);
+            count *= 2;
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, first, count);
+            return first + count;
+        }, 0);
     }
 }
 
@@ -158,10 +156,13 @@ class ShaderData {
     async initBuffers(gl) {
         this.buffers = {
             linePosition: gl.createBuffer(),
-            lineColor: gl.createBuffer(),
             stationPosition: gl.createBuffer(),
         };
-        this.sizes = {};
+        this.sizes = {
+            station: null,
+            line: [],
+        };
+        this.lineColors = [];
 
         const data = JSON.parse(await sources.data);
 
@@ -176,41 +177,52 @@ class ShaderData {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stationPositions), gl.STATIC_DRAW);
 
         let linePositions = [];
-        let lineColors = [];
-        for (let route of data.routes) {
+        for (const route of data.routes) {
             const color = route.color.map(component => component / 255);
+            this.lineColors.push(color);
+
+            let segments = [];
             for (let i = 0; i < route.stops.length - 1; i++) {
                 let curr = data.locations[route.stops[i]];
                 let next = data.locations[route.stops[i + 1]];
                 curr = vec2.fromValues(curr.lon, curr.lat);
                 next = vec2.fromValues(next.lon, next.lat);
-
-                let direction = vec2.subtract(vec2.create(), curr, next);
-                direction[1] *= 2;
-                vec2.normalize(direction, direction);
-
-                linePositions.push(
-                    curr[0] + 0.004 * direction[1], curr[1] - 0.002 * direction[0],
-                    curr[0] - 0.004 * direction[1], curr[1] + 0.002 * direction[0],
-                    next[0] + 0.004 * direction[1], next[1] - 0.002 * direction[0],
-                    curr[0] - 0.004 * direction[1], curr[1] + 0.002 * direction[0],
-                    next[0] + 0.004 * direction[1], next[1] - 0.002 * direction[0],
-                    next[0] - 0.004 * direction[1], next[1] + 0.002 * direction[0],
-                );
-                lineColors.push(
-                    ...color, ...color,
-                    ...color, ...color,
-                    ...color, ...color,
-                );
+                let segment = vec2.subtract(vec2.create(), next, curr);
+                segment[1] *= 2;
+                segments.push(segment);
             }
+
+            for (let i = 0; i < route.stops.length; i++) {
+                let curr = data.locations[route.stops[i]];
+                curr = vec2.fromValues(curr.lon, curr.lat);
+                if (i === 0 || i === route.stops.length - 1) {
+                    const segment = segments[i === 0 ? i : i - 1];
+                    let orthogonal = vec2.fromValues(segment[1], -segment[0]);
+                    vec2.normalize(orthogonal, orthogonal);
+                    linePositions.push(
+                        curr[0] + 0.004 * orthogonal[0], curr[1] + 0.002 * orthogonal[1],
+                        curr[0] - 0.004 * orthogonal[0], curr[1] - 0.002 * orthogonal[1],
+                    );
+                } else {
+                    const preceding = segments[i - 1];
+                    const following = segments[i];
+                    const orthogonal = vec2.fromValues(preceding[1], -preceding[0]);
+                    const scaledPreceding = vec2.scale(vec2.create(), preceding, -vec2.length(following));
+                    const scaledFollowing = vec2.scale(vec2.create(), following, vec2.length(preceding));
+                    let miter = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
+                    miter = vec2.scale(miter, miter, 1 / vec2.dot(orthogonal, following));
+                    linePositions.push(
+                        curr[0] + 0.004 * miter[0], curr[1] + 0.002 * miter[1],
+                        curr[0] - 0.004 * miter[0], curr[1] - 0.002 * miter[1],
+                    );
+                }
+            }
+
+            this.sizes.line.push(route.stops.length);
         }
 
-        this.sizes.line = linePositions.length / 2;
         gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.linePosition);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linePositions), gl.STATIC_DRAW);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.lineColor);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineColors), gl.STATIC_DRAW);
     }
 
     translateView(x, y) {

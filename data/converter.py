@@ -74,11 +74,17 @@ class Location(object):
         return locations
 
 class Route(object):
-    def __init__(self, id, name, type):
-        self.id = id
+    def __init__(self, agency, name, type):
+        self.agency = agency
         self.name = name
         self.type = type
         self.trips = []
+
+    def __eq__(self, other):
+        return self.agency.id == other.agency.id and self.name == other.name and self.type == other.type
+
+    def __hash__(self):
+        return hash((self.agency.id, self.name, self.type))
 
     def __repr__(self):
         return self.name
@@ -104,12 +110,19 @@ class Route(object):
         reader = csv.DictReader(routeCsv)
 
         routes = {}
+        routesById = {}
         for row in reader:
-            route = Route(row["route_id"], row["route_short_name"], int(row["route_type"]))
-            agencies[row["agency_id"]].routes.append(route)
-            routes[route.id] = route
+            route = Route(agencies[row["agency_id"]], row["route_short_name"], int(row["route_type"]))
 
-        return routes
+            if route in routes:
+                route = routes[route]
+            else:
+                routes[route] = route
+                route.agency.routes.append(route)
+
+            routesById[row["route_id"]] = route
+
+        return routesById
 
     @staticmethod
     def addColorsFromCsv(colorCsv, routes):
