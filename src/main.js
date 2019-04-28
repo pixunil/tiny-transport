@@ -1,3 +1,5 @@
+import {Model} from "./model.js";
+
 const vec2 = glMatrix.vec2;
 const mat2d = glMatrix.mat2d;
 const mat4 = glMatrix.mat4;
@@ -93,40 +95,95 @@ class ProgramInfo {
     }
 }
 
-class StationProgramInfo extends ProgramInfo {
-    run(data) {
-        this.gl.useProgram(this.program);
+class Renderer {
+    constructor(shaderData) {
+        this.shaderData = shaderData;
+        this.programInfo = new ProgramInfo();
+    }
 
-        this.gl.uniform1f(this.uniformLocations.size, 5.0);
-        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, data.matrices.modelView);
+    async setUp(gl, sources) {
+        this.gl = gl;
+        await Promise.all([
+            this.programInfo.setUp(gl, sources),
+            this.createBuffers(),
+        ]);
+    }
 
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.stationPosition);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.position,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.position);
+    get uniformLocations() {
+        return this.programInfo.uniformLocations;
+    }
 
-        this.gl.drawArrays(this.gl.POINTS, 0, data.sizes.station);
+    get attributeLocations() {
+        return this.programInfo.attributeLocations;
     }
 }
 
-class LineProgramInfo extends ProgramInfo {
-    run(data) {
-        this.gl.useProgram(this.program);
+class StationRenderer extends Renderer {
+    createBuffers() {
+        this.buffers = {
+            position: this.gl.createBuffer(),
+        }
+    }
 
-        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, data.matrices.modelView);
+    fillBuffers(model) {
+        const positions = model.stations.reduce((positions, station) => {
+            return positions.concat(station.vertices);
+        }, []);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
 
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.linePosition);
+        this.size = model.stations.length;
+    }
+
+    run() {
+        this.gl.useProgram(this.programInfo.program);
+
+        this.gl.uniform1f(this.uniformLocations.size, 5.0);
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
         this.gl.vertexAttribPointer(
             this.attributeLocations.position,
             2, this.gl.FLOAT,
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
-        data.sizes.line.reduce((first, count, index) => {
-            this.gl.uniform3fv(this.uniformLocations.color, data.lineColors[index]);
-            count *= 2;
+        this.gl.drawArrays(this.gl.POINTS, 0, this.size);
+    }
+}
+
+class LineRenderer extends Renderer {
+    createBuffers() {
+        this.buffers = {
+            position: this.gl.createBuffer(),
+        }
+    }
+
+    fillBuffers(model) {
+        const positions = model.lines.reduce((positions, line) => {
+            return positions.concat(line.vertices);
+        }, []);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+
+        this.sizes = model.lines.map(line => 2 * line.stops.length);
+        this.colors = model.lines.map(line => line.color.map(component => component / 255));
+    }
+
+    run() {
+        this.gl.useProgram(this.programInfo.program);
+
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+        this.gl.vertexAttribPointer(
+            this.attributeLocations.position,
+            2, this.gl.FLOAT,
+            false, 0, 0);
+        this.gl.enableVertexAttribArray(this.attributeLocations.position);
+
+        this.sizes.reduce((first, count, index) => {
+            this.gl.uniform3fv(this.uniformLocations.color, this.colors[index]);
             this.gl.drawArrays(this.gl.TRIANGLE_STRIP, first, count);
             return first + count;
         }, 0);
@@ -137,98 +194,25 @@ class ShaderData {
     async setUp(gl) {
         this.canvas = gl.canvas;
         this.initMatrices();
-        await this.initBuffers(gl);
     }
 
     initMatrices() {
-        this.matrices = {
+        this.uniforms = {
             model: glMatrix.mat2d.create(),
             view: glMatrix.mat2d.create(),
             modelView: glMatrix.mat4.create(),
         };
 
-        mat2d.scale(this.matrices.model, this.matrices.model, vec2.fromValues(2000.0, 4000.0));
-        mat2d.translate(this.matrices.model, this.matrices.model, vec2.fromValues(-13.5, -52.53));
+        mat2d.scale(this.uniforms.model, this.uniforms.model, vec2.fromValues(2000.0, 4000.0));
+        mat2d.translate(this.uniforms.model, this.uniforms.model, vec2.fromValues(-13.5, -52.53));
 
         this.calculateModelView();
-    }
-
-    async initBuffers(gl) {
-        this.buffers = {
-            linePosition: gl.createBuffer(),
-            stationPosition: gl.createBuffer(),
-        };
-        this.sizes = {
-            station: null,
-            line: [],
-        };
-        this.lineColors = [];
-
-        const data = JSON.parse(await sources.data);
-
-        let stationPositions = [];
-        for (let id in data.locations) {
-            const location = data.locations[id];
-            stationPositions.push(location.lon, location.lat);
-        }
-
-        this.sizes.station = stationPositions.length / 2;
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.stationPosition);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(stationPositions), gl.STATIC_DRAW);
-
-        let linePositions = [];
-        for (const route of data.routes) {
-            const color = route.color.map(component => component / 255);
-            this.lineColors.push(color);
-
-            let segments = [];
-            for (let i = 0; i < route.stops.length - 1; i++) {
-                let curr = data.locations[route.stops[i]];
-                let next = data.locations[route.stops[i + 1]];
-                curr = vec2.fromValues(curr.lon, curr.lat);
-                next = vec2.fromValues(next.lon, next.lat);
-                let segment = vec2.subtract(vec2.create(), next, curr);
-                segment[1] *= 2;
-                segments.push(segment);
-            }
-
-            for (let i = 0; i < route.stops.length; i++) {
-                let curr = data.locations[route.stops[i]];
-                curr = vec2.fromValues(curr.lon, curr.lat);
-                if (i === 0 || i === route.stops.length - 1) {
-                    const segment = segments[i === 0 ? i : i - 1];
-                    let orthogonal = vec2.fromValues(segment[1], -segment[0]);
-                    vec2.normalize(orthogonal, orthogonal);
-                    linePositions.push(
-                        curr[0] + 0.002 * orthogonal[0], curr[1] + 0.001 * orthogonal[1],
-                        curr[0] - 0.002 * orthogonal[0], curr[1] - 0.001 * orthogonal[1],
-                    );
-                } else {
-                    const preceding = segments[i - 1];
-                    const following = segments[i];
-                    const orthogonal = vec2.fromValues(preceding[1], -preceding[0]);
-                    const scaledPreceding = vec2.scale(vec2.create(), preceding, -vec2.length(following));
-                    const scaledFollowing = vec2.scale(vec2.create(), following, vec2.length(preceding));
-                    let miter = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
-                    miter = vec2.scale(miter, miter, 1 / vec2.dot(orthogonal, following));
-                    linePositions.push(
-                        curr[0] + 0.002 * miter[0], curr[1] + 0.001 * miter[1],
-                        curr[0] - 0.002 * miter[0], curr[1] - 0.001 * miter[1],
-                    );
-                }
-            }
-
-            this.sizes.line.push(route.stops.length);
-        }
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.linePosition);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(linePositions), gl.STATIC_DRAW);
     }
 
     translateView(x, y) {
         const view = mat2d.create();
         mat2d.fromTranslation(view, vec2.fromValues(2 * x, -2 * y));
-        mat2d.multiply(this.matrices.view, view, this.matrices.view);
+        mat2d.multiply(this.uniforms.view, view, this.uniforms.view);
         this.calculateModelView();
     }
 
@@ -238,23 +222,23 @@ class ShaderData {
         mat2d.translate(view, view, translation);
         mat2d.scale(view, view, vec2.fromValues(scale, scale));
         mat2d.translate(view, view, vec2.negate(translation, translation));
-        mat2d.multiply(this.matrices.view, view, this.matrices.view);
+        mat2d.multiply(this.uniforms.view, view, this.uniforms.view);
         this.calculateModelView();
     }
 
     calculateModelView() {
         const modelView2d = mat2d.create();
         mat2d.scale(modelView2d, modelView2d, vec2.fromValues(1.0 / this.canvas.width, 1.0 / this.canvas.height));
-        mat2d.multiply(modelView2d, modelView2d, this.matrices.view);
-        mat2d.multiply(modelView2d, modelView2d, this.matrices.model);
+        mat2d.multiply(modelView2d, modelView2d, this.uniforms.view);
+        mat2d.multiply(modelView2d, modelView2d, this.uniforms.model);
 
-        mat4.identity(this.matrices.modelView);
-        this.matrices.modelView[0] = modelView2d[0];
-        this.matrices.modelView[1] = modelView2d[1];
-        this.matrices.modelView[4] = modelView2d[2];
-        this.matrices.modelView[5] = modelView2d[3];
-        this.matrices.modelView[12] = modelView2d[4];
-        this.matrices.modelView[13] = modelView2d[5];
+        mat4.identity(this.uniforms.modelView);
+        this.uniforms.modelView[0] = modelView2d[0];
+        this.uniforms.modelView[1] = modelView2d[1];
+        this.uniforms.modelView[4] = modelView2d[2];
+        this.uniforms.modelView[5] = modelView2d[3];
+        this.uniforms.modelView[12] = modelView2d[4];
+        this.uniforms.modelView[13] = modelView2d[5];
     }
 }
 
@@ -263,16 +247,22 @@ class Controller {
         this.gl = gl;
         this.initializeCanvas();
 
-        this.programInfo = {
-            line: new LineProgramInfo(),
-            station: new StationProgramInfo(),
-        };
+        this.model = new Model();
         this.shaderData = new ShaderData();
+        this.renderer = {
+            line: new LineRenderer(this.shaderData),
+            station: new StationRenderer(this.shaderData),
+        };
 
         await Promise.all([
-            this.programInfo.line.setUp(this.gl, sources.line),
-            this.programInfo.station.setUp(this.gl, sources.station),
+            this.model.setUp(sources.data),
             this.shaderData.setUp(this.gl),
+            this.renderer.line.setUp(this.gl, sources.line),
+            this.renderer.station.setUp(this.gl, sources.station),
+        ]);
+        await Promise.all([
+            this.renderer.line.fillBuffers(this.model),
+            this.renderer.station.fillBuffers(this.model),
         ]);
         this.drawLoop();
         this.addControlListeners();
@@ -323,8 +313,8 @@ class Controller {
         this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ZERO, this.gl.ONE);
 
         this.clear();
-        this.programInfo.line.run(this.shaderData);
-        this.programInfo.station.run(this.shaderData);
+        this.renderer.line.run();
+        this.renderer.station.run();
     }
 }
 
