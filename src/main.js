@@ -97,7 +97,7 @@ class StationProgramInfo extends ProgramInfo {
     run(data) {
         this.gl.useProgram(this.program);
 
-        this.gl.uniform1f(this.uniformLocations.size, 20.0);
+        this.gl.uniform1f(this.uniformLocations.size, 5.0);
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, data.matrices.modelView);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, data.buffers.stationPosition);
@@ -200,8 +200,8 @@ class ShaderData {
                     let orthogonal = vec2.fromValues(segment[1], -segment[0]);
                     vec2.normalize(orthogonal, orthogonal);
                     linePositions.push(
-                        curr[0] + 0.004 * orthogonal[0], curr[1] + 0.002 * orthogonal[1],
-                        curr[0] - 0.004 * orthogonal[0], curr[1] - 0.002 * orthogonal[1],
+                        curr[0] + 0.002 * orthogonal[0], curr[1] + 0.001 * orthogonal[1],
+                        curr[0] - 0.002 * orthogonal[0], curr[1] - 0.001 * orthogonal[1],
                     );
                 } else {
                     const preceding = segments[i - 1];
@@ -212,8 +212,8 @@ class ShaderData {
                     let miter = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
                     miter = vec2.scale(miter, miter, 1 / vec2.dot(orthogonal, following));
                     linePositions.push(
-                        curr[0] + 0.004 * miter[0], curr[1] + 0.002 * miter[1],
-                        curr[0] - 0.004 * miter[0], curr[1] - 0.002 * miter[1],
+                        curr[0] + 0.002 * miter[0], curr[1] + 0.001 * miter[1],
+                        curr[0] - 0.002 * miter[0], curr[1] - 0.001 * miter[1],
                     );
                 }
             }
