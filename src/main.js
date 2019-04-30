@@ -166,7 +166,7 @@ class LineRenderer extends Renderer {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
 
-        this.sizes = model.lines.map(line => 2 * line.stops.length);
+        this.sizes = model.lines.map(line => line.vertices.length / 2);
         this.colors = model.lines.map(line => line.color.map(component => component / 255));
     }
 

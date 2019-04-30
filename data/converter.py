@@ -104,24 +104,47 @@ class Agency(object):
         return (list(agenciesById.values()), agenciesById)
 
 class Location(object):
-    def __init__(self, name, lat, lon):
+    def __init__(self, name, lat, lon, parent):
         self.name = name
         self.lat = lat
         self.lon = lon
+        self.parent = parent
 
     def __repr__(self):
         return self.name
+
+    @property
+    def station(self):
+        if self.parent:
+            return self.parent
+        else:
+            return self
 
     @staticmethod
     def fromCsv(locationCsv):
         reader = csv.DictReader(locationCsv)
 
         locationsById = {}
+        queued = []
         for row in reader:
-            location = Location(row["stop_name"], float(row["stop_lat"]), float(row["stop_lon"]))
-            locationsById[row["stop_id"]] = location
+            if row["parent_station"]:
+                queued.append(row)
+            else:
+                Location.parseRow(row, locationsById)
+
+        for row in queued:
+            Location.parseRow(row, locationsById)
 
         return (list(locationsById.values()), locationsById)
+
+    @staticmethod
+    def parseRow(row, locationsById):
+        parent = None
+        if row["parent_station"]:
+            parent = locationsById[row["parent_station"]]
+        location = Location(row["stop_name"], float(row["stop_lat"]), float(row["stop_lon"]), parent)
+        locationsById[row["stop_id"]] = location
+        return location
 
 class Route(object):
     def __init__(self, agency, name, type):
@@ -236,35 +259,35 @@ if __name__ == "__main__":
             pickle.dump(dataset, pickleFile)
 
     print("Fetching data...")
-    locations = set()
-    routes = []
+    stations = set()
+    lines = []
 
     for agency in dataset.agencies:
         if agency.name == "S-Bahn Berlin GmbH":
             for route in agency.routes:
                 if route.is_suburban_railway:
                     trip = max(route.trips, key=lambda trip: len(trip.stops))
-                    locations |= set(stop.location for stop in trip.stops)
-                    routes.append({
+                    stations |= set(stop.location.station for stop in trip.stops)
+                    lines.append({
                         "color": route.color,
                         "stops": trip.stops,
                     })
 
-    locations = list(locations)
+    stations = list(stations)
     data = {
-        "routes": [],
-        "locations": [],
+        "lines": [],
+        "stations": [],
     }
-    for route in routes:
-        data["routes"].append({
-            "color": route["color"],
-            "stops": [locations.index(stop.location) for stop in route["stops"]]
+    for line in lines:
+        data["lines"].append({
+            "color": line["color"],
+            "stops": [stations.index(stop.location.station) for stop in line["stops"]]
         })
 
-    for location in locations:
-        data["locations"].append({
-            "lat": location.lat,
-            "lon": location.lon,
+    for station in stations:
+        data["stations"].append({
+            "lat": station.lat,
+            "lon": station.lon,
         })
 
     print("Exporting...")
