@@ -2,6 +2,8 @@
 
 import os
 from operator import attrgetter
+from datetime import datetime
+import argparse
 import csv
 import json
 import pickle
@@ -10,51 +12,99 @@ class DataSet(object):
     def loadData(self):
         print("Parsing agencies...")
         with open("vbb/agency.txt") as agencyCsv:
-            self.agencies = Agency.fromCsv(agencyCsv)
+            (self.agencies, agenciesById) = Agency.fromCsv(agencyCsv)
 
         print("Parsing locations...")
         with open("vbb/stops.txt") as locationCsv:
-            self.locations = Location.fromCsv(locationCsv)
+            (self.locations, locationsById) = Location.fromCsv(locationCsv)
+
+        print("Parsing services...")
+        with open("vbb/calendar.txt") as calendarCsv, open("vbb/calendar_dates.txt") as calendarDatesCsv:
+            (self.services, _servicesById) = Service.fromCsv(calendarCsv, calendarDatesCsv)
 
         print("Parsing routes...")
         with open("vbb/routes.txt") as routeCsv:
-            self.routes = Route.fromCsv(routeCsv, self.agencies)
+            (self.routes, routesById) = Route.fromCsv(routeCsv, agenciesById)
 
         print("Parsing trips...")
         with open("vbb/trips.txt") as tripCsv:
-            self.trips = Trip.fromCsv(tripCsv, self.routes)
+            (self.trips, tripsById) = Trip.fromCsv(tripCsv, routesById)
 
         print("Parsing stops...")
         with open("vbb/stop_times.txt") as stopCsv:
-            Stop.fromCsv(stopCsv, self.trips, self.locations)
+            Stop.fromCsv(stopCsv, tripsById, locationsById)
 
         print("Parsing colors...")
         with open("vbb/colors.csv") as colorsCsv:
-            Route.addColorsFromCsv(colorsCsv, self.routes)
+            Route.addColorsFromCsv(colorsCsv, routesById)
+
+class Service(object):
+    def __init__(self, start, end, available_weekdays):
+        self.start = start
+        self.end = end
+        self.available_weekdays = available_weekdays
+        self.added = set()
+        self.removed = set()
+
+    def __repr__(self):
+        return "".join(name if available else "-" for available, name in zip(self.available_weekdays, "MTWTFSS"))
+
+    def available_at(self, date):
+        return date not in self.removed and (date in self.added or self.regulary_available_at(date))
+
+    def regulary_available_at(self, date):
+        return self.start <= date <= self.end and self.available_weekdays[date.weekday()]
+
+    @staticmethod
+    def fromCsv(calendarCsv, calendarDatesCsv):
+        reader = csv.DictReader(calendarCsv)
+
+        servicesById = {}
+        for row in reader:
+            start = datetime.strptime(row["start_date"], "%Y%m%d").date()
+            end = datetime.strptime(row["end_date"], "%Y%m%d").date()
+            available_weekdays = (row[day] == "1" for day in ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"))
+            service = Service(start, end, tuple(available_weekdays))
+            servicesById[row["service_id"]] = service
+
+        reader = csv.DictReader(calendarDatesCsv)
+        for row in reader:
+            service = servicesById[row["service_id"]]
+            date = datetime.strptime(row["date"], "%Y%m%d").date()
+            if row["exception_type"] == "1":
+                service.added.add(date)
+            else:
+                service.removed.add(date)
+
+        return (list(servicesById.values()), servicesById)
 
 class Agency(object):
-    def __init__(self, id, name):
-        self.id = id
+    def __init__(self, name):
         self.name = name
         self.routes = []
 
     def __repr__(self):
         return self.name
 
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
+
     @staticmethod
     def fromCsv(agencyCsv):
         reader = csv.DictReader(agencyCsv)
 
-        agencies = {}
+        agenciesById = {}
         for row in reader:
-            agency = Agency(row["agency_id"], row["agency_name"])
-            agencies[agency.id] = agency
+            agency = Agency(row["agency_name"])
+            agenciesById[row["agency_id"]] = agency
 
-        return agencies
+        return (list(agenciesById.values()), agenciesById)
 
 class Location(object):
-    def __init__(self, id, name, lat, lon):
-        self.id = id
+    def __init__(self, name, lat, lon):
         self.name = name
         self.lat = lat
         self.lon = lon
@@ -66,12 +116,12 @@ class Location(object):
     def fromCsv(locationCsv):
         reader = csv.DictReader(locationCsv)
 
-        locations = {}
+        locationsById = {}
         for row in reader:
-            location = Location(row["stop_id"], row["stop_name"], float(row["stop_lat"]), float(row["stop_lon"]))
-            locations[location.id] = location
+            location = Location(row["stop_name"], float(row["stop_lat"]), float(row["stop_lon"]))
+            locationsById[row["stop_id"]] = location
 
-        return locations
+        return (list(locationsById.values()), locationsById)
 
 class Route(object):
     def __init__(self, agency, name, type):
@@ -81,10 +131,10 @@ class Route(object):
         self.trips = []
 
     def __eq__(self, other):
-        return self.agency.id == other.agency.id and self.name == other.name and self.type == other.type
+        return self.agency == other.agency and self.name == other.name and self.type == other.type
 
     def __hash__(self):
-        return hash((self.agency.id, self.name, self.type))
+        return hash((self.agency, self.name, self.type))
 
     def __repr__(self):
         return self.name
@@ -122,7 +172,7 @@ class Route(object):
 
             routesById[row["route_id"]] = route
 
-        return routesById
+        return (list(routes.values()), routesById)
 
     @staticmethod
     def addColorsFromCsv(colorCsv, routes):
@@ -142,13 +192,13 @@ class Trip(object):
     def fromCsv(tripCsv, routes):
         reader = csv.DictReader(tripCsv)
 
-        trips = {}
+        tripsById = {}
         for row in reader:
             trip = Trip(row["trip_id"])
             routes[row["route_id"]].trips.append(trip)
-            trips[trip.id] = trip
+            tripsById[trip.id] = trip
 
-        return trips
+        return (list(tripsById.values()), tripsById)
 
 class Stop(object):
     def __init__(self, location, order):
@@ -169,8 +219,13 @@ class Stop(object):
         for trip in trips.values():
             trip.stops.sort(key=attrgetter("order"))
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--refresh", action="store_true")
+
 if __name__ == "__main__":
-    if os.path.exists("vbb.pickle"):
+    args = parser.parse_args()
+
+    if not args.refresh and os.path.exists("vbb.pickle"):
         print("Loading dataset...")
         with open("vbb.pickle", "rb") as pickleFile:
             dataset = pickle.load(pickleFile)
@@ -181,28 +236,36 @@ if __name__ == "__main__":
             pickle.dump(dataset, pickleFile)
 
     print("Fetching data...")
-    data = {
-        "routes": [],
-        "locations": {},
-    }
+    locations = set()
+    routes = []
 
-    for agency in dataset.agencies.values():
+    for agency in dataset.agencies:
         if agency.name == "S-Bahn Berlin GmbH":
             for route in agency.routes:
                 if route.is_suburban_railway:
                     trip = max(route.trips, key=lambda trip: len(trip.stops))
-
-                    data["routes"].append({
+                    locations |= set(stop.location for stop in trip.stops)
+                    routes.append({
                         "color": route.color,
-                        "stops": [stop.location.id for stop in trip.stops]
+                        "stops": trip.stops,
                     })
 
-                    for stop in trip.stops:
-                        location = stop.location
-                        data["locations"][location.id] = {
-                            "lat": location.lat,
-                            "lon": location.lon,
-                        }
+    locations = list(locations)
+    data = {
+        "routes": [],
+        "locations": [],
+    }
+    for route in routes:
+        data["routes"].append({
+            "color": route["color"],
+            "stops": [locations.index(stop.location) for stop in route["stops"]]
+        })
+
+    for location in locations:
+        data["locations"].append({
+            "lat": location.lat,
+            "lon": location.lon,
+        })
 
     print("Exporting...")
     with open("vbb.json", "w") as jsonfile:
