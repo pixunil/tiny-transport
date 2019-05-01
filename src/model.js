@@ -3,8 +3,8 @@ const vec2 = glMatrix.vec2;
 export class Model {
     async setUp(json) {
         const data = JSON.parse(await json);
-        this.stations = data.stations.map(location => {
-            return new Station(location.lat, location.lon);
+        this.stations = data.stations.map(station => {
+            return new Station(station.lat, station.lon);
         });
         this.lines = data.lines.map(line => {
             const stops = line.stops.map(index => this.stations[index]);
@@ -17,25 +17,60 @@ class Station {
     constructor(lat, lon) {
         this.lat = lat;
         this.lon = lon;
-        this.tracks = {};
+        this.position = vec2.fromValues(this.lon, this.lat);
+        this.trackBundles = {};
     }
 
     get key() {
         return `${this.lat},${this.lon}`;
     }
 
-    nextAvailableTrackTo(station) {
-        if (!this.tracks[station.key]) {
-            this.tracks[station.key] = 0;
+    buildTrackTo(station) {
+        let direction = vec2.subtract(vec2.create(), this.position, station.position);
+        direction[1] *= 2;
+        let bundle = this.trackBundles[station.key];
+        if (!bundle) {
+            bundle = new TrackBundle(direction);
+            this.trackBundles[station.key] = bundle;
+            station.trackBundles[this.key] = bundle;
         }
 
-        const track = this.tracks[station.key];
-        this.tracks[station.key] += 1;
-        return track;
+        return bundle.buildTrack(direction);
     }
 
     get vertices() {
         return [this.lon, this.lat];
+    }
+}
+
+class TrackBundle {
+    constructor(direction) {
+        this.orthogonal = vec2.fromValues(direction[1], -direction[0]);
+        this.count = 0;
+    }
+
+    buildTrack(direction) {
+        const track = new Track(direction, this.orthogonal, this.count);
+        this.count += 1;
+        return track;
+    }
+}
+
+class Track {
+    constructor(direction, orthogonal, number) {
+        this.direction = direction;
+        this.orthogonal = orthogonal;
+        this.number = number;
+        this.sign = 1;
+    }
+
+    reverse() {
+        const reversedDirection = vec2.negate(vec2.create(), this.direction);
+        return new Track(reversedDirection, this.orthogonal, this.number);
+    }
+
+    get offset() {
+        return Math.ceil(this.number / 2) * (-1) ** this.number;
     }
 }
 
@@ -47,10 +82,9 @@ class Line {
         for (let i = 0; i < this.stops.length - 1; i++) {
             const start = this.stops[i];
             const end = this.stops[i + 1];
-            let segment = vec2.subtract(vec2.create(), start.stationVector, end.stationVector);
-            segment[1] *= 2;
-            start.addFollowing(end.station, segment);
-            end.addPreceding(start.station, segment);
+            const track = start.station.buildTrackTo(end.station);
+            start.followingTrack = track;
+            end.precedingTrack = track.reverse();
         }
     }
 
@@ -64,54 +98,43 @@ class Line {
 class LineStop {
     constructor(station) {
         this.station = station;
-        this.stationVector = vec2.fromValues(this.station.lon, this.station.lat);
-    }
-
-    addPreceding(preceding, precedingDirection) {
-        this.precedingTrack = this.station.nextAvailableTrackTo(preceding);
-        this.precedingDirection = precedingDirection;
-    }
-
-    addFollowing(following, followingDirection) {
-        this.followingTrack = this.station.nextAvailableTrackTo(following);
-        this.followingDirection = followingDirection;
     }
 
     connection(orientation, track) {
         vec2.multiply(orientation, orientation, vec2.fromValues(0.0008, 0.0004));
-        const trackOffset = Math.ceil(track / 2) * (-1) ** track;
         return [
-            ...vec2.add(vec2.create(), this.stationVector, vec2.scale(vec2.create(), orientation, trackOffset + 0.5)),
-            ...vec2.add(vec2.create(), this.stationVector, vec2.scale(vec2.create(), orientation, trackOffset - 0.5)),
+            ...vec2.add(vec2.create(), this.station.position, vec2.scale(vec2.create(), orientation, track.offset + 0.5)),
+            ...vec2.add(vec2.create(), this.station.position, vec2.scale(vec2.create(), orientation, track.offset - 0.5)),
         ];
     }
 
-    orthogonalConnection(segment, track) {
-        let orthogonal = vec2.fromValues(segment[1], -segment[0]);
-        vec2.normalize(orthogonal, orthogonal);
+    orthogonalConnection(track) {
+        const orthogonal = vec2.normalize(vec2.create(), track.orthogonal);
         return this.connection(orthogonal, track);
     }
 
-    miterConnection(track) {
-        const orthogonal = vec2.fromValues(this.precedingDirection[1], -this.precedingDirection[0]);
-        const scaledPreceding = vec2.scale(vec2.create(), this.precedingDirection, -vec2.length(this.followingDirection));
-        const scaledFollowing = vec2.scale(vec2.create(), this.followingDirection, vec2.length(this.precedingDirection));
-        let miter = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
-        miter = vec2.scale(miter, miter, 1 / vec2.dot(orthogonal, this.followingDirection));
-        return this.connection(miter, track);
+    miterConnection() {
+        const scaledPreceding = vec2.scale(vec2.create(), this.precedingTrack.direction, vec2.length(this.followingTrack.direction));
+        const scaledFollowing = vec2.scale(vec2.create(), this.followingTrack.direction, vec2.length(this.precedingTrack.direction));
+        const span = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
+        let miter = vec2.scale(vec2.create(), span, 1 / vec2.dot(this.precedingTrack.orthogonal, this.followingTrack.direction));
+        let vertices = this.connection(miter, this.precedingTrack);
+
+        if (this.precedingTrack.number != this.followingTrack.number) {
+            miter = vec2.scale(vec2.create(), span, 1 / vec2.dot(this.followingTrack.orthogonal, this.precedingTrack.direction));
+            vertices = vertices.concat(this.connection(miter, this.followingTrack));
+        }
+
+        return vertices;
     }
 
     get vertices() {
-        if (!this.precedingDirection) {
-            return this.orthogonalConnection(this.followingDirection, this.followingTrack);
-        } else if (!this.followingDirection) {
-            return this.orthogonalConnection(this.precedingDirection, this.precedingTrack);
-        } else {
-            let vertices = this.miterConnection(this.precedingTrack);
-            if (this.precedingTrack != this.followingTrack) {
-                vertices = vertices.concat(this.miterConnection(this.followingTrack));
-            }
-            return vertices;
+        if (this.precedingTrack && this.followingTrack) {
+            return this.miterConnection();
+        } else if (this.precedingTrack) {
+            return this.orthogonalConnection(this.precedingTrack);
+        } else if (this.followingTrack) {
+            return this.orthogonalConnection(this.followingTrack);
         }
     }
 }
