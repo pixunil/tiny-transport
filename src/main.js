@@ -226,6 +226,14 @@ class ShaderData {
         this.calculateModelView();
     }
 
+    transformMouse(x, y) {
+        let point = vec2.fromValues(x, y);
+        vec2.multiply(point, point, vec2.fromValues(2.0 / this.canvas.width, -2.0 / this.canvas.height));
+        vec2.add(point, point, vec2.fromValues(-1.0, 1.0));
+        const inversed = mat4.invert(mat4.create(), this.uniforms.modelView);
+        return vec2.transformMat4(vec2.create(), point, inversed);
+    }
+
     calculateModelView() {
         const modelView2d = mat2d.create();
         mat2d.scale(modelView2d, modelView2d, vec2.fromValues(1.0 / this.canvas.width, 1.0 / this.canvas.height));
@@ -276,6 +284,7 @@ class Controller {
     addControlListeners() {
         addEventListener("resize", () => this.shaderData.calculateModelView());
         addEventListener("mousemove", event => {
+            this.updateTooltip(event.clientX, event.clientY);
             if (event.buttons) {
                 this.shaderData.translateView(event.movementX, event.movementY);
             }
@@ -287,6 +296,12 @@ class Controller {
                 this.shaderData.scaleView(10 / 11, event.clientX, event.clientY);
             }
         });
+    }
+
+    updateTooltip(x ,y) {
+        const point = this.shaderData.transformMouse(x, y);
+        const entity = this.model.findEntity(point);
+        this.gl.canvas.title = entity ? entity.name : "";
     }
 
     resizeCanvas() {

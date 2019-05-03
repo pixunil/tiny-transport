@@ -4,17 +4,22 @@ export class Model {
     async setUp(json) {
         const data = JSON.parse(await json);
         this.stations = data.stations.map(station => {
-            return new Station(station.lat, station.lon);
+            return new Station(station.name, station.lat, station.lon);
         });
         this.lines = data.lines.map(line => {
             const stops = line.stops.map(index => this.stations[index]);
-            return new Line(line.color, stops);
+            return new Line(line.name, line.color, stops);
         });
+    }
+
+    findEntity(point) {
+        return this.stations.find(station => station.contains(point));
     }
 }
 
 class Station {
-    constructor(lat, lon) {
+    constructor(name, lat, lon) {
+        this.name = name;
         this.lat = lat;
         this.lon = lon;
         this.position = vec2.fromValues(this.lon, this.lat);
@@ -36,6 +41,11 @@ class Station {
         }
 
         return bundle.buildTrack(direction);
+    }
+
+    contains(point) {
+        const difference = vec2.subtract(vec2.create(), this.position, point);
+        return vec2.length(difference) < 0.002;
     }
 
     get vertices() {
@@ -61,7 +71,6 @@ class Track {
         this.direction = direction;
         this.orthogonal = orthogonal;
         this.number = number;
-        this.sign = 1;
     }
 
     reverse() {
@@ -75,7 +84,8 @@ class Track {
 }
 
 class Line {
-    constructor(color, stops) {
+    constructor(name, color, stops) {
+        this.name = name;
         this.color = color;
         this.stops = stops.map(station => new LineStop(station));
 

@@ -268,24 +268,23 @@ if __name__ == "__main__":
                 if route.is_suburban_railway:
                     trip = max(route.trips, key=lambda trip: len(trip.stops))
                     stations |= set(stop.location.station for stop in trip.stops)
-                    lines.append({
-                        "color": route.color,
-                        "stops": trip.stops,
-                    })
+                    lines.append((route, trip))
 
     stations = list(stations)
     data = {
         "lines": [],
         "stations": [],
     }
-    for line in lines:
+    for route, trip in lines:
         data["lines"].append({
-            "color": line["color"],
-            "stops": [stations.index(stop.location.station) for stop in line["stops"]]
+            "name": route.name,
+            "color": route.color,
+            "stops": [stations.index(stop.location.station) for stop in trip.stops]
         })
 
     for station in stations:
         data["stations"].append({
+            "name": station.name,
             "lat": station.lat,
             "lon": station.lon,
         })
