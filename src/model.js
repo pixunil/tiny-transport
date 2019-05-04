@@ -30,7 +30,7 @@ class Station {
         return `${this.lat},${this.lon}`;
     }
 
-    buildTrackTo(station) {
+    fetchTrackTo(station, color) {
         let direction = vec2.subtract(vec2.create(), this.position, station.position);
         direction[1] *= 2;
         let bundle = this.trackBundles[station.key];
@@ -40,7 +40,7 @@ class Station {
             station.trackBundles[this.key] = bundle;
         }
 
-        return bundle.buildTrack(direction);
+        return bundle.fetchTrack(direction, color);
     }
 
     contains(point) {
@@ -56,7 +56,16 @@ class Station {
 class TrackBundle {
     constructor(direction) {
         this.orthogonal = vec2.fromValues(direction[1], -direction[0]);
+        this.tracks = {};
         this.count = 0;
+    }
+
+    fetchTrack(direction, color) {
+        if (!this.tracks[color]) {
+            this.tracks[color] = this.buildTrack(direction);
+        }
+
+        return this.tracks[color];
     }
 
     buildTrack(direction) {
@@ -92,7 +101,7 @@ class Line {
         for (let i = 0; i < this.stops.length - 1; i++) {
             const start = this.stops[i];
             const end = this.stops[i + 1];
-            const track = start.station.buildTrackTo(end.station);
+            const track = start.station.fetchTrackTo(end.station, this.color);
             start.followingTrack = track;
             end.precedingTrack = track.reverse();
         }
