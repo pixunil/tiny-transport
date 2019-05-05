@@ -107,6 +107,11 @@ class Line {
         }
     }
 
+    get colorComponents() {
+        const color = parseInt(this.color.substring(1), 16);
+        return [color >> 16, color >> 8, color].map(component => (component & 255) / 255);
+    }
+
     get vertices() {
         return this.stops.reduce((vertices, stop) => {
             return vertices.concat(stop.vertices);

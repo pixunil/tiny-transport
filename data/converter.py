@@ -204,7 +204,7 @@ class Route(object):
         for row in reader:
             for route in routes.values():
                 if route.name == row["Linie"] and route.should_have_color:
-                    route.color = [int(row[component]) for component in "RGB"]
+                    route.color = row["Hex"]
 
 class Trip(object):
     def __init__(self, id):

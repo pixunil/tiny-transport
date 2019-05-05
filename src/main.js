@@ -167,7 +167,7 @@ class LineRenderer extends Renderer {
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
 
         this.sizes = model.lines.map(line => line.vertices.length / 2);
-        this.colors = model.lines.map(line => line.color.map(component => component / 255));
+        this.colors = model.lines.map(line => line.colorComponents);
     }
 
     run() {
@@ -313,7 +313,7 @@ class Controller {
     }
 
     clear() {
-        this.gl.clearColor(0.85, 0.9, 0.9, 1.0);
+        this.gl.clearColor(0.9, 0.95, 0.95, 1.0);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
