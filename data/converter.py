@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
 import os
-from operator import attrgetter
-from datetime import datetime
+from operator import itemgetter
+import datetime
 import argparse
 import csv
 import json
 import pickle
+
+def parse_timedelta(time):
+    parts = [int(part) for part in time.split(":")]
+    return datetime.timedelta(hours=parts[0], minutes=parts[1], seconds=parts[2])
 
 class DataSet(object):
     def loadData(self):
@@ -20,23 +24,19 @@ class DataSet(object):
 
         print("Parsing services...")
         with open("vbb/calendar.txt") as calendarCsv, open("vbb/calendar_dates.txt") as calendarDatesCsv:
-            (self.services, _servicesById) = Service.fromCsv(calendarCsv, calendarDatesCsv)
+            (self.services, servicesById) = Service.fromCsv(calendarCsv, calendarDatesCsv)
 
-        print("Parsing routes...")
+        print("Parsing lines...")
         with open("vbb/routes.txt") as routeCsv:
-            (self.routes, routesById) = Route.fromCsv(routeCsv, agenciesById)
+            (self.lines, linesById) = Line.fromCsv(routeCsv, agenciesById)
 
         print("Parsing trips...")
-        with open("vbb/trips.txt") as tripCsv:
-            (self.trips, tripsById) = Trip.fromCsv(tripCsv, routesById)
-
-        print("Parsing stops...")
-        with open("vbb/stop_times.txt") as stopCsv:
-            Stop.fromCsv(stopCsv, tripsById, locationsById)
+        with open("vbb/trips.txt") as tripCsv, open("vbb/stop_times.txt") as stopCsv:
+            Trip.fromCsv(tripCsv, stopCsv, locationsById, linesById, servicesById)
 
         print("Parsing colors...")
         with open("vbb/colors.csv") as colorsCsv:
-            Route.addColorsFromCsv(colorsCsv, routesById)
+            Line.addColorsFromCsv(colorsCsv, self.lines)
 
 class Service(object):
     def __init__(self, start, end, available_weekdays):
@@ -47,7 +47,8 @@ class Service(object):
         self.removed = set()
 
     def __repr__(self):
-        return "".join(name if available else "-" for available, name in zip(self.available_weekdays, "MTWTFSS"))
+        days = "".join(name if available else "-" for available, name in zip(self.available_weekdays, "MTWTFSS"))
+        return f"<Service {days}>"
 
     def available_at(self, date):
         return date not in self.removed and (date in self.added or self.regulary_available_at(date))
@@ -61,8 +62,8 @@ class Service(object):
 
         servicesById = {}
         for row in reader:
-            start = datetime.strptime(row["start_date"], "%Y%m%d").date()
-            end = datetime.strptime(row["end_date"], "%Y%m%d").date()
+            start = datetime.datetime.strptime(row["start_date"], "%Y%m%d").date()
+            end = datetime.datetime.strptime(row["end_date"], "%Y%m%d").date()
             available_weekdays = (row[day] == "1" for day in ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"))
             service = Service(start, end, tuple(available_weekdays))
             servicesById[row["service_id"]] = service
@@ -70,7 +71,7 @@ class Service(object):
         reader = csv.DictReader(calendarDatesCsv)
         for row in reader:
             service = servicesById[row["service_id"]]
-            date = datetime.strptime(row["date"], "%Y%m%d").date()
+            date = datetime.datetime.strptime(row["date"], "%Y%m%d").date()
             if row["exception_type"] == "1":
                 service.added.add(date)
             else:
@@ -81,10 +82,10 @@ class Service(object):
 class Agency(object):
     def __init__(self, name):
         self.name = name
-        self.routes = []
+        self.lines = []
 
     def __repr__(self):
-        return self.name
+        return f"<Agency '{self.name}'>"
 
     def __eq__(self, other):
         return self.name == other.name
@@ -111,7 +112,7 @@ class Location(object):
         self.parent = parent
 
     def __repr__(self):
-        return self.name
+        return f"<Location '{self.name}' | {self.lat} {self.lon}>"
 
     @property
     def station(self):
@@ -146,12 +147,12 @@ class Location(object):
         locationsById[row["stop_id"]] = location
         return location
 
-class Route(object):
+class Line(object):
     def __init__(self, agency, name, type):
         self.agency = agency
         self.name = name
         self.type = type
-        self.trips = []
+        self.routes = []
 
     def __eq__(self, other):
         return self.agency == other.agency and self.name == other.name and self.type == other.type
@@ -160,7 +161,7 @@ class Route(object):
         return hash((self.agency, self.name, self.type))
 
     def __repr__(self):
-        return self.name
+        return f"<Line {self.name}>"
 
     @property
     def is_railway(self):
@@ -182,65 +183,92 @@ class Route(object):
     def fromCsv(routeCsv, agencies):
         reader = csv.DictReader(routeCsv)
 
-        routes = {}
-        routesById = {}
+        lines = {}
+        linesById = {}
         for row in reader:
-            route = Route(agencies[row["agency_id"]], row["route_short_name"], int(row["route_type"]))
+            line = Line(agencies[row["agency_id"]], row["route_short_name"], int(row["route_type"]))
 
-            if route in routes:
-                route = routes[route]
+            if line in lines:
+                line = lines[line]
             else:
-                routes[route] = route
-                route.agency.routes.append(route)
+                lines[line] = line
+                line.agency.lines.append(line)
 
-            routesById[row["route_id"]] = route
+            linesById[row["route_id"]] = line
 
-        return (list(routes.values()), routesById)
+        return (list(lines.values()), linesById)
 
     @staticmethod
-    def addColorsFromCsv(colorCsv, routes):
+    def addColorsFromCsv(colorCsv, lines):
         reader = csv.DictReader(colorCsv, delimiter=";")
 
         for row in reader:
-            for route in routes.values():
-                if route.name == row["Linie"] and route.should_have_color:
-                    route.color = row["Hex"]
+            for line in lines:
+                if line.name == row["Linie"] and line.should_have_color:
+                    line.color = row["Hex"]
+
+class Route(object):
+    def __init__(self, stations):
+        self.stations = stations
+        self.trips = []
+
+    def __repr__(self):
+        return f"<Route '{self.stations[0].name}' - '{self.stations[-1].name}>"
 
 class Trip(object):
-    def __init__(self, id):
-        self.id = id
-        self.stops = []
+    def __init__(self, reversedDirection, times, service):
+        self.reversedDirection = reversedDirection
+        self.times = times
+        self.service = service
 
     @staticmethod
-    def fromCsv(tripCsv, routes):
+    def fromCsv(tripCsv, stopCsv, locationsById, linesById, servicesById):
         reader = csv.DictReader(tripCsv)
 
         tripsById = {}
         for row in reader:
-            trip = Trip(row["trip_id"])
-            routes[row["route_id"]].trips.append(trip)
-            tripsById[trip.id] = trip
+            tripsById[row["trip_id"]] = {
+                "service": servicesById[row["service_id"]],
+                "line": linesById[row["route_id"]],
+                "stops": [],
+            }
 
-        return (list(tripsById.values()), tripsById)
-
-class Stop(object):
-    def __init__(self, location, order):
-        self.location = location
-        self.order = order
-
-    def __repr__(self):
-        return repr(self.location)
-
-    @staticmethod
-    def fromCsv(stopCsv, trips, locations):
         reader = csv.DictReader(stopCsv)
-
         for row in reader:
-            stop = Stop(locations[row["stop_id"]], int(row["stop_sequence"]))
-            trips[row["trip_id"]].stops.append(stop)
+            arrival = parse_timedelta(row["arrival_time"])
+            departure = parse_timedelta(row["departure_time"])
+            tripsById[row["trip_id"]]["stops"].append({
+                "time": StopTime(arrival, departure),
+                "station": locationsById[row["stop_id"]].station,
+                "order": int(row["stop_sequence"]),
+            })
 
-        for trip in trips.values():
-            trip.stops.sort(key=attrgetter("order"))
+        for trip in tripsById.values():
+            trip["stops"].sort(key=itemgetter("order"))
+
+            stations = [stop["station"] for stop in trip["stops"]]
+            reversedStations = list(reversed(stations))
+            reversedDirection = False
+
+            lineRoutes = trip["line"].routes
+            for route in lineRoutes:
+                if route.stations == stations:
+                    break
+                if route.stations == reversedStations:
+                    reversedDirection = True
+                    break
+            else:
+                route = Route(stations)
+                lineRoutes.append(route)
+
+            times = [stop["time"] for stop in trip["stops"]]
+            trip = Trip(reversedDirection, times, trip["service"])
+            route.trips.append(trip)
+
+class StopTime(object):
+    def __init__(self, arrival, departure):
+        self.arrival = arrival
+        self.departure = departure
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--refresh", action="store_true")
@@ -259,27 +287,28 @@ if __name__ == "__main__":
             pickle.dump(dataset, pickleFile)
 
     print("Fetching data...")
+    date = datetime.date(2019, 5, 7)
     stations = set()
     lines = []
 
     for agency in dataset.agencies:
         if agency.name == "S-Bahn Berlin GmbH":
-            for route in agency.routes:
-                if route.is_suburban_railway:
-                    trip = max(route.trips, key=lambda trip: len(trip.stops))
-                    stations |= set(stop.location.station for stop in trip.stops)
-                    lines.append((route, trip))
+            for line in agency.lines:
+                if line.is_suburban_railway:
+                    route = max(line.routes, key=lambda route: len(route.trips))
+                    stations |= set(route.stations)
+                    lines.append((line, route))
 
     stations = list(stations)
     data = {
         "lines": [],
         "stations": [],
     }
-    for route, trip in lines:
+    for line, route in lines:
         data["lines"].append({
-            "name": route.name,
-            "color": route.color,
-            "stops": [stations.index(stop.location.station) for stop in trip.stops]
+            "name": line.name,
+            "color": line.color,
+            "stops": [stations.index(station) for station in route.stations]
         })
 
     for station in stations:
