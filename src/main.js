@@ -126,9 +126,11 @@ class StationRenderer extends Renderer {
     }
 
     fillBuffers(model) {
-        const positions = model.stations.reduce((positions, station) => {
-            return positions.concat(station.vertices);
-        }, []);
+        let positions = new Float32Array(2 * model.stations.length);
+        model.stations.reduce((offset, station) => {
+            positions.set(station.vertices, offset);
+            return offset + 2;
+        }, 0);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
 
@@ -138,7 +140,7 @@ class StationRenderer extends Renderer {
     run() {
         this.gl.useProgram(this.programInfo.program);
 
-        this.gl.uniform1f(this.uniformLocations.size, 5.0);
+        this.gl.uniform1f(this.uniformLocations.size, 6.0 * this.shaderData.uniforms.view[0]);
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
@@ -203,21 +205,18 @@ class ShaderData {
             modelView: glMatrix.mat4.create(),
         };
 
-        mat2d.scale(this.uniforms.model, this.uniforms.model, vec2.fromValues(2000.0, 4000.0));
-        mat2d.translate(this.uniforms.model, this.uniforms.model, vec2.fromValues(-13.5, -52.53));
-
         this.calculateModelView();
     }
 
     translateView(x, y) {
         const view = mat2d.create();
-        mat2d.fromTranslation(view, vec2.fromValues(2 * x, -2 * y));
+        mat2d.fromTranslation(view, vec2.fromValues(x, y));
         mat2d.multiply(this.uniforms.view, view, this.uniforms.view);
         this.calculateModelView();
     }
 
     scaleView(scale, x, y) {
-        const translation = vec2.fromValues(2 * (x - this.canvas.width / 2), -2 * (y - this.canvas.height / 2));
+        const translation = vec2.fromValues(x - this.canvas.width / 2, y - this.canvas.height / 2);
         const view = mat2d.create();
         mat2d.translate(view, view, translation);
         mat2d.scale(view, view, vec2.fromValues(scale, scale));
@@ -236,7 +235,7 @@ class ShaderData {
 
     calculateModelView() {
         const modelView2d = mat2d.create();
-        mat2d.scale(modelView2d, modelView2d, vec2.fromValues(1.0 / this.canvas.width, 1.0 / this.canvas.height));
+        mat2d.scale(modelView2d, modelView2d, vec2.fromValues(2.0 / this.canvas.width, -2.0 / this.canvas.height));
         mat2d.multiply(modelView2d, modelView2d, this.uniforms.view);
         mat2d.multiply(modelView2d, modelView2d, this.uniforms.model);
 

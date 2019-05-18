@@ -314,8 +314,8 @@ if __name__ == "__main__":
     for station in stations:
         data["stations"].append({
             "name": station.name,
-            "lat": station.lat,
-            "lon": station.lon,
+            "x": round(2000 * (station.lon - 13.5), 3),
+            "y": round(-4000 * (station.lat - 52.52), 3),
         })
 
     print("Exporting...")

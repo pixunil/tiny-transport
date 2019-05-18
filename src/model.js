@@ -4,7 +4,7 @@ export class Model {
     async setUp(json) {
         const data = JSON.parse(await json);
         this.stations = data.stations.map(station => {
-            return new Station(station.name, station.lat, station.lon);
+            return new Station(station.name, station.x, station.y);
         });
         this.lines = data.lines.map(line => {
             const stops = line.stops.map(index => this.stations[index]);
@@ -18,21 +18,20 @@ export class Model {
 }
 
 class Station {
-    constructor(name, lat, lon) {
+    constructor(name, x, y) {
         this.name = name;
-        this.lat = lat;
-        this.lon = lon;
-        this.position = vec2.fromValues(this.lon, this.lat);
+        this.x = x;
+        this.y = y;
+        this.position = vec2.fromValues(this.x, this.y);
         this.trackBundles = {};
     }
 
     get key() {
-        return `${this.lat},${this.lon}`;
+        return `${this.x},${this.y}`;
     }
 
     fetchTrackTo(station, color) {
         let direction = vec2.subtract(vec2.create(), this.position, station.position);
-        direction[1] *= 2;
         let bundle = this.trackBundles[station.key];
         if (!bundle) {
             bundle = new TrackBundle(direction);
@@ -45,11 +44,11 @@ class Station {
 
     contains(point) {
         const difference = vec2.subtract(vec2.create(), this.position, point);
-        return vec2.length(difference) < 0.002;
+        return vec2.length(difference) < 5.0;
     }
 
     get vertices() {
-        return [this.lon, this.lat];
+        return this.position;
     }
 }
 
@@ -125,10 +124,9 @@ class LineStop {
     }
 
     connection(orientation, track) {
-        vec2.multiply(orientation, orientation, vec2.fromValues(0.0008, 0.0004));
         return [
-            ...vec2.add(vec2.create(), this.station.position, vec2.scale(vec2.create(), orientation, track.offset + 0.5)),
-            ...vec2.add(vec2.create(), this.station.position, vec2.scale(vec2.create(), orientation, track.offset - 0.5)),
+            ...vec2.scaleAndAdd(vec2.create(), this.station.position, orientation, track.offset + 0.5),
+            ...vec2.scaleAndAdd(vec2.create(), this.station.position, orientation, track.offset - 0.5),
         ];
     }
 
