@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-import os
-from operator import itemgetter
-import datetime
 import argparse
 import csv
+import datetime
 import json
+import os
 import pickle
+from builtins import property
+from operator import itemgetter
+
 
 def parse_timedelta(time):
     parts = [int(part) for part in time.split(":")]
@@ -215,6 +217,9 @@ class Route(object):
     def __repr__(self):
         return f"<Route '{self.stations[0].name}' - '{self.stations[-1].name}>"
 
+    def trips_at(self, date):
+        return len([trip for trip in self.trips if trip.service.available_at(date)])
+
 class Trip(object):
     def __init__(self, reversedDirection, times, service):
         self.reversedDirection = reversedDirection
@@ -270,6 +275,14 @@ class StopTime(object):
         self.arrival = arrival
         self.departure = departure
 
+    @property
+    def arrival_seconds(self):
+        return int(self.arrival.total_seconds())
+
+    @property
+    def departure_seconds(self):
+        return int(self.departure.total_seconds())
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--refresh", action="store_true")
 
@@ -295,7 +308,7 @@ if __name__ == "__main__":
         if agency.name == "S-Bahn Berlin GmbH":
             for line in agency.lines:
                 if line.is_suburban_railway:
-                    route = max(line.routes, key=lambda route: len(route.trips))
+                    route = max(line.routes, key=lambda route: route.trips_at(date))
                     stations |= set(route.stations)
                     lines.append((line, route))
 
@@ -308,7 +321,12 @@ if __name__ == "__main__":
         data["lines"].append({
             "name": line.name,
             "color": line.color,
-            "stops": [stations.index(station) for station in route.stations]
+            "stops": [stations.index(station) for station in route.stations],
+            "trips": [{
+                "direction": "downstream" if trip.reversedDirection else "upstream",
+                "arrivals": [time.arrival_seconds for time in trip.times],
+                "departures": [time.departure_seconds for time in trip.times],
+            } for trip in route.trips if trip.service.available_at(date)],
         })
 
     for station in stations:
@@ -320,4 +338,4 @@ if __name__ == "__main__":
 
     print("Exporting...")
     with open("vbb.json", "w") as jsonfile:
-        json.dump(data, jsonfile)
+        json.dump(data, jsonfile, separators=(',', ':'))

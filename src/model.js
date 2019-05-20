@@ -1,4 +1,5 @@
 const vec2 = glMatrix.vec2;
+const mat2 = glMatrix.mat2;
 
 export class Model {
     async setUp(json) {
@@ -6,10 +7,17 @@ export class Model {
         this.stations = data.stations.map(station => {
             return new Station(station.name, station.x, station.y);
         });
+        this.trains = [];
         this.lines = data.lines.map(line => {
             const stops = line.stops.map(index => this.stations[index]);
             return new Line(line.name, line.color, stops);
         });
+        this.trains = data.lines.reduce((allTrains, line, index) => {
+            const lineTrains = line.trips.map(trip => {
+                return new Train(this.lines[index], trip.direction, trip.arrivals, trip.departures);
+            });
+            return allTrains.concat(lineTrains);
+        }, []);
     }
 
     findEntity(point) {
@@ -31,7 +39,7 @@ class Station {
     }
 
     fetchTrackTo(station, color) {
-        let direction = vec2.subtract(vec2.create(), this.position, station.position);
+        let direction = vec2.subtract(vec2.create(), station.position, this.position);
         let bundle = this.trackBundles[station.key];
         if (!bundle) {
             bundle = new TrackBundle(direction);
@@ -79,6 +87,8 @@ class Track {
         this.direction = direction;
         this.orthogonal = orthogonal;
         this.number = number;
+        const normalized = vec2.normalize(vec2.create(), this.direction);
+        this.orientation = mat2.fromValues(normalized[0], normalized[1], normalized[1], -normalized[0]);
     }
 
     reverse() {
@@ -104,11 +114,10 @@ class Line {
             start.followingTrack = track;
             end.precedingTrack = track.reverse();
         }
-    }
 
-    get colorComponents() {
-        const color = parseInt(this.color.substring(1), 16);
-        return [color >> 16, color >> 8, color].map(component => (component & 255) / 255);
+        const colorAsInteger = parseInt(this.color.substring(1), 16);
+        this.colorComponents = [colorAsInteger >> 16, colorAsInteger >> 8, colorAsInteger]
+            .map(component => (component & 255) / 255);
     }
 
     get vertices() {
@@ -150,6 +159,44 @@ class LineStop {
         return vertices;
     }
 
+    miterOrientation(a, b) {
+        const scaledPreceding = vec2.scale(vec2.create(), this.precedingTrack.direction, vec2.length(this.followingTrack.direction));
+        const scaledFollowing = vec2.scale(vec2.create(), this.followingTrack.direction, vec2.length(this.precedingTrack.direction));
+        const span = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
+        return vec2.scale(vec2.create(), span, 1 / vec2.dot(a.orthogonal, b.direction));
+    }
+
+    miterOrientation(a, b) {
+        const scaledPreceding = vec2.scale(vec2.create(), this.precedingTrack.direction, vec2.length(this.followingTrack.direction));
+        const scaledFollowing = vec2.scale(vec2.create(), this.followingTrack.direction, vec2.length(this.precedingTrack.direction));
+        const span = vec2.add(vec2.create(), scaledPreceding, scaledFollowing);
+        return vec2.scale(vec2.create(), span, 1 / vec2.dot(a.orthogonal, b.direction));
+    }
+
+    get precedingOrientation() {
+        if (this.followingTrack) {
+            return this.miterOrientation(this.precedingTrack, this.followingTrack);
+        } else {
+            return vec2.normalize(vec2.create(), this.precedingTrack.orthogonal);
+        }
+    }
+
+    get followingOrientation() {
+        if (this.precedingTrack) {
+            return this.miterOrientation(this.followingTrack, this.precedingTrack);
+        } else {
+            return vec2.normalize(vec2.create(), this.followingTrack.orthogonal);
+        }
+    }
+
+    get precedingPosition() {
+        return vec2.add(vec2.create(), this.station.position, vec2.scale(vec2.create(), this.precedingOrientation, this.precedingTrack.offset));
+    }
+
+    get followingPosition() {
+        return vec2.add(vec2.create(), this.station.position, vec2.scale(vec2.create(), this.followingOrientation, this.followingTrack.offset));
+    }
+
     get vertices() {
         if (this.precedingTrack && this.followingTrack) {
             return this.miterConnection();
@@ -158,5 +205,58 @@ class LineStop {
         } else if (this.followingTrack) {
             return this.orthogonalConnection(this.followingTrack);
         }
+    }
+}
+
+class Train {
+    constructor(line, direction, arrivals, departures) {
+        this.line = line;
+        this.direction = direction;
+        this.arrivals = arrivals;
+        this.departures = departures;
+        this.current = 0;
+    }
+
+    update(time) {
+        while (time > this.arrivals[this.current]) {
+            this.current += 1;
+
+            if (this.current <= this.line.stops.length - 1) {
+                this.travelTime = this.arrivals[this.current] - this.departures[this.current - 1];
+                if (this.direction === "upstream") {
+                    this.departurePosition = this.line.stops[this.current - 1].followingPosition;
+                    this.track = this.line.stops[this.current - 1].followingTrack;
+                } else {
+                    this.departurePosition = this.line.stops[this.line.stops.length - this.current].precedingPosition;
+                    this.track = this.line.stops[this.line.stops.length - this.current].precedingTrack;
+                }
+            }
+        }
+
+        this.travelled = Math.max(time - this.departures[this.current - 1], 0) / this.travelTime;
+    }
+
+    get isActive() {
+        return this.current > 0 && this.current < this.line.stops.length;
+    }
+
+    get vertices() {
+        const position = vec2.scaleAndAdd(vec2.create(), this.departurePosition, this.track.direction, this.travelled);
+
+        const rightFront = vec2.add(vec2.create(), position, vec2.transformMat2(vec2.create(), vec2.fromValues(4.5, 3), this.track.orientation));
+        const leftFront = vec2.add(vec2.create(), position, vec2.transformMat2(vec2.create(), vec2.fromValues(-4.5, 3), this.track.orientation));
+        const rightBack = vec2.add(vec2.create(), position, vec2.transformMat2(vec2.create(), vec2.fromValues(4.5, -3), this.track.orientation));
+        const leftBack = vec2.add(vec2.create(), position, vec2.transformMat2(vec2.create(), vec2.fromValues(-4.5, -3), this.track.orientation));
+        return [
+            ...leftBack, ...leftFront, ...rightBack,
+            ...rightFront, ...rightBack, ...leftFront,
+        ];
+    }
+
+    get colors() {
+        return [
+            ...this.line.colorComponents, ...this.line.colorComponents, ...this.line.colorComponents,
+            ...this.line.colorComponents, ...this.line.colorComponents, ...this.line.colorComponents,
+        ];
     }
 }

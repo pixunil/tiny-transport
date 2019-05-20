@@ -192,6 +192,65 @@ class LineRenderer extends Renderer {
     }
 }
 
+class TrainRenderer extends Renderer {
+    createBuffers() {
+        this.buffers = {
+            position: this.gl.createBuffer(),
+            color: this.gl.createBuffer(),
+        }
+    }
+
+    fillBuffers(model, time) {
+        this.size = 0;
+        for (let train of model.trains) {
+            train.update(time);
+            if (train.isActive) {
+                this.size += 1;
+            }
+        }
+
+        let positions = new Float32Array(12 * this.size);
+        let colors = new Float32Array(18 * this.size);
+        model.trains.reduce((offset, train) => {
+            if (!train.isActive) {
+                return offset;
+            }
+
+            positions.set(train.vertices, 12 * offset);
+            colors.set(train.colors, 18 * offset);
+            return offset + 1;
+        }, 0);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.DYNAMIC_DRAW);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.color);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, colors, this.gl.DYNAMIC_DRAW);
+    }
+
+    run() {
+        this.gl.useProgram(this.programInfo.program);
+
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+        this.gl.vertexAttribPointer(
+            this.attributeLocations.position,
+            2, this.gl.FLOAT,
+            false, 0, 0);
+        this.gl.enableVertexAttribArray(this.attributeLocations.position);
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.color);
+        this.gl.vertexAttribPointer(
+            this.attributeLocations.color,
+            3, this.gl.FLOAT,
+            false, 0, 0);
+            this.gl.enableVertexAttribArray(this.attributeLocations.color);
+
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6 * this.size);
+    }
+}
+
 class ShaderData {
     async setUp(gl) {
         this.canvas = gl.canvas;
@@ -258,6 +317,7 @@ class Controller {
         this.shaderData = new ShaderData();
         this.renderer = {
             line: new LineRenderer(this.shaderData),
+            train: new TrainRenderer(this.shaderData),
             station: new StationRenderer(this.shaderData),
         };
 
@@ -265,12 +325,14 @@ class Controller {
             this.model.setUp(sources.data),
             this.shaderData.setUp(this.gl),
             this.renderer.line.setUp(this.gl, sources.line),
+            this.renderer.train.setUp(this.gl, sources.train),
             this.renderer.station.setUp(this.gl, sources.station),
         ]);
         await Promise.all([
             this.renderer.line.fillBuffers(this.model),
             this.renderer.station.fillBuffers(this.model),
         ]);
+        this.time = 14000;
         this.drawLoop();
         this.addControlListeners();
     }
@@ -322,12 +384,16 @@ class Controller {
     }
 
     draw() {
+        this.time += 5;
+        this.renderer.train.fillBuffers(this.model, this.time);
+
         this.gl.disable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ZERO, this.gl.ONE);
 
         this.clear();
         this.renderer.line.run();
+        this.renderer.train.run();
         this.renderer.station.run();
     }
 }
@@ -336,6 +402,10 @@ const sources = {
     line: {
         vertex: loadSource("shader/line.vert.glsl"),
         fragment: loadSource("shader/line.frag.glsl"),
+    },
+    train: {
+        vertex: loadSource("shader/train.vert.glsl"),
+        fragment: loadSource("shader/train.frag.glsl"),
     },
     station: {
         vertex: loadSource("shader/station.vert.glsl"),
