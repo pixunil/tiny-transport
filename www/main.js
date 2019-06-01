@@ -1,4 +1,4 @@
-import {Model} from "./model.js";
+import {Map, default as init} from "../pkg/gtfs_sim.js";
 
 const vec2 = glMatrix.vec2;
 const mat2d = glMatrix.mat2d;
@@ -126,15 +126,10 @@ class StationRenderer extends Renderer {
     }
 
     fillBuffers(model) {
-        let positions = new Float32Array(2 * model.stations.length);
-        model.stations.reduce((offset, station) => {
-            positions.set(station.vertices, offset);
-            return offset + 2;
-        }, 0);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.station_positions(), this.gl.STATIC_DRAW);
 
-        this.size = model.stations.length;
+        this.size = model.station_size();
     }
 
     run() {
@@ -162,14 +157,12 @@ class LineRenderer extends Renderer {
     }
 
     fillBuffers(model) {
-        const positions = model.lines.reduce((positions, line) => {
-            return positions.concat(line.vertices);
-        }, []);
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(positions), this.gl.STATIC_DRAW);
+        this.lineSizes = model.line_sizes();
+        this.trackRunSizes = model.track_run_sizes();
+        this.colors = model.line_colors();
 
-        this.sizes = model.lines.map(line => line.vertices.length / 2);
-        this.colors = model.lines.map(line => line.colorComponents);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.line_vertices(), this.gl.STATIC_DRAW);
     }
 
     run() {
@@ -184,10 +177,16 @@ class LineRenderer extends Renderer {
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
-        this.sizes.reduce((first, count, index) => {
-            this.gl.uniform3fv(this.uniformLocations.color, this.colors[index]);
-            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, first, count);
-            return first + count;
+        let offset = 0;
+        this.lineSizes.reduce((start, count, index) => {
+            this.gl.uniform3fv(this.uniformLocations.color, this.colors.slice(3 * index, 3 * index + 3));
+
+            const stop = start + count;
+            for (let trackRunSize of this.trackRunSizes.slice(start, stop)) {
+                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, trackRunSize);
+                offset += trackRunSize;
+            }
+            return stop;
         }, 0);
     }
 }
@@ -201,31 +200,14 @@ class TrainRenderer extends Renderer {
     }
 
     fillBuffers(model, time) {
-        this.size = 0;
-        for (let train of model.trains) {
-            train.update(time);
-            if (train.isActive) {
-                this.size += 1;
-            }
-        }
-
-        let positions = new Float32Array(12 * this.size);
-        let colors = new Float32Array(18 * this.size);
-        model.trains.reduce((offset, train) => {
-            if (!train.isActive) {
-                return offset;
-            }
-
-            positions.set(train.vertices, 12 * offset);
-            colors.set(train.colors, 18 * offset);
-            return offset + 1;
-        }, 0);
+        model.update(time);
+        this.size = model.train_size();
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_vertices(), this.gl.DYNAMIC_DRAW);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.color);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, colors, this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_colors(), this.gl.DYNAMIC_DRAW);
     }
 
     run() {
@@ -309,11 +291,14 @@ class ShaderData {
 }
 
 class Controller {
+    constructor() {
+        this.wasm = init("../pkg/gtfs_sim_bg.wasm");
+    }
+
     async setUp(gl) {
         this.gl = gl;
         this.initializeCanvas();
 
-        this.model = new Model();
         this.shaderData = new ShaderData();
         this.renderer = {
             line: new LineRenderer(this.shaderData),
@@ -322,7 +307,7 @@ class Controller {
         };
 
         await Promise.all([
-            this.model.setUp(sources.data),
+            this.setUpModel(),
             this.shaderData.setUp(this.gl),
             this.renderer.line.setUp(this.gl, sources.line),
             this.renderer.train.setUp(this.gl, sources.train),
@@ -332,9 +317,15 @@ class Controller {
             this.renderer.line.fillBuffers(this.model),
             this.renderer.station.fillBuffers(this.model),
         ]);
-        this.time = 14000;
+
+        this.time = 14010;
         this.drawLoop();
         this.addControlListeners();
+    }
+
+    async setUpModel() {
+        await this.wasm;
+        this.model = Map.parse(await sources.data);
     }
 
     initializeCanvas() {
@@ -361,8 +352,8 @@ class Controller {
 
     updateTooltip(x ,y) {
         const point = this.shaderData.transformMouse(x, y);
-        const entity = this.model.findEntity(point);
-        this.gl.canvas.title = entity ? entity.name : "";
+        const name = this.model.find_station(point[0], point[1]);
+        this.gl.canvas.title = name ? name : "";
     }
 
     resizeCanvas() {
