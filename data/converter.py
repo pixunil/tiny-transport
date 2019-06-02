@@ -287,6 +287,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--refresh", action="store_true")
 
 if __name__ == "__main__":
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     args = parser.parse_args()
 
     if not args.refresh and os.path.exists("vbb.pickle"):
