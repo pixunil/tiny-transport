@@ -27,8 +27,6 @@ pub struct Map {
 #[wasm_bindgen]
 impl Map {
     pub fn parse(json: &str) -> Map {
-        panic::set_hook(Box::new(console_error_panic_hook::hook));
-
         let data: serde_json::Value = serde_json::from_str(json).unwrap();
         let stations = data["stations"].as_array().unwrap()
             .iter()
@@ -129,4 +127,10 @@ impl Map {
         }
         buffer
     }
+}
+
+#[cfg(feature = "console_error_panic_hook")]
+#[wasm_bindgen(start)]
+pub fn main() {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
 }
