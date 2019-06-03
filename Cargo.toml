@@ -3,6 +3,9 @@ name = "gtfs-sim"
 version = "0.1.0"
 authors = ["Jakob Stigloher <pixunil@gmx.de>"]
 edition = "2018"
+description = "An experiment to render a minimalistic transport simulation with WebGL and Wasm."
+repository = "https://github.com/pixunil/gtfs-sim"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib"]
