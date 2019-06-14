@@ -1,20 +1,6 @@
-[package]
-name = "gtfs-sim"
-version = "0.1.0"
-authors = ["Jakob Stigloher <pixunil@gmx.de>"]
-edition = "2018"
-description = "An experiment to render a minimalistic transport simulation with WebGL and Wasm."
-repository = "https://github.com/pixunil/gtfs-sim"
-license = "MIT"
-
-[lib]
-crate-type = ["cdylib"]
-
-[features]
-default = []
-
-[dependencies]
-nalgebra = "0.18.0"
-serde_json = "1.0"
-wasm-bindgen = "0.2"
-console_error_panic_hook = { version = "0.1.6", optional = true }
+[workspace]
+members = [
+    "simulation",
+    "import",
+    "wasm",
+]

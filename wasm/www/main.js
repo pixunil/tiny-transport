@@ -1,4 +1,4 @@
-import {Map, default as init} from "../pkg/gtfs_sim.js";
+import {Map, default as init} from "../pkg/gtfs_sim_wasm.js";
 
 const vec2 = glMatrix.vec2;
 const mat2d = glMatrix.mat2d;
@@ -8,6 +8,9 @@ function loadSource(url) {
     return new Promise((resolve, reject) => {
         let request = new XMLHttpRequest;
         request.open("get", url);
+        if (url.endsWith(".bin")) {
+            request.responseType = "arraybuffer";
+        }
         request.onload = () => {
             if (200 <= request.status && request.status < 300) {
                 resolve(request.response);
@@ -292,7 +295,7 @@ class ShaderData {
 
 class Controller {
     constructor() {
-        this.wasm = init("../pkg/gtfs_sim_bg.wasm");
+        this.wasm = init("../pkg/gtfs_sim_wasm_bg.wasm");
     }
 
     async setUp(gl) {
@@ -325,7 +328,8 @@ class Controller {
 
     async setUpModel() {
         await this.wasm;
-        this.model = Map.parse(await sources.data);
+        const data = new Uint8Array(await sources.data);
+        this.model = Map.parse(data);
     }
 
     initializeCanvas() {
@@ -402,7 +406,7 @@ const sources = {
         vertex: loadSource("shader/station.vert.glsl"),
         fragment: loadSource("shader/station.frag.glsl"),
     },
-    data: loadSource("../data/vbb.json"),
+    data: loadSource("data.bin"),
 };
 
 const controller = new Controller();

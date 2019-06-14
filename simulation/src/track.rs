@@ -7,7 +7,7 @@ use na::{Point2, Vector2};
 use crate::color::Color;
 use crate::line::Stop;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TrackBundle {
     orientation: Vector2<f32>,
     tracks: HashMap<Color, u8>,

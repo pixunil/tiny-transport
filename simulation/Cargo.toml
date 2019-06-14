@@ -1,0 +1,16 @@
+[package]
+name = "gtfs-sim-simulation"
+version = "0.1.0"
+authors = ["Jakob Stigloher <pixunil@gmx.de>"]
+edition = "2018"
+description = "An experiment to render a minimalistic transport simulation with WebGL and Wasm."
+repository = "https://github.com/pixunil/gtfs-sim"
+license = "MIT"
+
+[features]
+default = []
+
+[dependencies]
+serde = "1"
+serde_derive = "1"
+nalgebra = { version = "0.18.0", features = ["serde-serialize"] }

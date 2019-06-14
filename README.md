@@ -18,16 +18,16 @@ $ curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 To run the simulation, you need to:
 
-1. Convert the Gtfs-dataset into a app-specific json
+1. Convert the Gtfs-dataset
 2. Compile the wasm module
 3. Start a server
 4. Open the page
 
 ```
-$ ./data/converter.py
-$ wasm-pack build --target web
+$ cargo run --package gtfs-sim-import --release
+$ wasm-pack build wasm --target web
 $ python3 -m http.server 8917
-$ xdg-open http://localhost:8917/www
+$ xdg-open http://localhost:8917/wasm/www
 ```
 
 [vbb-data]: https://www.vbb.de/unsere-themen/vbbdigital/api-entwicklerinfos/datensaetze

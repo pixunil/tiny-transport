@@ -1,0 +1,17 @@
+[package]
+name = "gtfs-sim-import"
+version = "0.1.0"
+authors = ["Jakob Stigloher <pixunil@gmx.de>"]
+edition = "2018"
+description = "Imports Gtfs data for the simulation"
+repository = "https://github.com/pixunil/gtfs-sim"
+license = "MIT"
+
+[dependencies]
+serde = "1"
+serde_derive = "1"
+csv = "1"
+bincode = "1"
+chrono = { version = "0.4", features = ["serde"] }
+
+gtfs-sim-simulation = { path = "../simulation" }

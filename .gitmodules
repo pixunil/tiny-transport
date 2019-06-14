@@ -1,3 +1,3 @@
-[submodule "lib/gl-matrix"]
-	path = lib/gl-matrix
+[submodule "wasm/lib/gl-matrix"]
+	path = wasm/lib/gl-matrix
 	url = git@github.com:toji/gl-matrix.git

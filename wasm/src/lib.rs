@@ -1,21 +1,14 @@
 extern crate nalgebra as na;
+extern crate gtfs_sim_simulation as simulation;
 
 use std::rc::Rc;
+use std::convert::From;
 use std::collections::HashMap;
-use std::panic;
 
 use na::Point2;
 use wasm_bindgen::prelude::*;
 
-mod color;
-mod station;
-mod line;
-mod track;
-mod train;
-
-use crate::station::Station;
-use crate::line::{Line, LineGroup};
-use crate::track::{Connection, TrackBundle};
+use simulation::{Dataset, Station, LineGroup, Connection, TrackBundle};
 
 #[wasm_bindgen]
 pub struct Map {
@@ -24,25 +17,8 @@ pub struct Map {
     track_bundles: HashMap<Connection, TrackBundle>,
 }
 
-#[wasm_bindgen]
 impl Map {
-    pub fn parse(json: &str) -> Map {
-        let data: serde_json::Value = serde_json::from_str(json).unwrap();
-        let stations = data["stations"].as_array().unwrap()
-            .iter()
-            .enumerate()
-            .map(|(id, station)| Station::from_json(id, station))
-            .map(Rc::new)
-            .collect();
-
-        let mut line_groups = HashMap::new();
-        for line in data["lines"].as_array().unwrap() {
-            Line::from_json(line, &stations, &mut line_groups);
-        }
-
-        let line_groups: Vec<_> = line_groups.into_iter()
-            .map(|(_color, line_group)| line_group)
-            .collect();
+    fn new(stations: Vec<Rc<Station>>, line_groups: Vec<LineGroup>) -> Map {
         let mut track_bundles = HashMap::new();
         for line_group in &line_groups {
             line_group.attach_tracks(&mut track_bundles);
@@ -53,6 +29,14 @@ impl Map {
             line_groups,
             track_bundles,
         }
+    }
+}
+
+#[wasm_bindgen]
+impl Map {
+    pub fn parse(data: &[u8]) -> Map {
+        let dataset = bincode::deserialize::<Dataset>(data).unwrap();
+        dataset.into()
     }
 
     pub fn update(&mut self, time: u32) {
@@ -129,8 +113,22 @@ impl Map {
     }
 }
 
+impl From<Dataset> for Map {
+    fn from(dataset: Dataset) -> Map {
+        let stations = dataset.stations.into_iter()
+            .map(|station| Rc::new(station))
+            .collect::<Vec<_>>();
+
+        let line_groups = dataset.line_groups.into_iter()
+            .map(|line_group| line_group.bind(&stations))
+            .collect();
+
+        Map::new(stations, line_groups)
+    }
+}
+
 #[cfg(feature = "console_error_panic_hook")]
 #[wasm_bindgen(start)]
 pub fn main() {
-    panic::set_hook(Box::new(console_error_panic_hook::hook));
+    ::std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 }

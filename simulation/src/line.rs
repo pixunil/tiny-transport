@@ -8,6 +8,80 @@ use crate::track::{Connection, Track, TrackBundle};
 use crate::train::Train;
 
 #[derive(Debug)]
+pub struct Stop {
+    station: Rc<Station>,
+    terminus: bool,
+}
+
+impl Stop {
+    fn new(station: Rc<Station>) -> Stop {
+        Stop {
+            station,
+            terminus: false,
+        }
+    }
+
+    fn make_terminus(&mut self) {
+        self.terminus = true;
+    }
+
+    pub fn is_terminus(&self) -> bool {
+        self.terminus
+    }
+}
+
+impl Deref for Stop {
+    type Target = Station;
+
+    fn deref(&self) -> &Station {
+        &self.station
+    }
+}
+
+#[derive(Debug)]
+pub struct Line {
+    name: String,
+    stops: Vec<Rc<Stop>>,
+    tracks: Vec<Track>,
+    trains: Vec<Train>,
+}
+
+impl Line {
+    pub fn new(name: String, color: Color, stops: Vec<Stop>, trains: Vec<Train>) -> Line {
+        let stops = stops.into_iter()
+            .map(|stop| Rc::new(stop))
+            .collect::<Vec<_>>();
+        let tracks = stops.windows(2)
+            .map(|connection| Track::new(connection[0].clone(), connection[1].clone(), color.clone()))
+            .collect();
+        Line {
+            name,
+            stops,
+            tracks,
+            trains,
+        }
+    }
+
+    pub fn update(&mut self, time: u32) {
+        for train in &mut self.trains {
+            train.update(time);
+        }
+    }
+
+    pub fn attach_tracks(&self, track_bundles: &mut HashMap<Connection, TrackBundle>) {
+        for track in &self.tracks {
+            track.attach_to(track_bundles);
+        }
+    }
+
+    fn train_size(&self) -> usize {
+        self.trains.iter()
+            .filter(|train| train.is_active())
+            .count()
+    }
+}
+
+#[derive(Debug)]
 pub struct LineGroup {
     color: Color,
     lines: Vec<Line>,
@@ -105,106 +179,67 @@ impl LineGroup {
     }
 }
 
-#[derive(Debug)]
-pub struct Stop {
-    station: Rc<Station>,
-    terminus: bool,
-}
-
-impl Stop {
-    fn new(station: Rc<Station>) -> Stop {
-        Stop {
-            station,
-            terminus: false,
-        }
-
-    }
-
-    pub fn is_terminus(&self) -> bool {
-        self.terminus
-    }
-
-    fn make_terminus(&mut self) {
-        self.terminus = true;
-    }
-}
-
-impl Deref for Stop {
-    type Target = Station;
-
-    fn deref(&self) -> &Station {
-        &self.station
-    }
-}
-
-#[derive(Debug)]
-pub struct Line {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IndexedLine {
     name: String,
-    stops: Vec<Rc<Stop>>,
-    tracks: Vec<Track>,
+    stops: Vec<usize>,
     trains: Vec<Train>,
 }
 
-impl Line {
-    pub fn new(name: String, color: Color, stops: Vec<Stop>, trains: Vec<Train>) -> Line {
-        let stops = stops.into_iter()
-            .map(|stop| Rc::new(stop))
-            .collect::<Vec<_>>();
-        let tracks = stops.windows(2)
-            .map(|connection| Track::new(connection[0].clone(), connection[1].clone(), color.clone()))
-            .collect();
-        Line {
+impl IndexedLine {
+    pub fn new(name: String, stops: Vec<usize>, trains: Vec<Train>) -> IndexedLine {
+        IndexedLine {
             name,
             stops,
-            tracks,
             trains,
         }
     }
 
-    pub fn update(&mut self, time: u32) {
-        for train in &mut self.trains {
-            train.update(time);
-        }
-    }
+    fn bind(self, stations: &[Rc<Station>], color: &Color) -> Line {
+        let mut stops = self.stops.into_iter()
+            .map(|stop| Stop::new(stations[stop].clone()))
+            .collect::<Vec<_>>();
+        stops.first_mut().map(Stop::make_terminus);
+        stops.last_mut().map(Stop::make_terminus);
 
-    pub fn from_json(json: &serde_json::Value, stations: &Vec<Rc<Station>>, line_groups: &mut HashMap<Color, LineGroup>) {
-        let name = json["name"].as_str().unwrap().into();
-
-        let hex = json["color"].as_str().unwrap();
-        let color = Color::from_hex(hex);
-
-        let mut line_stops = json["stops"].as_array().unwrap()
-            .iter()
-            .map(|station| station.as_u64().unwrap())
-            .map(|index| stations[index as usize].clone())
-            .map(|station| Stop::new(station))
+        let stops = stops.into_iter()
+            .map(|stop| Rc::new(stop))
             .collect::<Vec<_>>();
 
-        line_stops.first_mut().map(|stop| stop.make_terminus());
-        line_stops.last_mut().map(|stop| stop.make_terminus());
-        let trains = Line::parse_trains_from_json(json);
-        let line = Line::new(name, color.clone(), line_stops, trains);
-        line_groups.entry(color.clone())
-            .or_insert_with(|| LineGroup::new(color))
-            .add_line(line);
+        let tracks = stops.windows(2)
+            .map(|connection| Track::new(connection[0].clone(), connection[1].clone(), color.clone()))
+            .collect();
+        Line {
+            name: self.name,
+            stops,
+            tracks,
+            trains: self.trains,
+        }
     }
+}
 
-    fn parse_trains_from_json(json: &serde_json::Value) -> Vec<Train> {
-        json["trips"].as_array().unwrap()
-            .iter()
-            .map(Train::from_json)
-            .collect()
-    }
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IndexedLineGroup {
+    color: Color,
+    lines: Vec<IndexedLine>,
+}
 
-    pub fn attach_tracks(&self, track_bundles: &mut HashMap<Connection, TrackBundle>) {
-        for track in &self.tracks {
-            track.attach_to(track_bundles);
+impl IndexedLineGroup {
+    pub fn new(color: Color, lines: Vec<IndexedLine>) -> IndexedLineGroup {
+        IndexedLineGroup {
+            color,
+            lines,
         }
     }
 
-    fn train_size(&self) -> usize {
-        self.trains.iter()
-            .filter(|train| train.is_active())
-            .count()
+    pub fn bind(self, stations: &[Rc<Station>]) -> LineGroup {
+        let color = self.color;
+        let lines = self.lines.into_iter()
+            .map(|line| line.bind(stations, &color))
+            .collect();
+        LineGroup {
+            color,
+            lines,
+        }
     }
 }

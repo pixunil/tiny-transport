@@ -1,7 +1,3 @@
-__pycache__
-
-data/*.json
-data/*.pickle
-
 /target
 **/*.rs.bk
+data.bin

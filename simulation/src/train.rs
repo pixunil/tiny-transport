@@ -1,12 +1,11 @@
-use std::convert::{TryFrom, TryInto};
 use std::collections::HashMap;
 
 use na::{Vector2, Matrix2};
 
 use crate::track::{Connection, Track, TrackBundle};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum Direction {
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum Direction {
     Upstream,
     Downstream,
 }
@@ -33,19 +32,7 @@ impl Direction {
     }
 }
 
-impl<'a> TryFrom<&'a str> for Direction {
-    type Error = &'a str;
-
-    fn try_from(value: &str) -> Result<Direction, &str> {
-        match value {
-            "upstream" => Ok(Direction::Upstream),
-            "downstream" => Ok(Direction::Downstream),
-            value => Err(value),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Train {
     direction: Direction,
     arrivals: Vec<u32>,
@@ -55,7 +42,7 @@ pub struct Train {
 }
 
 impl Train {
-    fn new(direction: Direction, arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
+    pub fn new(direction: Direction, arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
         Train {
             direction,
             arrivals,
@@ -63,19 +50,6 @@ impl Train {
             current: 0,
             travelled: 0.0,
         }
-    }
-
-    pub fn from_json(json: &serde_json::Value) -> Train {
-        let direction = json["direction"].as_str().unwrap().try_into().unwrap();
-        let arrivals = json["arrivals"].as_array().unwrap()
-            .iter()
-            .map(|time| time.as_u64().unwrap() as u32)
-            .collect();
-        let departures = json["departures"].as_array().unwrap()
-            .iter()
-            .map(|time| time.as_u64().unwrap() as u32)
-            .collect();
-        Train::new(direction, arrivals, departures)
     }
 
     pub fn update(&mut self, time: u32) {

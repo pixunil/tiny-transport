@@ -1,0 +1,22 @@
+[package]
+name = "gtfs-sim-wasm"
+version = "0.1.0"
+authors = ["Jakob Stigloher <pixunil@gmx.de>"]
+edition = "2018"
+description = "Wasm binding of the simulation"
+repository = "https://github.com/pixunil/gtfs-sim"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
+bincode = "1"
+wasm-bindgen = "0.2"
+console_error_panic_hook = { version = "0.1.6", optional = true }
+
+gtfs-sim-simulation = { path = "../simulation" }
