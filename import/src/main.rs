@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
+extern crate nalgebra as na;
 extern crate gtfs_sim_simulation as simulation;
+extern crate gtfs_sim_serialization as serialization;
 
 use std::error::Error;
 use std::collections::{HashSet, HashMap};
@@ -53,22 +55,21 @@ fn store<'a, I>(lines: I) -> Result<(), Box<dyn Error>>
 
     let mut line_groups = HashMap::new();
     for line in lines {
-        let (color, line) = line.into_line(&stations, &date);
+        let (color, line) = line.freeze(&stations, &date);
         line_groups.entry(color.clone())
             .or_insert_with(Vec::new)
             .push(line)
     }
 
     let stations = stations.into_iter()
-        .enumerate()
-        .map(|(id, station)| station.into_station(id))
+        .map(|station| station.freeze())
         .collect();
 
     let line_groups = line_groups.into_iter()
-        .map(|(color, line_group)| simulation::IndexedLineGroup::new(color, line_group))
+        .map(|(color, line_group)| serialization::LineGroup::new(color, line_group))
         .collect();
 
-    let dataset = simulation::Dataset::new(stations, line_groups);
+    let dataset = serialization::Dataset::new(stations, line_groups);
     let file = File::create("wasm/www/data.bin")?;
     bincode::serialize_into(file, &dataset)?;
     Ok(())

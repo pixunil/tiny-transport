@@ -1,5 +1,6 @@
 extern crate nalgebra as na;
 extern crate gtfs_sim_simulation as simulation;
+extern crate gtfs_sim_serialization as serialization;
 
 use std::rc::Rc;
 use std::convert::From;
@@ -8,7 +9,8 @@ use std::collections::HashMap;
 use na::Point2;
 use wasm_bindgen::prelude::*;
 
-use simulation::{Dataset, Station, LineGroup, Connection, TrackBundle};
+use simulation::{Station, LineGroup, Connection, TrackBundle};
+use serialization::Dataset;
 
 #[wasm_bindgen]
 pub struct Map {
@@ -116,11 +118,12 @@ impl Map {
 impl From<Dataset> for Map {
     fn from(dataset: Dataset) -> Map {
         let stations = dataset.stations.into_iter()
-            .map(|station| Rc::new(station))
+            .enumerate()
+            .map(|(id, station)| station.unfreeze(id))
             .collect::<Vec<_>>();
 
         let line_groups = dataset.line_groups.into_iter()
-            .map(|line_group| line_group.bind(&stations))
+            .map(|line_group| line_group.unfreeze(&stations))
             .collect();
 
         Map::new(stations, line_groups)

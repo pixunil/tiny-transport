@@ -1,19 +1,18 @@
 [package]
-name = "gtfs-sim-import"
+name = "gtfs-sim-serialization"
 version = "0.1.0"
 authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
 edition = "2018"
-description = "Imports Gtfs data for the simulation"
+description = "Stores simulation data space-efficient"
 repository = "https://github.com/pixunil/gtfs-sim"
 license = "MIT"
+
+[features]
+default = []
 
 [dependencies]
 serde = "1"
 serde_derive = "1"
-csv = "1"
-bincode = "1"
-chrono = { version = "0.4", features = ["serde"] }
 nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
 
 gtfs-sim-simulation = { path = "../simulation" }
-gtfs-sim-serialization = { path = "../serialization" }

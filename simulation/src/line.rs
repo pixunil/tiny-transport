@@ -47,7 +47,12 @@ pub struct Line {
 }
 
 impl Line {
-    pub fn new(name: String, color: Color, stops: Vec<Stop>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, color: Color, stations: Vec<Rc<Station>>, trains: Vec<Train>) -> Line {
+        let mut stops = stations.into_iter()
+            .map(|station| Stop::new(station))
+            .collect::<Vec<_>>();
+        stops.first_mut().map(Stop::make_terminus);
+        stops.last_mut().map(Stop::make_terminus);
         let stops = stops.into_iter()
             .map(|stop| Rc::new(stop))
             .collect::<Vec<_>>();
@@ -88,15 +93,11 @@ pub struct LineGroup {
 }
 
 impl LineGroup {
-    pub fn new(color: Color) -> LineGroup {
+    pub fn new(color: Color, lines: Vec<Line>) -> LineGroup {
         LineGroup {
-            color: color,
-            lines: Vec::new(),
+            color,
+            lines,
         }
-    }
-
-    pub fn add_line(&mut self, line: Line) {
-        self.lines.push(line);
     }
 
     pub fn attach_tracks(&self, track_bundles: &mut HashMap<Connection, TrackBundle>) {
@@ -175,71 +176,6 @@ impl LineGroup {
     pub fn fill_train_color_buffer(&self, buffer: &mut Vec<f32>) {
         for _ in 0..6 * self.train_size() {
             buffer.extend(self.color_buffer_data());
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IndexedLine {
-    name: String,
-    stops: Vec<usize>,
-    trains: Vec<Train>,
-}
-
-impl IndexedLine {
-    pub fn new(name: String, stops: Vec<usize>, trains: Vec<Train>) -> IndexedLine {
-        IndexedLine {
-            name,
-            stops,
-            trains,
-        }
-    }
-
-    fn bind(self, stations: &[Rc<Station>], color: &Color) -> Line {
-        let mut stops = self.stops.into_iter()
-            .map(|stop| Stop::new(stations[stop].clone()))
-            .collect::<Vec<_>>();
-        stops.first_mut().map(Stop::make_terminus);
-        stops.last_mut().map(Stop::make_terminus);
-
-        let stops = stops.into_iter()
-            .map(|stop| Rc::new(stop))
-            .collect::<Vec<_>>();
-
-        let tracks = stops.windows(2)
-            .map(|connection| Track::new(connection[0].clone(), connection[1].clone(), color.clone()))
-            .collect();
-        Line {
-            name: self.name,
-            stops,
-            tracks,
-            trains: self.trains,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct IndexedLineGroup {
-    color: Color,
-    lines: Vec<IndexedLine>,
-}
-
-impl IndexedLineGroup {
-    pub fn new(color: Color, lines: Vec<IndexedLine>) -> IndexedLineGroup {
-        IndexedLineGroup {
-            color,
-            lines,
-        }
-    }
-
-    pub fn bind(self, stations: &[Rc<Station>]) -> LineGroup {
-        let color = self.color;
-        let lines = self.lines.into_iter()
-            .map(|line| line.bind(stations, &color))
-            .collect();
-        LineGroup {
-            color,
-            lines,
         }
     }
 }

@@ -32,7 +32,7 @@ impl Route {
             .count()
     }
 
-    pub fn into_stops(&self, stations: &[Rc<Location>]) -> Vec<usize> {
+    pub fn freeze_stops(&self, stations: &[Rc<Location>]) -> Vec<usize> {
         self.locations.iter()
             .map(|location| {
                 stations.iter()
@@ -42,10 +42,10 @@ impl Route {
             .collect()
     }
 
-    pub fn into_trains(&self, date: &NaiveDate) -> Vec<simulation::Train> {
+    pub fn freeze_trains(&self, date: &NaiveDate) -> Vec<serialization::Train> {
         self.trips.iter()
             .filter(|trip| trip.service.available_at(date))
-            .map(|trip| trip.into_train())
+            .map(|trip| trip.freeze())
             .collect()
     }
 }
@@ -59,14 +59,14 @@ struct Trip {
 }
 
 impl Trip {
-    fn into_train(&self) -> simulation::Train {
+    fn freeze(&self) -> serialization::Train {
         let arrivals = self.arrivals.iter()
             .map(|duration| duration.num_seconds() as u32)
             .collect();
         let departures = self.departures.iter()
             .map(|duration| duration.num_seconds() as u32)
             .collect();
-        simulation::Train::new(self.direction, arrivals, departures)
+        serialization::Train::new(self.direction, arrivals, departures)
     }
 }
 

@@ -1,6 +1,6 @@
 use na::Point2;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Station {
     id: usize,
     position: Point2<f32>,
@@ -8,11 +8,11 @@ pub struct Station {
 }
 
 impl Station {
-    pub fn new(id: usize, x: f32, y: f32, name: String) -> Station {
+    pub fn new(id: usize, position: Point2<f32>, name: String) -> Station {
         Station {
-            id: id,
-            position: Point2::new(x, y),
-            name: name,
+            id,
+            position,
+            name,
         }
     }
 

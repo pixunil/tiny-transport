@@ -5,6 +5,8 @@ use std::hash::{Hash, Hasher};
 use std::collections::{VecDeque, HashMap};
 use std::path::PathBuf;
 
+use na::Point2;
+
 use super::utils::*;
 
 #[derive(Debug)]
@@ -26,10 +28,10 @@ impl Location {
         (record.stop_id, location)
     }
 
-    pub fn into_station(&self, id: usize) -> simulation::Station {
+    pub fn freeze(&self) -> serialization::Station {
         let x = 2000.0 * (self.lon - 13.5);
         let y = -4000.0 * (self.lat - 52.52);
-        simulation::Station::new(id, x, y, self.name.clone())
+        serialization::Station::new(Point2::new(x, y), self.name.clone())
     }
 }
 

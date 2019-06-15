@@ -11,7 +11,7 @@ license = "MIT"
 crate-type = ["cdylib"]
 
 [features]
-default = ["console_error_panic_hook"]
+default = []
 
 [dependencies]
 nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
@@ -20,3 +20,4 @@ wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1.6", optional = true }
 
 gtfs-sim-simulation = { path = "../simulation" }
+gtfs-sim-serialization = { path = "../serialization" }

@@ -32,7 +32,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Train {
     direction: Direction,
     arrivals: Vec<u32>,

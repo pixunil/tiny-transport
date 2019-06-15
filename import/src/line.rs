@@ -45,14 +45,14 @@ impl Line {
         }
     }
 
-    pub fn into_line(&self, stations: &[Rc<Location>], date: &NaiveDate) -> (Color, simulation::IndexedLine) {
+    pub fn freeze(&self, stations: &[Rc<Location>], date: &NaiveDate) -> (Color, serialization::Line) {
         let route = self.routes.iter()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
-        let stops = route.into_stops(stations);
-        let trains = route.into_trains(date);
+        let stops = route.freeze_stops(stations);
+        let trains = route.freeze_trains(date);
         let color = self.color.clone().unwrap();
-        (color, simulation::IndexedLine::new(self.name.clone(), stops, trains))
+        (color, serialization::Line::new(self.name.clone(), stops, trains))
     }
 }
 
