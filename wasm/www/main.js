@@ -300,7 +300,9 @@ class Controller {
 
     async setUp(gl) {
         this.gl = gl;
-        this.initializeCanvas();
+        this.canvas = gl.canvas;
+        this.resizeCanvasIfNecessary();
+        this.clear();
 
         this.shaderData = new ShaderData();
         this.renderer = {
@@ -322,7 +324,8 @@ class Controller {
         ]);
 
         this.time = 14010;
-        this.drawLoop();
+        this.milliseconds = performance.now();
+        this.drawLoop(this.milliseconds);
         this.addControlListeners();
     }
 
@@ -332,20 +335,14 @@ class Controller {
         this.model = Map.parse(data);
     }
 
-    initializeCanvas() {
-        this.resizeCanvas();
-        addEventListener("resize", () => this.resizeCanvas());
-    }
-
     addControlListeners() {
-        addEventListener("resize", () => this.shaderData.calculateModelView());
-        addEventListener("mousemove", event => {
+        this.canvas.addEventListener("mousemove", event => {
             this.updateTooltip(event.clientX, event.clientY);
             if (event.buttons) {
                 this.shaderData.translateView(event.movementX, event.movementY);
             }
         });
-        addEventListener("wheel", event => {
+        this.canvas.addEventListener("wheel", event => {
             if (event.deltaY < 0) {
                 this.shaderData.scaleView(11 / 10, event.clientX, event.clientY);
             } else {
@@ -360,12 +357,16 @@ class Controller {
         this.gl.canvas.title = name ? name : "";
     }
 
-    resizeCanvas() {
-        const canvas = this.gl.canvas;
-        canvas.width = document.body.clientWidth;
-        canvas.height = document.body.clientHeight;
-        this.gl.viewport(0, 0, canvas.width, canvas.height);
-        this.clear();
+    resizeCanvasIfNecessary() {
+        if (this.canvas.width !== this.canvas.clientWidth || this.canvas.height !== this.canvas.clientHeight) {
+            this.canvas.width = this.canvas.clientWidth;
+            this.canvas.height = this.canvas.clientHeight;
+            this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+
+            if (this.shaderData) {
+                this.shaderData.calculateModelView();
+            }
+        }
     }
 
     clear() {
@@ -373,15 +374,22 @@ class Controller {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
-    drawLoop() {
+    drawLoop(milliseconds) {
+        this.resizeCanvasIfNecessary();
+        this.update(milliseconds);
         this.draw();
-        requestAnimationFrame(() => this.drawLoop());
+        requestAnimationFrame(milliseconds => this.drawLoop(milliseconds));
+    }
+
+    update(milliseconds) {
+        const speed = parseInt(document.querySelector("input").value);
+        const millisecondsPassed = milliseconds - this.milliseconds;
+        this.milliseconds = milliseconds;
+        this.time += Math.floor(millisecondsPassed * speed / 1000);
+        this.renderer.train.fillBuffers(this.model, this.time);
     }
 
     draw() {
-        this.time += 5;
-        this.renderer.train.fillBuffers(this.model, this.time);
-
         this.gl.disable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.BLEND);
         this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ZERO, this.gl.ONE);
