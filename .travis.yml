@@ -1,6 +1,11 @@
 language: rust
 cache: cargo
 
+os:
+  - linux
+  - osx
+  - windows
+
 rust:
   - stable
   - beta
@@ -9,3 +14,4 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+    - os: windows
