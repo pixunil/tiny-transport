@@ -5,11 +5,16 @@ extern crate gtfs_sim_simulation as simulation;
 extern crate gtfs_sim_serialization as serialization;
 
 use std::error::Error;
+use std::env;
 use std::collections::{HashSet, HashMap};
-use std::fs::File;
-use std::path::PathBuf;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::fs::{self, File};
 
 use chrono::prelude::*;
+
+use zip::{CompressionMethod, ZipArchive, ZipWriter};
+use zip::write::FileOptions;
 
 mod utils;
 mod service;
@@ -18,16 +23,33 @@ mod location;
 mod line;
 mod trip;
 
+use utils::Dataset;
 use agency::Agency;
 use line::{Line, LineKind};
 
-fn import() -> Result<Vec<Agency>, Box<dyn Error>> {
-    let mut path = PathBuf::from("import/data/vbb/csv");
-    let services = service::from_csv(&mut path)?;
-    let locations = location::from_csv(&mut path)?;
-    let trips = trip::from_csv(&mut path, &services, &locations)?;
-    let lines = line::from_csv(&mut path, trips)?;
-    let agencies = agency::from_csv(&mut path, lines)?;
+fn compress() -> Result<(), Box<dyn Error>> {
+    let mut zip = ZipWriter::new(File::create("import/data/vbb.bzip")?);
+    let options = FileOptions::default()
+        .compression_method(CompressionMethod::Bzip2);
+
+    for entry in fs::read_dir("import/data/vbb")? {
+        let entry = entry?;
+        zip.start_file_from_path(entry.file_name().as_ref(), options)?;
+
+        let data = fs::read(entry.path())?;
+        zip.write_all(&data)?;
+    }
+
+    zip.finish()?;
+    Ok(())
+}
+
+fn import(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
+    let services = service::from_csv(&mut dataset)?;
+    let locations = location::from_csv(&mut dataset)?;
+    let trips = trip::from_csv(&mut dataset, &services, &locations)?;
+    let lines = line::from_csv(&mut dataset, trips)?;
+    let agencies = agency::from_csv(&mut dataset, lines)?;
     Ok(agencies)
 }
 
@@ -75,11 +97,26 @@ fn store<'a, I>(lines: I) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
-fn main() {
-    let agencies = match import() {
-        Ok(agencies) => agencies,
-        Err(error) => return println!("{}", error),
-    };
-    let lines = filter(&agencies);
-    store(lines).unwrap();
+fn main() -> Result<(), Box<Error>>{
+    let command = env::args().nth(1).unwrap();
+    match command.as_str() {
+        "compress" => {
+            compress().unwrap();
+        },
+        "import" => {
+            let path = env::args().nth(2).unwrap();
+            let agencies = if Path::new(&path).is_dir() {
+                let mut path = PathBuf::from(&path);
+                path.push(".txt");
+                import(path)?
+            } else {
+                let archive = ZipArchive::new(File::open(&path)?)?;
+                import(archive)?
+            };
+            let lines = filter(&agencies);
+            store(lines)?;
+        },
+        _ => {},
+    }
+    Ok(())
 }

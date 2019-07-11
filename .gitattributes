@@ -1,1 +1,2 @@
 import/data/vbb/*.txt filter=lfs diff=lfs merge=lfs -text
+import/data/*.bzip filter=lfs diff=lfs merge=lfs -text

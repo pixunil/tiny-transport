@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::rc::Rc;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use chrono::prelude::*;
 use chrono::Duration;
@@ -119,25 +118,31 @@ impl TripBuf {
     }
 }
 
-pub fn from_csv(path: &mut PathBuf, services: &HashMap<Id, Rc<Service>>, locations: &HashMap<Id, Rc<Location>>)
-    -> Result<HashMap<Id, Vec<Route>>, Box<Error>>
-{
+fn import_trip_buffers(dataset: &mut impl Dataset, services: &HashMap<Id, Rc<Service>>) -> Result<HashMap<Id, TripBuf>, Box<dyn Error>> {
     let mut buffers = HashMap::new();
-
-    path.set_file_name("trips.txt");
-    let mut reader = csv::Reader::from_path(&path)?;
+    let mut reader = dataset.read_csv("trips.txt")?;
     for result in reader.deserialize() {
         let (id, buffer) = TripBuf::new(result?, services);
         buffers.insert(id, buffer);
     }
+    Ok(buffers)
+}
 
-    path.set_file_name("stop_times.txt");
-    let mut reader = csv::Reader::from_path(&path)?;
+fn add_trip_stops(dataset: &mut impl Dataset, buffers: &mut HashMap<Id, TripBuf>, locations: &HashMap<Id, Rc<Location>>) -> Result<(), Box<dyn Error>> {
+    let mut reader = dataset.read_csv("stop_times.txt")?;
     for result in reader.deserialize() {
         let record: StopRecord = result?;
         buffers.get_mut(&record.trip_id).unwrap()
             .add_stop(record, locations);
     }
+    Ok(())
+}
+
+pub fn from_csv(dataset: &mut impl Dataset, services: &HashMap<Id, Rc<Service>>, locations: &HashMap<Id, Rc<Location>>)
+    -> Result<HashMap<Id, Vec<Route>>, Box<dyn Error>>
+{
+    let mut buffers = import_trip_buffers(dataset, services)?;
+    add_trip_stops(dataset, &mut buffers, locations)?;
 
     let mut trips = HashMap::new();
     for (_id, buffer) in buffers {

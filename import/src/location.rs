@@ -3,7 +3,6 @@ use std::rc::Rc;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 use std::collections::{VecDeque, HashMap};
-use std::path::PathBuf;
 
 use na::Point2;
 
@@ -64,9 +63,9 @@ impl Hash for Location {
 fn process_record(record: LocationRecord, queue: &mut VecDeque<LocationRecord>, locations: &mut HashMap<Id, Rc<Location>>) {
     match record.parent_station {
         Some(ref parent_id) => {
-            match locations.get(parent_id) {
+            match locations.get(parent_id).cloned() {
                 Some(parent) => {
-                    locations.insert(record.stop_id, parent.clone());
+                    locations.insert(record.stop_id, parent);
                 },
                 None => {
                     queue.push_back(record);
@@ -80,12 +79,10 @@ fn process_record(record: LocationRecord, queue: &mut VecDeque<LocationRecord>, 
     }
 }
 
-pub fn from_csv(path: &mut PathBuf) -> Result<HashMap<Id, Rc<Location>>, Box<Error>> {
+pub fn from_csv(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Location>>, Box<dyn Error>> {
     let mut queue = VecDeque::new();
     let mut locations = HashMap::new();
-
-    path.set_file_name("stops.txt");
-    let mut reader = csv::Reader::from_path(path)?;
+    let mut reader = dataset.read_csv("stops.txt")?;
     for result in reader.deserialize() {
         process_record(result?, &mut queue, &mut locations);
     }

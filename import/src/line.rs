@@ -2,7 +2,6 @@ use std::error::Error;
 use std::rc::Rc;
 use std::fmt;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use serde::Deserializer;
 use serde::de::{Deserialize, Visitor, Error as DeserializeError};
@@ -23,14 +22,13 @@ pub struct Line {
 }
 
 impl Line {
-    fn new(record: LineRecord) -> (Id, Line) {
-        let line = Line {
+    fn new(record: LineRecord) -> Line {
+        Line {
             name: record.route_short_name,
             color: None,
             kind: record.route_type,
             routes: Vec::new(),
-        };
-        (record.agency_id, line)
+        }
     }
 
     fn add_routes(&mut self, routes: Option<Vec<Route>>) {
@@ -56,43 +54,48 @@ impl Line {
     }
 }
 
-pub fn from_csv(path: &mut PathBuf, mut routes: HashMap<Id, Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<Error>> {
+fn import_colors(dataset: &mut impl Dataset) -> Result<HashMap<String, Color>, Box<dyn Error>> {
     let mut colors = HashMap::new();
-
-    path.set_file_name("colors.csv");
-    let mut reader = csv::ReaderBuilder::new()
-        .delimiter(b';')
-        .from_path(&path)?;
+    let mut reader = dataset.read_csv("colors.txt")?;
     for result in reader.deserialize() {
         let record: LineColorRecord = result?;
         colors.insert(record.line, record.color);
     }
+    Ok(colors)
+}
 
-    let mut lines = HashMap::new();
-
-    path.set_file_name("routes.txt");
-    let mut reader = csv::Reader::from_path(&path)?;
+fn import_lines(dataset: &mut impl Dataset, mut routes: HashMap<Id, Vec<Route>>, colors: HashMap<String, Color>)
+    -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>>
+{
+    let mut deduplicated_lines = HashMap::new();
+    let mut reader = dataset.read_csv("routes.txt")?;
     for result in reader.deserialize() {
         let record: LineRecord = result?;
         let key = (record.agency_id.clone(), record.route_short_name.clone(), record.route_type.clone());
         let id = record.route_id.clone();
-        let (_agency_id, ref mut line) = lines.entry(key)
+        let line = deduplicated_lines.entry(key)
             .or_insert_with(|| Line::new(record));
         line.add_routes(routes.remove(&id));
         line.add_color_when_applicable(&colors);
     }
 
-    let mut agency_lines = HashMap::new();
-    for (_key, (agency_id, line)) in lines {
-        agency_lines.entry(agency_id)
+    let mut lines = HashMap::new();
+    for ((agency_id, _name, _kind), line) in deduplicated_lines {
+        lines.entry(agency_id)
             .or_insert_with(Vec::new)
             .push(line);
     }
 
-    Ok(agency_lines)
+    Ok(lines)
 }
 
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub fn from_csv(dataset: &mut impl Dataset, routes: HashMap<Id, Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>> {
+    let colors = import_colors(dataset)?;
+    let lines = import_lines(dataset, routes, colors)?;
+    Ok(lines)
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum LineKind {
     Railway,
     SuburbanRailway,

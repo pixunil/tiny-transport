@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use super::utils::*;
 use super::line::Line;
@@ -22,11 +21,9 @@ impl Agency {
     }
 }
 
-pub fn from_csv(path: &mut PathBuf, mut lines: HashMap<Id, Vec<Line>>) -> Result<Vec<Agency>, Box<Error>> {
+pub fn from_csv(dataset: &mut impl Dataset, mut lines: HashMap<Id, Vec<Line>>) -> Result<Vec<Agency>, Box<dyn Error>> {
     let mut agencies = Vec::new();
-
-    path.set_file_name("agency.txt");
-    let mut reader = csv::Reader::from_path(&path)?;
+    let mut reader = dataset.read_csv("agency.txt")?;
     for result in reader.deserialize() {
         let agency = Agency::new(result?, &mut lines);
         agencies.push(agency);

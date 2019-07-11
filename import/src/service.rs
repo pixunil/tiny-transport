@@ -2,7 +2,6 @@ use std::error::Error;
 use std::rc::Rc;
 use std::fmt;
 use std::collections::{HashSet, HashMap};
-use std::path::PathBuf;
 
 use serde::Deserializer;
 use serde::de::{Deserialize, Visitor, Error as DeserializeError};
@@ -50,22 +49,28 @@ impl Service {
     }
 }
 
-pub fn from_csv(path: &mut PathBuf) -> Result<HashMap<Id, Rc<Service>>, Box<Error>> {
+fn import_services(dataset: &mut impl Dataset) -> Result<HashMap<Id, Service>, Box<dyn Error>> {
     let mut services = HashMap::new();
-
-    path.set_file_name("calendar.txt");
-    let mut reader = csv::Reader::from_path(&path)?;
+    let mut reader = dataset.read_csv("calendar.txt")?;
     for result in reader.deserialize() {
         let (id, service) = Service::new(result?);
         services.insert(id, service);
     }
+    Ok(services)
+}
 
-    path.set_file_name("calendar_dates.txt");
-    let mut reader = csv::Reader::from_path(&path)?;
+fn add_service_exceptions(dataset: &mut impl Dataset, services: &mut HashMap<Id, Service>) -> Result<(), Box<dyn Error>> {
+    let mut reader = dataset.read_csv("calendar_dates.txt")?;
     for result in reader.deserialize() {
         let record: ServiceExceptionRecord = result?;
         services.get_mut(&record.service_id).unwrap().add_exception(record);
     }
+    Ok(())
+}
+
+pub fn from_csv(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Service>>, Box<dyn Error>> {
+    let mut services = import_services(dataset)?;
+    add_service_exceptions(dataset, &mut services)?;
 
     let services = services.into_iter()
         .map(|(id, service)| (id, Rc::new(service)))

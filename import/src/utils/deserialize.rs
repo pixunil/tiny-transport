@@ -8,8 +8,6 @@ use chrono::Duration;
 
 use simulation::Color;
 
-pub type Id = String;
-
 pub fn deserialize_numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
     where D: Deserializer<'de>
 {
