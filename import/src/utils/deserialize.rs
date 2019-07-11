@@ -111,3 +111,73 @@ pub fn deserialize_color<'de, D>(deserializer: D) -> Result<Color, D::Error>
 
     deserializer.deserialize_str(ColorVisitor)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use serde::de::IntoDeserializer;
+    use serde::de::value::{U64Deserializer, StrDeserializer, Error as ValueError};
+
+    use super::*;
+
+    #[test]
+    fn test_numeric_true() {
+        let deserializer: U64Deserializer<ValueError> = 1u64.into_deserializer();
+        assert_eq!(deserialize_numeric_bool(deserializer), Ok(true));
+    }
+
+    #[test]
+    fn test_numeric_false() {
+        let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
+        assert_eq!(deserialize_numeric_bool(deserializer), Ok(false));
+    }
+
+    #[test]
+    fn test_numeric_invalid_number() {
+        let deserializer: U64Deserializer<ValueError> = 2u64.into_deserializer();
+        let error = deserialize_numeric_bool(deserializer).unwrap_err();
+        assert_eq!(error.description(), "invalid bool: 2");
+    }
+
+    #[test]
+    fn test_numeric_empty() {
+        let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
+        let error = deserialize_numeric_bool(deserializer).unwrap_err();
+        assert_eq!(error.description(), "invalid type: string \"\", expected either 0 or 1");
+    }
+
+    #[test]
+    fn test_naive_date() {
+        let deserializer: StrDeserializer<ValueError> = "20190711".into_deserializer();
+        assert_eq!(deserialize_naive_date(deserializer), Ok(NaiveDate::from_ymd(2019, 7, 11)));
+    }
+
+    fn duration(hours: i64, minutes: i64, seconds: i64) -> Duration {
+        Duration::seconds((hours * 60 + minutes) * 60 + seconds)
+    }
+
+    #[test]
+    fn test_duration_one_hour_digit() {
+        let deserializer: StrDeserializer<ValueError> = "1:34:56".into_deserializer();
+        assert_eq!(deserialize_duration(deserializer), Ok(duration(1, 34, 56)));
+    }
+
+    #[test]
+    fn test_duration_two_hour_digit() {
+        let deserializer: StrDeserializer<ValueError> = "12:34:56".into_deserializer();
+        assert_eq!(deserialize_duration(deserializer), Ok(duration(12, 34, 56)));
+    }
+
+    #[test]
+    fn test_duration_after_midnight() {
+        let deserializer: StrDeserializer<ValueError> = "24:34:56".into_deserializer();
+        assert_eq!(deserialize_duration(deserializer), Ok(duration(24, 34, 56)));
+    }
+
+    #[test]
+    fn test_color() {
+        let deserializer: StrDeserializer<ValueError> = "#ff0420".into_deserializer();
+        assert_eq!(deserialize_color(deserializer), Ok(Color::new(255, 4, 32)));
+    }
+}
