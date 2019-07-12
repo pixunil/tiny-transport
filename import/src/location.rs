@@ -94,11 +94,81 @@ pub fn from_csv(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Location>>,
     Ok(locations)
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 struct LocationRecord {
     stop_id: Id,
     parent_station: Option<Id>,
     stop_name: String,
     stop_lat: f32,
     stop_lon: f32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn main_station_record() -> LocationRecord {
+        LocationRecord {
+            stop_id: "1".into(),
+            parent_station: None,
+            stop_name: "Main Station".into(),
+            stop_lat: 52.52,
+            stop_lon: 13.37,
+        }
+    }
+
+    fn main_station_platform_record() -> LocationRecord {
+        LocationRecord {
+            stop_id: "2".into(),
+            parent_station: Some("1".into()),
+            stop_name: "Main Station Platform 1".into(),
+            stop_lat: 52.52,
+            stop_lon: 13.37,
+        }
+    }
+
+    #[test]
+    fn test_import_location() {
+        let (id, location) = Location::new(main_station_record());
+        assert_eq!(id, "1");
+        assert_eq!(location.name, "Main Station");
+        assert_eq!(location.lat, 52.52);
+        assert_eq!(location.lon, 13.37);
+    }
+
+    #[test]
+    fn test_process_parent() {
+        let mut queue = VecDeque::new();
+        let mut locations = HashMap::new();
+        process_record(main_station_record(), &mut queue, &mut locations);
+        assert!(queue.is_empty());
+        assert_eq!(locations.len(), 1);
+        assert_eq!(locations["1"].name, "Main Station");
+    }
+
+    #[test]
+    fn test_process_child_without_parent() {
+        let mut queue = VecDeque::new();
+        let mut locations = HashMap::new();
+        process_record(main_station_platform_record(), &mut queue, &mut locations);
+        assert!(locations.is_empty());
+        assert_eq!(queue, [main_station_platform_record()]);
+    }
+
+    #[test]
+    fn test_process_child_with_parent() {
+        let mut queue = VecDeque::new();
+        let mut locations = HashMap::new();
+        let main_station = Location {
+            id: "1".into(),
+            name: "Main Station".into(),
+            lat: 52.52,
+            lon: 13.37,
+        };
+        locations.insert("1".into(), Rc::new(main_station));
+        process_record(main_station_platform_record(), &mut queue, &mut locations);
+        assert!(queue.is_empty());
+        assert_eq!(locations.len(), 2);
+        assert_eq!(locations["2"].name, "Main Station");
+    }
 }

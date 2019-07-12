@@ -10,7 +10,7 @@ use chrono::prelude::*;
 
 use super::utils::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Service {
     start: NaiveDate,
     end: NaiveDate,
@@ -142,4 +142,96 @@ struct ServiceExceptionRecord {
     #[serde(deserialize_with = "deserialize_naive_date")]
     date: NaiveDate,
     exception_type: ServiceExceptionType,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn service_monday_to_friday() -> Service {
+        Service {
+            start: NaiveDate::from_ymd(2019, 1, 1),
+            end: NaiveDate::from_ymd(2019, 12, 31),
+            weekdays: [true, true, true, true, true, false, false],
+            added: HashSet::new(),
+            removed: HashSet::new(),
+        }
+    }
+
+    #[test]
+    fn test_import_service() {
+        let record = ServiceRecord {
+            service_id: "1".into(),
+            start_date: NaiveDate::from_ymd(2019, 1, 1),
+            end_date: NaiveDate::from_ymd(2019, 12, 31),
+            monday: true,
+            tuesday: true,
+            wednesday: true,
+            thursday: true,
+            friday: true,
+            saturday: false,
+            sunday: false,
+        };
+        assert_eq!(Service::new(record), ("1".into(), service_monday_to_friday()));
+    }
+
+    #[test]
+    fn test_add_include_exception_to_service() {
+        let mut service = service_monday_to_friday();
+        let exception = ServiceExceptionRecord {
+            service_id: "1".into(),
+            date: NaiveDate::from_ymd(2019, 1, 5),
+            exception_type: ServiceExceptionType::Added,
+        };
+        service.add_exception(exception);
+        assert_eq!(service.added, vec![NaiveDate::from_ymd(2019, 1, 5)].into_iter().collect());
+        assert!(service.removed.is_empty());
+    }
+
+    #[test]
+    fn test_add_exclude_exception_to_service() {
+        let mut service = service_monday_to_friday();
+        let exception = ServiceExceptionRecord {
+            service_id: "1".into(),
+            date: NaiveDate::from_ymd(2019, 12, 24),
+            exception_type: ServiceExceptionType::Removed,
+        };
+        service.add_exception(exception);
+        assert_eq!(service.removed, vec![NaiveDate::from_ymd(2019, 12, 24)].into_iter().collect());
+        assert!(service.added.is_empty());
+    }
+
+    #[test]
+    fn test_regulary_available() {
+        let service = service_monday_to_friday();
+        let date = NaiveDate::from_ymd(2019, 1, 7);
+        assert!(service.regulary_available_at(&date));
+        assert!(service.available_at(&date));
+    }
+
+    #[test]
+    fn test_regulary_unavailable() {
+        let service = service_monday_to_friday();
+        let date = NaiveDate::from_ymd(2019, 1, 5);
+        assert!(!service.regulary_available_at(&date));
+        assert!(!service.available_at(&date));
+    }
+
+    #[test]
+    fn test_exceptionally_available() {
+        let mut service = service_monday_to_friday();
+        let date = NaiveDate::from_ymd(2019, 1, 5);
+        service.added.insert(date.clone());
+        assert!(!service.regulary_available_at(&date));
+        assert!(service.available_at(&date));
+    }
+
+    #[test]
+    fn test_exceptionally_unavailable() {
+        let mut service = service_monday_to_friday();
+        let date = NaiveDate::from_ymd(2019, 1, 7);
+        service.removed.insert(date.clone());
+        assert!(service.regulary_available_at(&date));
+        assert!(!service.available_at(&date));
+    }
 }
