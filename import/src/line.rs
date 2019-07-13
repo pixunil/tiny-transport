@@ -13,7 +13,7 @@ use super::location::Location;
 use super::trip::Route;
 use simulation::Color;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Line {
     name: String,
     color: Option<Color>,
@@ -150,4 +150,78 @@ struct LineRecord {
     agency_id: Id,
     route_short_name: String,
     route_type: LineKind,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    use serde_test::{Token, assert_de_tokens, assert_de_tokens_error};
+
+    fn blue_line_record() -> LineRecord {
+        LineRecord {
+            route_id: "1".into(),
+            agency_id: "1".into(),
+            route_short_name: "Blue Line".into(),
+            route_type: LineKind::SuburbanRailway,
+        }
+    }
+
+    pub fn blue_line() -> Line {
+        Line {
+            name: "Blue Line".into(),
+            color: None,
+            kind: LineKind::SuburbanRailway,
+            routes: Vec::new(),
+        }
+    }
+
+    fn blue_line_replacement() -> Line {
+        Line {
+            name: "Blue Line".into(),
+            color: None,
+            kind: LineKind::Bus,
+            routes: Vec::new(),
+        }
+    }
+
+    fn colors() -> HashMap<String, Color> {
+        let mut colors = HashMap::new();
+        colors.insert("Blue Line".into(), Color::new(0, 0, 255));
+        colors
+    }
+
+    #[test]
+    fn test_import_line() {
+        assert_eq!(Line::new(blue_line_record()), blue_line());
+    }
+
+    #[test]
+    fn test_add_color_to_applicable() {
+        let mut line = blue_line();
+        line.add_color_when_applicable(&colors());
+        assert_eq!(line.color, Some(Color::new(0, 0, 255)));
+    }
+
+    #[test]
+    fn test_add_color_to_unapplicable() {
+        let mut line = blue_line_replacement();
+        line.add_color_when_applicable(&colors());
+        assert_eq!(line.color, None);
+    }
+
+    #[test]
+    fn test_deserialize_line_kind() {
+        assert_de_tokens(&LineKind::Railway, &[Token::U16(100)]);
+        assert_de_tokens(&LineKind::SuburbanRailway, &[Token::U16(109)]);
+        assert_de_tokens(&LineKind::UrbanRailway, &[Token::U16(400)]);
+        assert_de_tokens(&LineKind::Bus, &[Token::U16(3)]);
+        assert_de_tokens(&LineKind::Bus, &[Token::U16(700)]);
+        assert_de_tokens(&LineKind::Tram, &[Token::U16(900)]);
+        assert_de_tokens(&LineKind::WaterTransport, &[Token::U16(1000)]);
+        assert_de_tokens_error::<LineKind>(&[Token::U16(0)],
+            "unknown route kind of value: 0");
+        assert_de_tokens_error::<LineKind>(&[Token::Str("")],
+            "invalid type: string \"\", expected positive integer");
+    }
 }

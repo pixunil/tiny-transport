@@ -102,7 +102,7 @@ struct ServiceRecord {
     sunday: bool,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 enum ServiceExceptionType {
     Added,
     Removed,
@@ -145,10 +145,12 @@ struct ServiceExceptionRecord {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
-    fn service_monday_to_friday() -> Service {
+    use serde_test::{Token, assert_de_tokens, assert_de_tokens_error};
+
+    pub fn service_monday_to_friday() -> Service {
         Service {
             start: NaiveDate::from_ymd(2019, 1, 1),
             end: NaiveDate::from_ymd(2019, 12, 31),
@@ -233,5 +235,15 @@ mod tests {
         service.removed.insert(date.clone());
         assert!(service.regulary_available_at(&date));
         assert!(!service.available_at(&date));
+    }
+
+    #[test]
+    fn test_deserialize_exception_type() {
+        assert_de_tokens(&ServiceExceptionType::Added, &[Token::U8(1)]);
+        assert_de_tokens(&ServiceExceptionType::Removed, &[Token::U8(2)]);
+        assert_de_tokens_error::<ServiceExceptionType>(&[Token::U8(0)],
+            "unknown expection type of value: 0");
+        assert_de_tokens_error::<ServiceExceptionType>(&[Token::Str("")],
+            "invalid type: string \"\", expected either 1 or 2");
     }
 }

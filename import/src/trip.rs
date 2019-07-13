@@ -11,7 +11,7 @@ use super::utils::*;
 use super::service::Service;
 use super::location::Location;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Route {
     pub locations: Vec<Rc<Location>>,
     trips: Vec<Trip>,
@@ -49,7 +49,7 @@ impl Route {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct Trip {
     direction: Direction,
     service: Rc<Service>,
@@ -69,7 +69,7 @@ impl Trip {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 struct TripBuf {
     line_id: Id,
     service: Rc<Service>,
@@ -174,4 +174,34 @@ struct StopRecord {
     arrival_time: Duration,
     #[serde(deserialize_with = "deserialize_duration")]
     departure_time: Duration,
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::service::tests::service_monday_to_friday;
+
+    fn empty_trip_buffer() -> TripBuf {
+        TripBuf {
+            line_id: "1".into(),
+            service: Rc::new(service_monday_to_friday()),
+            locations: Vec::new(),
+            arrivals: Vec::new(),
+            departures: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn test_import_trip_buffer() {
+        let mut services = HashMap::new();
+        services.insert("1".into(), Rc::new(service_monday_to_friday()));
+        let record = TripRecord {
+            trip_id: "1".into(),
+            route_id: "1".into(),
+            service_id: "1".into(),
+        };
+        assert_eq!(TripBuf::new(record, &services), ("1".into(), empty_trip_buffer()));
+    }
 }
