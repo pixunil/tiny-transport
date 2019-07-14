@@ -1,4 +1,4 @@
-import {Map, default as init} from "../pkg/gtfs_sim_wasm.js";
+import {Map, default as init} from "./wasm/gtfs_sim_wasm.js";
 
 const vec2 = glMatrix.vec2;
 const mat2d = glMatrix.mat2d;
@@ -295,7 +295,7 @@ class ShaderData {
 
 class Controller {
     constructor() {
-        this.wasm = init("../pkg/gtfs_sim_wasm_bg.wasm");
+        this.wasm = init("wasm/gtfs_sim_wasm_bg.wasm");
     }
 
     async setUp(gl) {
