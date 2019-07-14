@@ -6,9 +6,11 @@ use std::collections::{VecDeque, HashMap};
 
 use na::Point2;
 
+use simulation::Direction;
+
 use super::utils::*;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Location {
     pub id: Id,
     pub name: String,
@@ -27,6 +29,10 @@ impl Location {
         (record.stop_id, location)
     }
 
+    pub fn station_cmp(&self, other: &Location) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+
     pub fn freeze(&self) -> serialization::Station {
         let x = 2000.0 * (self.lon - 13.5);
         let y = -4000.0 * (self.lat - 52.52);
@@ -34,29 +40,42 @@ impl Location {
     }
 }
 
-impl PartialEq for Location {
-    fn eq(&self, other: &Location) -> bool {
-        self.id == other.id
+pub struct Path {
+    locations: Vec<Rc<Location>>,
+}
+
+impl Path {
+    pub fn new(mut locations: Vec<Rc<Location>>) -> (Path, Direction) {
+        let direction = if locations.first().unwrap().id <= locations.last().unwrap().id {
+            Direction::Upstream
+        } else {
+            locations.reverse();
+            Direction::Downstream
+        };
+        (Path {locations}, direction)
     }
 }
 
-impl Eq for Location {}
-
-impl Ord for Location {
-    fn cmp(&self, other: &Location) -> Ordering {
-        self.id.cmp(&other.id)
+impl Into<Vec<Rc<Location>>> for Path {
+    fn into(self) -> Vec<Rc<Location>> {
+        self.locations
     }
 }
 
-impl PartialOrd for Location {
-    fn partial_cmp(&self, other: &Location) -> Option<Ordering> {
-        Some(self.cmp(other))
+impl PartialEq for Path {
+    fn eq(&self, other: &Path) -> bool {
+        self.locations.iter().zip(&other.locations)
+            .all(|(a, b)| a.id == b.id)
     }
 }
 
-impl Hash for Location {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state)
+impl Eq for Path {}
+
+impl Hash for Path {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        for location in &self.locations {
+            location.id.hash(hasher);
+        }
     }
 }
 
@@ -104,7 +123,7 @@ struct LocationRecord {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     fn main_station_record() -> LocationRecord {
@@ -114,6 +133,15 @@ mod tests {
             stop_name: "Main Station".into(),
             stop_lat: 52.52,
             stop_lon: 13.37,
+        }
+    }
+
+    pub fn main_station() -> Location {
+        Location {
+            id: "1".into(),
+            name: "Main Station".into(),
+            lat: 52.52,
+            lon: 13.37,
         }
     }
 
@@ -127,13 +155,20 @@ mod tests {
         }
     }
 
+    pub fn museum() -> Location {
+        Location {
+            id: "2".into(),
+            name: "Museum".into(),
+            lat: 52.53,
+            lon: 13.38,
+        }
+    }
+
     #[test]
     fn test_import_location() {
         let (id, location) = Location::new(main_station_record());
         assert_eq!(id, "1");
-        assert_eq!(location.name, "Main Station");
-        assert_eq!(location.lat, 52.52);
-        assert_eq!(location.lon, 13.37);
+        assert_eq!(location, main_station());
     }
 
     #[test]
@@ -143,7 +178,7 @@ mod tests {
         process_record(main_station_record(), &mut queue, &mut locations);
         assert!(queue.is_empty());
         assert_eq!(locations.len(), 1);
-        assert_eq!(locations["1"].name, "Main Station");
+        assert_eq!(*locations["1"], main_station());
     }
 
     #[test]
@@ -159,16 +194,10 @@ mod tests {
     fn test_process_child_with_parent() {
         let mut queue = VecDeque::new();
         let mut locations = HashMap::new();
-        let main_station = Location {
-            id: "1".into(),
-            name: "Main Station".into(),
-            lat: 52.52,
-            lon: 13.37,
-        };
-        locations.insert("1".into(), Rc::new(main_station));
+        locations.insert("1".into(), Rc::new(main_station()));
         process_record(main_station_platform_record(), &mut queue, &mut locations);
         assert!(queue.is_empty());
         assert_eq!(locations.len(), 2);
-        assert_eq!(locations["2"].name, "Main Station");
+        assert_eq!(*locations["2"], main_station());
     }
 }

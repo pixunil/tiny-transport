@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use super::utils::*;
 use super::line::Line;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct Agency {
     pub name: String,
     pub lines: Vec<Line>,

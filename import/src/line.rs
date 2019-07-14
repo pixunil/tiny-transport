@@ -13,7 +13,7 @@ use super::location::Location;
 use super::trip::Route;
 use simulation::Color;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct Line {
     name: String,
     color: Option<Color>,

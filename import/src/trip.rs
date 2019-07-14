@@ -9,9 +9,9 @@ use simulation::Direction;
 
 use super::utils::*;
 use super::service::Service;
-use super::location::Location;
+use super::location::{Location, Path};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub struct Route {
     pub locations: Vec<Rc<Location>>,
     trips: Vec<Trip>,
@@ -69,7 +69,7 @@ impl Trip {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 struct TripBuf {
     line_id: Id,
     service: Rc<Service>,
@@ -96,14 +96,8 @@ impl TripBuf {
         self.departures.push(record.departure_time);
     }
 
-    fn into_trip(self, trips: &mut HashMap<(Id, Vec<Rc<Location>>), Vec<Trip>>) {
-        let mut locations = self.locations.clone();
-        let direction = if locations.first() <= locations.last() {
-            Direction::Upstream
-        } else {
-            locations.reverse();
-            Direction::Downstream
-        };
+    fn into_trip(self, trips: &mut HashMap<(Id, Path), Vec<Trip>>) {
+        let (path, direction) = Path::new(self.locations);
 
         let trip = Trip {
             direction,
@@ -112,7 +106,7 @@ impl TripBuf {
             departures: self.departures,
         };
 
-        trips.entry((self.line_id, locations))
+        trips.entry((self.line_id, path))
             .or_insert_with(Vec::new)
             .push(trip);
     }
@@ -150,10 +144,10 @@ pub fn from_csv(dataset: &mut impl Dataset, services: &HashMap<Id, Rc<Service>>,
     }
 
     let mut routes = HashMap::new();
-    for ((line_id, locations), trips) in trips {
+    for ((line_id, path), trips) in trips {
         routes.entry(line_id)
             .or_insert_with(Vec::new)
-            .push(Route::new(locations, trips))
+            .push(Route::new(path.into(), trips))
     }
 
     Ok(routes)
@@ -182,6 +176,7 @@ mod tests {
     use super::*;
 
     use crate::service::tests::service_monday_to_friday;
+    use crate::location::tests::{main_station, museum};
 
     fn empty_trip_buffer() -> TripBuf {
         TripBuf {
@@ -203,5 +198,40 @@ mod tests {
             service_id: "1".into(),
         };
         assert_eq!(TripBuf::new(record, &services), ("1".into(), empty_trip_buffer()));
+    }
+
+    #[test]
+    fn test_add_stops_to_trip_buffer() {
+        let records = vec![
+            StopRecord {
+                trip_id: "1".into(),
+                stop_id: "1".into(),
+                arrival_time: Duration::minutes(0),
+                departure_time: Duration::minutes(1),
+            },
+            StopRecord {
+                trip_id: "1".into(),
+                stop_id: "2".into(),
+                arrival_time: Duration::minutes(5),
+                departure_time: Duration::minutes(6),
+            },
+        ];
+        let mut locations = HashMap::new();
+        locations.insert("1".into(), Rc::new(main_station()));
+        locations.insert("2".into(), Rc::new(museum()));
+
+        let expected_buffer = TripBuf {
+            line_id: "1".into(),
+            service: Rc::new(service_monday_to_friday()),
+            locations: vec![Rc::new(main_station()), Rc::new(museum())],
+            arrivals: vec![Duration::minutes(0), Duration::minutes(5)],
+            departures: vec![Duration::minutes(1), Duration::minutes(6)],
+        };
+
+        let mut buffer = empty_trip_buffer();
+        for record in records {
+            buffer.add_stop(record, &locations);
+        }
+        assert_eq!(buffer, expected_buffer);
     }
 }
