@@ -15,6 +15,7 @@ default = []
 
 [dependencies]
 nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
+approx = "0.3"
 bincode = "1"
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1.6", optional = true }

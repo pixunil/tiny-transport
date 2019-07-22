@@ -184,6 +184,7 @@ dependencies = [
 name = "gtfs-sim-wasm"
 version = "0.1.0"
 dependencies = [
+ "approx 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtfs-sim-serialization 0.1.0",

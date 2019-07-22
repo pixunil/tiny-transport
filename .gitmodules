@@ -1,3 +1,0 @@
-[submodule "wasm/www/gl-matrix"]
-	path = wasm/www/gl-matrix
-	url = https://github.com/toji/gl-matrix.git

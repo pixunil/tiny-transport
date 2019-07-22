@@ -1,8 +1,4 @@
-import {Map, default as init} from "./wasm/gtfs_sim_wasm.js";
-
-const vec2 = glMatrix.vec2;
-const mat2d = glMatrix.mat2d;
-const mat4 = glMatrix.mat4;
+import {Map, View, default as init} from "./wasm/gtfs_sim_wasm.js";
 
 function loadSource(url) {
     return new Promise((resolve, reject) => {
@@ -99,8 +95,8 @@ class ProgramInfo {
 }
 
 class Renderer {
-    constructor(shaderData) {
-        this.shaderData = shaderData;
+    constructor(view) {
+        this.view = view;
         this.programInfo = new ProgramInfo();
     }
 
@@ -138,8 +134,8 @@ class StationRenderer extends Renderer {
     run() {
         this.gl.useProgram(this.programInfo.program);
 
-        this.gl.uniform1f(this.uniformLocations.size, 6.0 * this.shaderData.uniforms.view[0]);
-        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
+        this.gl.uniform1f(this.uniformLocations.size, 6.0 * this.view.scaling());
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
         this.gl.vertexAttribPointer(
@@ -171,7 +167,7 @@ class LineRenderer extends Renderer {
     run() {
         this.gl.useProgram(this.programInfo.program);
 
-        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
         this.gl.vertexAttribPointer(
@@ -216,7 +212,7 @@ class TrainRenderer extends Renderer {
     run() {
         this.gl.useProgram(this.programInfo.program);
 
-        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.shaderData.uniforms.modelView);
+        this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
         this.gl.vertexAttribPointer(
@@ -236,63 +232,6 @@ class TrainRenderer extends Renderer {
     }
 }
 
-class ShaderData {
-    async setUp(gl) {
-        this.canvas = gl.canvas;
-        this.initMatrices();
-    }
-
-    initMatrices() {
-        this.uniforms = {
-            model: glMatrix.mat2d.create(),
-            view: glMatrix.mat2d.create(),
-            modelView: glMatrix.mat4.create(),
-        };
-
-        this.calculateModelView();
-    }
-
-    translateView(x, y) {
-        const view = mat2d.create();
-        mat2d.fromTranslation(view, vec2.fromValues(x, y));
-        mat2d.multiply(this.uniforms.view, view, this.uniforms.view);
-        this.calculateModelView();
-    }
-
-    scaleView(scale, x, y) {
-        const translation = vec2.fromValues(x - this.canvas.width / 2, y - this.canvas.height / 2);
-        const view = mat2d.create();
-        mat2d.translate(view, view, translation);
-        mat2d.scale(view, view, vec2.fromValues(scale, scale));
-        mat2d.translate(view, view, vec2.negate(translation, translation));
-        mat2d.multiply(this.uniforms.view, view, this.uniforms.view);
-        this.calculateModelView();
-    }
-
-    transformMouse(x, y) {
-        let point = vec2.fromValues(x, y);
-        vec2.multiply(point, point, vec2.fromValues(2.0 / this.canvas.width, -2.0 / this.canvas.height));
-        vec2.add(point, point, vec2.fromValues(-1.0, 1.0));
-        const inversed = mat4.invert(mat4.create(), this.uniforms.modelView);
-        return vec2.transformMat4(vec2.create(), point, inversed);
-    }
-
-    calculateModelView() {
-        const modelView2d = mat2d.create();
-        mat2d.scale(modelView2d, modelView2d, vec2.fromValues(2.0 / this.canvas.width, -2.0 / this.canvas.height));
-        mat2d.multiply(modelView2d, modelView2d, this.uniforms.view);
-        mat2d.multiply(modelView2d, modelView2d, this.uniforms.model);
-
-        mat4.identity(this.uniforms.modelView);
-        this.uniforms.modelView[0] = modelView2d[0];
-        this.uniforms.modelView[1] = modelView2d[1];
-        this.uniforms.modelView[4] = modelView2d[2];
-        this.uniforms.modelView[5] = modelView2d[3];
-        this.uniforms.modelView[12] = modelView2d[4];
-        this.uniforms.modelView[13] = modelView2d[5];
-    }
-}
-
 class Controller {
     constructor() {
         this.wasm = init("wasm/gtfs_sim_wasm_bg.wasm");
@@ -304,16 +243,16 @@ class Controller {
         this.resizeCanvasIfNecessary();
         this.clear();
 
-        this.shaderData = new ShaderData();
+        await this.setUpView();
+
         this.renderer = {
-            line: new LineRenderer(this.shaderData),
-            train: new TrainRenderer(this.shaderData),
-            station: new StationRenderer(this.shaderData),
+            line: new LineRenderer(this.view),
+            train: new TrainRenderer(this.view),
+            station: new StationRenderer(this.view),
         };
 
         await Promise.all([
             this.setUpModel(),
-            this.shaderData.setUp(this.gl),
             this.renderer.line.setUp(this.gl, sources.line),
             this.renderer.train.setUp(this.gl, sources.train),
             this.renderer.station.setUp(this.gl, sources.station),
@@ -329,31 +268,34 @@ class Controller {
         this.addControlListeners();
     }
 
-    async setUpModel() {
+    async setUpView() {
         await this.wasm;
+        this.view = new View(this.canvas.width, this.canvas.height);
+        this.view.viewProjection = this.view.calculateViewProjection();
+    }
+
+    async setUpModel() {
         const data = new Uint8Array(await sources.data);
         this.model = Map.parse(data);
     }
 
     addControlListeners() {
         this.canvas.addEventListener("mousemove", event => {
-            this.updateTooltip(event.clientX, event.clientY);
+            this.updateTooltip(event.clientX - this.canvas.offsetLeft, event.clientY - this.canvas.offsetTop);
             if (event.buttons) {
-                this.shaderData.translateView(event.movementX, event.movementY);
+                this.view.scroll(event.movementX, event.movementY);
+                this.view.viewProjection = this.view.calculateViewProjection();
             }
         });
         this.canvas.addEventListener("wheel", event => {
-            if (event.deltaY < 0) {
-                this.shaderData.scaleView(11 / 10, event.clientX, event.clientY);
-            } else {
-                this.shaderData.scaleView(10 / 11, event.clientX, event.clientY);
-            }
+            const scaling = event.deltaY < 0 ? 11 / 10 : 10 / 11;
+            this.view.zoom(scaling, event.clientX - this.canvas.offsetLeft, event.clientY - this.canvas.offsetTop);
+            this.view.viewProjection = this.view.calculateViewProjection();
         });
     }
 
-    updateTooltip(x ,y) {
-        const point = this.shaderData.transformMouse(x, y);
-        const name = this.model.find_station(point[0], point[1]);
+    updateTooltip(x, y) {
+        const name = this.model.find_station(this.view, x, y);
         this.gl.canvas.title = name ? name : "";
     }
 
@@ -363,8 +305,9 @@ class Controller {
             this.canvas.height = this.canvas.clientHeight;
             this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
-            if (this.shaderData) {
-                this.shaderData.calculateModelView();
+            if (this.view) {
+                this.view.resize(this.canvas.width, this.canvas.height);
+                this.view.viewProjection = this.view.calculateViewProjection();
             }
         }
     }

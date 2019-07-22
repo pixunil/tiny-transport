@@ -1,6 +1,9 @@
 language: rust
-cache: cargo
 sudo: required
+
+cache:
+  directories:
+    - /home/travis/.cargo
 
 git:
   lfs_skip_smudge: true
@@ -44,7 +47,7 @@ after_success:
 
 jobs:
   include:
-    - stage: deploy
+    - stage: build
       env: RUSTFLAGS=""
       install:
         - cargo install --force wasm-pack
@@ -56,7 +59,7 @@ jobs:
       after_success:
         - echo "Skipped coverage reporting"
       before_deploy:
-        - rm wasm/www/wasm/.gitignore wasm/www/gl-matrix/.gitignore
+        - rm wasm/www/wasm/.gitignore
       deploy:
         provider: pages
         skip_cleanup: true
@@ -66,5 +69,5 @@ jobs:
     - rust: nightly
 
 stages:
-  - name: deploy
-    if: branch = master
+  - test
+  - build
