@@ -18,7 +18,7 @@ impl Dataset for PathBuf {
 }
 
 impl<R: Read + Seek> Dataset for ZipArchive<R> {
-    fn read_csv<'b>(&'b mut self, name: &str) -> Result<csv::Reader<Box<dyn Read + 'b>>, Box<dyn Error>> {
+    fn read_csv<'a>(&'a mut self, name: &str) -> Result<csv::Reader<Box<dyn Read + 'a>>, Box<dyn Error>> {
         let file = self.by_name(name)?;
         Ok(csv::Reader::from_reader(Box::new(file)))
     }

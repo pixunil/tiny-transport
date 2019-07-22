@@ -42,10 +42,7 @@ pub struct LineGroup {
 
 impl LineGroup {
     pub fn new(color: Color, lines: Vec<Line>) -> LineGroup {
-        LineGroup {
-            color,
-            lines,
-        }
+        LineGroup { color, lines }
     }
 
     pub fn unfreeze(self, stations: &StationBinding) -> simulation::LineGroup {

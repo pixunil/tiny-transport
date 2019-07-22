@@ -12,7 +12,7 @@ impl Color {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item=u8> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = u8> + '_ {
         self.components.iter().cloned()
     }
 }

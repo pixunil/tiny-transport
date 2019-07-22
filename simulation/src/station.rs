@@ -9,11 +9,7 @@ pub struct Station {
 
 impl Station {
     pub fn new(id: usize, position: Point2<f32>, name: String) -> Station {
-        Station {
-            id,
-            position,
-            name,
-        }
+        Station { id, position, name }
     }
 
     pub fn id(&self) -> usize {
@@ -32,7 +28,7 @@ impl Station {
         na::distance(&self.position, position) < 5.0
     }
 
-    pub fn position_buffer_data(&self) -> impl Iterator<Item=f32> + '_ {
+    pub fn position_buffer_data(&self) -> impl Iterator<Item = f32> + '_ {
         self.position.iter().cloned()
     }
 }

@@ -52,7 +52,7 @@ impl Path {
             locations.reverse();
             Direction::Downstream
         };
-        (Path {locations}, direction)
+        (Path { locations }, direction)
     }
 }
 

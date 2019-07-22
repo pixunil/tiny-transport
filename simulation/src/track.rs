@@ -42,11 +42,7 @@ pub struct Track {
 
 impl Track {
     pub fn new(from: Rc<Stop>, to: Rc<Stop>, color: Color) -> Track {
-        Track {
-            from,
-            to,
-            color,
-        }
+        Track { from, to, color }
     }
 
     pub fn direction(&self) -> Vector2<f32> {

@@ -10,10 +10,7 @@ pub struct Station {
 
 impl Station {
     pub fn new(position: Point2<f32>, name: String) -> Station {
-        Station {
-            position,
-            name,
-        }
+        Station { position, name }
     }
 
     pub fn unfreeze(self, id: usize) -> Rc<simulation::Station> {

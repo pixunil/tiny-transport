@@ -19,10 +19,7 @@ pub struct Route {
 
 impl Route {
     fn new(locations: Vec<Rc<Location>>, trips: Vec<Trip>) -> Route {
-        Route {
-            locations,
-            trips,
-        }
+        Route { locations, trips }
     }
 
     pub fn num_trips_at(&self, date: &NaiveDate) -> usize {
@@ -169,7 +166,6 @@ struct StopRecord {
     #[serde(deserialize_with = "deserialize_duration")]
     departure_time: Duration,
 }
-
 
 #[cfg(test)]
 mod tests {
