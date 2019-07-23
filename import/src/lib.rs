@@ -48,8 +48,10 @@ pub fn compress() -> Result<(), Box<dyn Error>> {
 fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     let services = service::from_csv(&mut dataset)?;
     let locations = location::from_csv(&mut dataset)?;
-    let trips = trip::from_csv(&mut dataset, &services, &locations)?;
-    let lines = line::from_csv(&mut dataset, trips)?;
+    let line_importer = line::Importer::import(&mut dataset)?;
+    let trip_importer = trip::Importer::new(&services, &locations, line_importer.id_mapping(), line_importer.num_lines());
+    let routes = trip_importer.import(&mut dataset)?;
+    let lines = line_importer.add_routes(routes)?;
     let agencies = agency::from_csv(&mut dataset, lines)?;
     Ok(agencies)
 }

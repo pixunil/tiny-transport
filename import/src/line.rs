@@ -54,45 +54,74 @@ impl Line {
     }
 }
 
-fn import_colors(dataset: &mut impl Dataset) -> Result<HashMap<String, Color>, Box<dyn Error>> {
-    let mut colors = HashMap::new();
-    let mut reader = dataset.read_csv("colors.txt")?;
-    for result in reader.deserialize() {
-        let record: LineColorRecord = result?;
-        colors.insert(record.line, record.color);
-    }
-    Ok(colors)
+pub struct Importer {
+    records: Vec<LineRecord>,
+    id_mapping: HashMap<Id, usize>,
+    colors: HashMap<String, Color>,
 }
 
-fn import_lines(dataset: &mut impl Dataset, mut routes: HashMap<Id, Vec<Route>>, colors: HashMap<String, Color>)
-    -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>>
-{
-    let mut deduplicated_lines = HashMap::new();
-    let mut reader = dataset.read_csv("routes.txt")?;
-    for result in reader.deserialize() {
-        let record: LineRecord = result?;
-        let key = (record.agency_id.clone(), record.route_short_name.clone(), record.route_type.clone());
-        let id = record.route_id.clone();
-        let line = deduplicated_lines.entry(key)
-            .or_insert_with(|| Line::new(record));
-        line.add_routes(routes.remove(&id));
-        line.add_color_when_applicable(&colors);
+impl Importer {
+    pub fn import(dataset: &mut impl Dataset) -> Result<Importer, Box<dyn Error>> {
+        let (records, id_mapping) = Self::import_lines(dataset)?;
+        let colors = Self::import_colors(dataset)?;
+        Ok(Importer { records, id_mapping, colors })
     }
 
-    let mut lines = HashMap::new();
-    for ((agency_id, _name, _kind), line) in deduplicated_lines {
-        lines.entry(agency_id)
-            .or_insert_with(Vec::new)
-            .push(line);
+    fn import_lines(dataset: &mut impl Dataset)
+        -> Result<(Vec<LineRecord>, HashMap<Id, usize>), Box<dyn Error>>
+    {
+        let mut deduplicated_records = HashMap::new();
+        let mut reader = dataset.read_csv("routes.txt")?;
+        for result in reader.deserialize() {
+            let record: LineRecord = result?;
+            let key = (record.agency_id.clone(), record.route_short_name.clone(), record.route_type.clone());
+            let id = record.route_id.clone();
+            let (_record, ids) = deduplicated_records.entry(key)
+                .or_insert_with(|| (record, Vec::new()));
+            ids.push(id);
+        }
+
+        let mut records = Vec::new();
+        let mut id_mapping = HashMap::new();
+        for (_key, (record, ids)) in deduplicated_records {
+            id_mapping.extend(ids.into_iter().map(|id| (id, records.len())));
+            records.push(record);
+        }
+        Ok((records, id_mapping))
     }
 
-    Ok(lines)
-}
+    fn import_colors(dataset: &mut impl Dataset) -> Result<HashMap<String, Color>, Box<dyn Error>> {
+        let mut colors = HashMap::new();
+        let mut reader = dataset.read_csv("colors.txt")?;
+        for result in reader.deserialize() {
+            let record: LineColorRecord = result?;
+            colors.insert(record.line, record.color);
+        }
+        Ok(colors)
+    }
 
-pub fn from_csv(dataset: &mut impl Dataset, routes: HashMap<Id, Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>> {
-    let colors = import_colors(dataset)?;
-    let lines = import_lines(dataset, routes, colors)?;
-    Ok(lines)
+    pub fn id_mapping(&self) -> &HashMap<Id, usize> {
+        &self.id_mapping
+    }
+
+    pub fn num_lines(&self) -> usize {
+        self.records.len()
+    }
+
+    pub fn add_routes(self, mut routes: Vec<Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>> {
+        let mut lines = HashMap::new();
+        for record in self.records.into_iter().rev() {
+            let agency_id = record.agency_id.clone();
+            let mut line = Line::new(record);
+            line.add_routes(routes.pop());
+            line.add_color_when_applicable(&self.colors);
+            lines.entry(agency_id)
+                .or_insert_with(Vec::new)
+                .push(line);
+        }
+
+        Ok(lines)
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

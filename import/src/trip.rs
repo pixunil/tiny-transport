@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::rc::Rc;
+use std::iter;
 use std::collections::HashMap;
 
 use chrono::prelude::*;
@@ -68,7 +69,7 @@ impl Trip {
 
 #[derive(Debug, PartialEq)]
 struct TripBuf {
-    line_id: Id,
+    line_id: usize,
     service: Rc<Service>,
     locations: Vec<Rc<Location>>,
     arrivals: Vec<Duration>,
@@ -76,9 +77,9 @@ struct TripBuf {
 }
 
 impl TripBuf {
-    fn new(record: TripRecord, services: &HashMap<Id, Rc<Service>>) -> (Id, TripBuf) {
+    fn new(record: TripRecord, services: &HashMap<Id, Rc<Service>>, id_mapping: &HashMap<Id, usize>) -> (Id, TripBuf) {
         let trip = TripBuf {
-            line_id: record.route_id,
+            line_id: id_mapping[&record.route_id],
             service: services[&record.service_id].clone(),
             locations: Vec::new(),
             arrivals: Vec::new(),
@@ -93,7 +94,7 @@ impl TripBuf {
         self.departures.push(record.departure_time);
     }
 
-    fn into_trip(self, trips: &mut HashMap<(Id, Path), Vec<Trip>>) {
+    fn into_trip(self, trips: &mut Vec<HashMap<Path, Vec<Trip>>>) {
         let (path, direction) = Path::new(self.locations);
 
         let trip = Trip {
@@ -103,51 +104,68 @@ impl TripBuf {
             departures: self.departures,
         };
 
-        trips.entry((self.line_id, path))
+        trips[self.line_id].entry(path)
             .or_insert_with(Vec::new)
             .push(trip);
     }
 }
 
-fn import_trip_buffers(dataset: &mut impl Dataset, services: &HashMap<Id, Rc<Service>>) -> Result<HashMap<Id, TripBuf>, Box<dyn Error>> {
-    let mut buffers = HashMap::new();
-    let mut reader = dataset.read_csv("trips.txt")?;
-    for result in reader.deserialize() {
-        let (id, buffer) = TripBuf::new(result?, services);
-        buffers.insert(id, buffer);
-    }
-    Ok(buffers)
+pub struct Importer<'a> {
+    services: &'a HashMap<Id, Rc<Service>>,
+    locations: &'a HashMap<Id, Rc<Location>>,
+    id_mapping: &'a HashMap<Id, usize>,
+    num_lines: usize,
 }
 
-fn add_trip_stops(dataset: &mut impl Dataset, buffers: &mut HashMap<Id, TripBuf>, locations: &HashMap<Id, Rc<Location>>) -> Result<(), Box<dyn Error>> {
-    let mut reader = dataset.read_csv("stop_times.txt")?;
-    for result in reader.deserialize() {
-        let record: StopRecord = result?;
-        buffers.get_mut(&record.trip_id).unwrap()
-            .add_stop(record, locations);
-    }
-    Ok(())
-}
-
-pub fn from_csv(dataset: &mut impl Dataset, services: &HashMap<Id, Rc<Service>>, locations: &HashMap<Id, Rc<Location>>)
-    -> Result<HashMap<Id, Vec<Route>>, Box<dyn Error>>
-{
-    let mut buffers = import_trip_buffers(dataset, services)?;
-    add_trip_stops(dataset, &mut buffers, locations)?;
-
-    let mut trips = HashMap::new();
-    for (_id, buffer) in buffers {
-        buffer.into_trip(&mut trips);
+impl<'a> Importer<'a> {
+    pub fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<Id, Rc<Location>>,
+        id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
+        -> Importer<'a>
+    {
+        Importer { services, locations, id_mapping, num_lines }
     }
 
-    let mut routes = HashMap::new();
-    for ((line_id, path), trips) in trips {
-        routes.entry(line_id)
-            .or_insert_with(Vec::new)
-            .push(Route::new(path.into(), trips))
+    fn import_trip_buffers(&self, dataset: &mut impl Dataset) -> Result<HashMap<Id, TripBuf>, Box<dyn Error>> {
+        let mut buffers = HashMap::new();
+        let mut reader = dataset.read_csv("trips.txt")?;
+        for result in reader.deserialize() {
+            let (id, buffer) = TripBuf::new(result?, &self.services, &self.id_mapping);
+            buffers.insert(id, buffer);
+        }
+        Ok(buffers)
     }
 
-    Ok(routes)
+    fn add_trip_stops(&self, dataset: &mut impl Dataset, buffers: &mut HashMap<Id, TripBuf>) -> Result<(), Box<dyn Error>> {
+        let mut reader = dataset.read_csv("stop_times.txt")?;
+        for result in reader.deserialize() {
+            let record: StopRecord = result?;
+            buffers.get_mut(&record.trip_id).unwrap()
+                .add_stop(record, &self.locations);
+        }
+        Ok(())
+    }
+
+    pub fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>>
+    {
+        let mut buffers = self.import_trip_buffers(dataset)?;
+        self.add_trip_stops(dataset, &mut buffers)?;
+
+        let mut trips = iter::repeat_with(HashMap::new)
+            .take(self.num_lines)
+            .collect();
+        for (_id, buffer) in buffers {
+            buffer.into_trip(&mut trips);
+        }
+
+        let routes = trips.into_iter()
+            .map(|routes| {
+                routes.into_iter()
+                .map(|(path, trips)| Route::new(path.into(), trips))
+                .collect()
+            })
+            .collect();
+        Ok(routes)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -176,7 +194,7 @@ mod tests {
 
     fn empty_trip_buffer() -> TripBuf {
         TripBuf {
-            line_id: "1".into(),
+            line_id: 0,
             service: Rc::new(service_monday_to_friday()),
             locations: Vec::new(),
             arrivals: Vec::new(),
@@ -188,12 +206,14 @@ mod tests {
     fn test_import_trip_buffer() {
         let mut services = HashMap::new();
         services.insert("1".into(), Rc::new(service_monday_to_friday()));
+        let mut id_mapping = HashMap::new();
+        id_mapping.insert("1".into(), 0);
         let record = TripRecord {
             trip_id: "1".into(),
             route_id: "1".into(),
             service_id: "1".into(),
         };
-        assert_eq!(TripBuf::new(record, &services), ("1".into(), empty_trip_buffer()));
+        assert_eq!(TripBuf::new(record, &services, &id_mapping), ("1".into(), empty_trip_buffer()));
     }
 
     #[test]
@@ -217,7 +237,7 @@ mod tests {
         locations.insert("2".into(), Rc::new(museum()));
 
         let expected_buffer = TripBuf {
-            line_id: "1".into(),
+            line_id: 0,
             service: Rc::new(service_monday_to_friday()),
             locations: vec![Rc::new(main_station()), Rc::new(museum())],
             arrivals: vec![Duration::minutes(0), Duration::minutes(5)],
