@@ -153,6 +153,20 @@ mod tests {
         assert_eq!(deserialize_naive_date(deserializer), Ok(NaiveDate::from_ymd(2019, 7, 11)));
     }
 
+    #[test]
+    fn test_naive_date_empty() {
+        let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
+        let error = deserialize_naive_date(deserializer).unwrap_err();
+        assert_eq!(error.description(), "premature end of input");
+    }
+
+    #[test]
+    fn test_naive_date_invalid_type() {
+        let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
+        let error = deserialize_naive_date(deserializer).unwrap_err();
+        assert_eq!(error.description(), "invalid type: integer `0`, expected date string");
+    }
+
     fn duration(hours: i64, minutes: i64, seconds: i64) -> Duration {
         Duration::seconds((hours * 60 + minutes) * 60 + seconds)
     }
@@ -173,6 +187,13 @@ mod tests {
     fn test_duration_after_midnight() {
         let deserializer: StrDeserializer<ValueError> = "24:34:56".into_deserializer();
         assert_eq!(deserialize_duration(deserializer), Ok(duration(24, 34, 56)));
+    }
+
+    #[test]
+    fn test_duration_invalid_type() {
+        let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
+        let error = deserialize_duration(deserializer).unwrap_err();
+        assert_eq!(error.description(), "invalid type: integer `0`, expected time string");
     }
 
     #[test]

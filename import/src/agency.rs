@@ -51,25 +51,41 @@ mod tests {
         }
     }
 
+    fn agency(lines: Vec<Line>) -> Agency {
+        Agency {
+            name: "Public Transport".into(),
+            lines: lines,
+        }
+    }
+
+    fn lines() -> HashMap<Id, Vec<Line>> {
+        let mut lines = HashMap::new();
+        lines.insert("1".into(), vec![blue_line()]);
+        lines
+    }
+
     #[test]
     fn test_import_agency_without_lines() {
         let mut lines = HashMap::new();
-        let expected_agency = Agency {
-            name: "Public Transport".into(),
-            lines: Vec::new(),
-        };
-        assert_eq!(Agency::new(agency_record(), &mut lines), expected_agency);
+        assert_eq!(Agency::new(agency_record(), &mut lines), agency(vec![]));
     }
 
     #[test]
     fn test_import_agency_with_line() {
-        let mut lines = HashMap::new();
-        lines.insert("1".into(), vec![blue_line()]);
-        let expected_agency = Agency {
-            name: "Public Transport".into(),
-            lines: vec![blue_line()],
-        };
-        assert_eq!(Agency::new(agency_record(), &mut lines), expected_agency);
+        let mut lines = lines();
+        assert_eq!(Agency::new(agency_record(), &mut lines), agency(vec![blue_line()]));
         assert!(lines.is_empty());
+    }
+
+    #[test]
+    fn test_from_csv() {
+        let mut dataset = crate::dataset!(
+            agency:
+                agency_id, agency_name;
+                1,         "Public Transport"
+        );
+
+        let agencies = from_csv(&mut dataset, lines()).unwrap();
+        assert_eq!(agencies, vec![agency(vec![blue_line()])]);
     }
 }

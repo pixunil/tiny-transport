@@ -200,4 +200,18 @@ pub mod tests {
         assert_eq!(locations.len(), 2);
         assert_eq!(*locations["2"], main_station());
     }
+
+    #[test]
+    fn test_from_csv() {
+        let mut dataset = crate::dataset!(
+            stops:
+                stop_id, stop_name,      stop_lat, stop_lon, parent_station;
+                1,       "Main Station", 52.52,    13.37,    ""
+
+        );
+
+        let locations = from_csv(&mut dataset).unwrap();
+        assert_eq!(locations.len(), 1);
+        assert_eq!(*locations["1"], main_station());
+    }
 }

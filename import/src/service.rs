@@ -246,4 +246,26 @@ pub mod tests {
         assert_de_tokens_error::<ServiceExceptionType>(&[Token::Str("")],
             "invalid type: string \"\", expected either 1 or 2");
     }
+
+    #[test]
+    fn test_from_csv() {
+        let mut dataset = crate::dataset!(
+            calendar:
+                service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date;
+                1,          1,      1,       1,         1,        1,      0,        0,      20190101,   20191231
+            calendar_dates:
+                service_id, date,     exception_type;
+                1,          20190105, 1;
+                1,          20190107, 2
+
+        );
+
+        let mut service = service_monday_to_friday();
+        service.added.insert(NaiveDate::from_ymd(2019, 1, 5));
+        service.removed.insert(NaiveDate::from_ymd(2019, 1, 7));
+
+        let services = from_csv(&mut dataset).unwrap();
+        assert_eq!(services.len(), 1);
+        assert_eq!(*services["1"], service);
+    }
 }

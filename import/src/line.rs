@@ -226,6 +226,21 @@ pub mod tests {
     }
 
     #[test]
+    fn test_deduplication() {
+        let mut dataset = crate::dataset!(
+            routes:
+                route_id, agency_id, route_short_name, route_type;
+                1,        1,         "Blue Line",      109;
+                2,        1,         "Blue Line",      109
+        );
+
+        let (_, id_mapping) = Importer::import_lines(&mut dataset).unwrap();
+        assert_eq!(id_mapping.len(), 2);
+        assert_eq!(id_mapping["1"], 0);
+        assert_eq!(id_mapping["2"], 0);
+    }
+
+    #[test]
     fn test_add_color_to_applicable() {
         let mut line = blue_line();
         line.add_color_when_applicable(&colors());
