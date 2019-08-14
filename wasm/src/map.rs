@@ -85,7 +85,7 @@ impl Map {
     pub fn line_vertices(&self) -> Vec<f32> {
         let mut buffer = Vec::new();
         for line_group in &self.line_groups {
-            line_group.fill_vertice_buffer_data(&mut buffer, &self.track_bundles);
+            line_group.fill_vertice_buffer_data(&mut buffer);
         }
         buffer
     }

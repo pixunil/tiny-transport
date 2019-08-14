@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use na::Point2;
+
 use simulation::Color;
 use super::train::Train;
 
@@ -9,14 +11,16 @@ type StationBinding = [Rc<simulation::Station>];
 pub struct Line {
     name: String,
     stops: Vec<usize>,
+    shape: Vec<Point2<f32>>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, stops: Vec<usize>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, stops: Vec<usize>, shape: Vec<Point2<f32>>, trains: Vec<Train>) -> Line {
         Line {
             name,
             stops,
+            shape,
             trains,
         }
     }
@@ -30,7 +34,7 @@ impl Line {
             .map(|train| train.unfreeze())
             .collect();
 
-        simulation::Line::new(self.name, color.clone(), stations, trains)
+        simulation::Line::new(self.name, color.clone(), stations, self.shape, trains)
     }
 }
 

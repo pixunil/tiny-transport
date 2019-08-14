@@ -48,9 +48,10 @@ impl Line {
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
         let stops = route.freeze_stops(stations);
+        let shape = route.freeze_shape();
         let trains = route.freeze_trains(date);
         let color = self.color.clone().unwrap();
-        (color, serialization::Line::new(self.name.clone(), stops, trains))
+        (color, serialization::Line::new(self.name.clone(), stops, shape, trains))
     }
 }
 

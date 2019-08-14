@@ -1,6 +1,8 @@
 use std::rc::Rc;
 use std::ops::Deref;
-use std::collections::{HashSet, HashMap};
+use std::collections::HashMap;
+
+use na::{Point2, Vector2};
 
 use crate::color::Color;
 use crate::station::Station;
@@ -42,12 +44,13 @@ impl Deref for Stop {
 pub struct Line {
     name: String,
     stops: Vec<Rc<Stop>>,
+    shape: Vec<Point2<f32>>,
     tracks: Vec<Track>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, color: Color, stations: Vec<Rc<Station>>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, color: Color, stations: Vec<Rc<Station>>, shape: Vec<Point2<f32>>, trains: Vec<Train>) -> Line {
         let mut stops = stations.into_iter()
             .map(|station| Stop::new(station))
             .collect::<Vec<_>>();
@@ -62,6 +65,7 @@ impl Line {
         Line {
             name,
             stops,
+            shape,
             tracks,
             trains,
         }
@@ -113,43 +117,36 @@ impl LineGroup {
         self.color.iter().map(|component| component as f32 / 255.0)
     }
 
-    fn build_track_runs(&self) -> Vec<Vec<Track>> {
-        let mut track_runs = Vec::new();
-        let mut tracks = HashSet::new();
-        for line in &self.lines {
-            let mut track_run = Vec::new();
-            for track in &line.tracks {
-                if !tracks.contains(&track.key()) {
-                    tracks.insert(track.key());
-                    track_run.push(track.clone());
-                } else if !track_run.is_empty() {
-                    track_runs.push(track_run);
-                    track_run = Vec::new();
-                }
-            }
-
-            if !track_run.is_empty() {
-                track_runs.push(track_run);
-            }
-        }
-
-        track_runs
-    }
-
     pub fn track_runs_size(&self) -> usize {
-        self.build_track_runs().len()
+        self.lines.len()
     }
 
     pub fn fill_vertice_buffer_sizes(&self, buffer: &mut Vec<usize>) {
-        for track_run in self.build_track_runs() {
-            buffer.push(4 * track_run.len());
+        for line in &self.lines {
+            buffer.push(2 * line.shape.len());
         }
     }
 
-    pub fn fill_vertice_buffer_data(&self, buffer: &mut Vec<f32>, track_bundles: &HashMap<Connection, TrackBundle>) {
-        for track_run in self.build_track_runs() {
-            for track in track_run {
-                track.fill_vertice_buffer_data(buffer, track_bundles);
+    pub fn fill_vertice_buffer_data(&self, buffer: &mut Vec<f32>) {
+        for line in &self.lines {
+            let mut segments = line.shape.windows(2)
+                .map(|segment| segment[1] - segment[0])
+                .collect::<Vec<_>>();
+            segments.insert(0, segments.first().unwrap().clone());
+            segments.insert(segments.len(), segments.last().unwrap().clone());
+
+            for (waypoint, adjacent) in line.shape.iter().zip(segments.windows(2)) {
+                let perp = adjacent[0].perp(&adjacent[1]);
+                let miter = if perp == 0.0 {
+                    Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
+                } else {
+                    let preceding = adjacent[0] * adjacent[1].norm();
+                    let following = adjacent[1] * adjacent[0].norm();
+                    (following - preceding) / perp
+                };
+
+                buffer.extend((waypoint + miter).iter());
+                buffer.extend((waypoint - miter).iter());
             }
         }
     }
