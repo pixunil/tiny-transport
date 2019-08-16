@@ -1,72 +1,53 @@
-use std::rc::Rc;
-use std::ops::Deref;
-use std::collections::HashMap;
-
 use na::{Point2, Vector2};
 
 use crate::color::Color;
-use crate::station::Station;
-use crate::track::{Connection, Track, TrackBundle};
 use crate::train::Train;
 
-#[derive(Debug)]
-pub struct Stop {
-    station: Rc<Station>,
-    terminus: bool,
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+enum LineNodeKind {
+    Waypoint,
+    Stop,
 }
 
-impl Stop {
-    fn new(station: Rc<Station>) -> Stop {
-        Stop {
-            station,
-            terminus: false,
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct LineNode {
+    position: Point2<f32>,
+    kind: LineNodeKind,
+}
+
+impl LineNode {
+    pub fn new(position: Point2<f32>) -> LineNode {
+        LineNode {
+            position,
+            kind: LineNodeKind::Waypoint,
         }
     }
 
-    fn make_terminus(&mut self) {
-        self.terminus = true;
+    pub fn promote_to_stop(&mut self) {
+        self.kind = LineNodeKind::Stop;
     }
 
-    pub fn is_terminus(&self) -> bool {
-        self.terminus
+    pub fn is_stop(&self) -> bool {
+        self.kind == LineNodeKind::Stop
     }
-}
 
-impl Deref for Stop {
-    type Target = Station;
-
-    fn deref(&self) -> &Station {
-        &self.station
+    pub fn position(&self) -> Point2<f32> {
+        self.position
     }
 }
 
 #[derive(Debug)]
 pub struct Line {
     name: String,
-    stops: Vec<Rc<Stop>>,
-    shape: Vec<Point2<f32>>,
-    tracks: Vec<Track>,
+    nodes: Vec<LineNode>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, color: Color, stations: Vec<Rc<Station>>, shape: Vec<Point2<f32>>, trains: Vec<Train>) -> Line {
-        let mut stops = stations.into_iter()
-            .map(|station| Stop::new(station))
-            .collect::<Vec<_>>();
-        stops.first_mut().map(Stop::make_terminus);
-        stops.last_mut().map(Stop::make_terminus);
-        let stops = stops.into_iter()
-            .map(|stop| Rc::new(stop))
-            .collect::<Vec<_>>();
-        let tracks = stops.windows(2)
-            .map(|connection| Track::new(connection[0].clone(), connection[1].clone(), color.clone()))
-            .collect();
+    pub fn new(name: String, nodes: Vec<LineNode>, trains: Vec<Train>) -> Line {
         Line {
             name,
-            stops,
-            shape,
-            tracks,
+            nodes,
             trains,
         }
     }
@@ -74,12 +55,6 @@ impl Line {
     pub fn update(&mut self, time: u32) {
         for train in &mut self.trains {
             train.update(time);
-        }
-    }
-
-    pub fn attach_tracks(&self, track_bundles: &mut HashMap<Connection, TrackBundle>) {
-        for track in &self.tracks {
-            track.attach_to(track_bundles);
         }
     }
 
@@ -101,12 +76,6 @@ impl LineGroup {
         LineGroup { color, lines }
     }
 
-    pub fn attach_tracks(&self, track_bundles: &mut HashMap<Connection, TrackBundle>) {
-        for line in &self.lines {
-            line.attach_tracks(track_bundles);
-        }
-    }
-
     pub fn update(&mut self, time: u32) {
         for line in &mut self.lines {
             line.update(time);
@@ -123,19 +92,19 @@ impl LineGroup {
 
     pub fn fill_vertice_buffer_sizes(&self, buffer: &mut Vec<usize>) {
         for line in &self.lines {
-            buffer.push(2 * line.shape.len());
+            buffer.push(2 * line.nodes.len());
         }
     }
 
     pub fn fill_vertice_buffer_data(&self, buffer: &mut Vec<f32>) {
         for line in &self.lines {
-            let mut segments = line.shape.windows(2)
-                .map(|segment| segment[1] - segment[0])
+            let mut segments = line.nodes.windows(2)
+                .map(|segment| segment[1].position - segment[0].position)
                 .collect::<Vec<_>>();
             segments.insert(0, segments.first().unwrap().clone());
             segments.insert(segments.len(), segments.last().unwrap().clone());
 
-            for (waypoint, adjacent) in line.shape.iter().zip(segments.windows(2)) {
+            for (waypoint, adjacent) in line.nodes.iter().zip(segments.windows(2)) {
                 let perp = adjacent[0].perp(&adjacent[1]);
                 let miter = if perp == 0.0 {
                     Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
@@ -145,8 +114,8 @@ impl LineGroup {
                     (following - preceding) / perp
                 };
 
-                buffer.extend((waypoint + miter).iter());
-                buffer.extend((waypoint - miter).iter());
+                buffer.extend((waypoint.position + miter).iter());
+                buffer.extend((waypoint.position - miter).iter());
             }
         }
     }
@@ -157,11 +126,11 @@ impl LineGroup {
             .sum()
     }
 
-    pub fn fill_train_vertice_buffer(&self, buffer: &mut Vec<f32>, track_bundles: &HashMap<Connection, TrackBundle>) {
+    pub fn fill_train_vertice_buffer(&self, buffer: &mut Vec<f32>) {
         for line in &self.lines {
             for train in &line.trains {
                 if train.is_active() {
-                    train.fill_vertice_buffer(buffer, &line.tracks, track_bundles);
+                    train.fill_vertice_buffer(buffer, &line.nodes);
                 }
             }
         }

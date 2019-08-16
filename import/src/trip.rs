@@ -8,7 +8,7 @@ use chrono::Duration;
 
 use na::Point2;
 
-use simulation::Direction;
+use simulation::LineNode;
 
 use super::utils::*;
 use super::service::Service;
@@ -33,24 +33,24 @@ impl Route {
             .count()
     }
 
-    pub fn freeze_stops(&self, stations: &[Rc<Location>]) -> Vec<usize> {
-        self.locations.iter()
-            .map(|location| {
-                stations.iter()
-                    .position(|station| location == station)
-                    .unwrap()
-            })
-            .collect()
-    }
-
-    pub fn freeze_shape(&self) -> Shape {
-        self.shape.iter()
+    pub fn freeze_nodes(&self) -> Vec<LineNode> {
+        let mut nodes = self.shape.iter()
             .map(|waypoint| {
                 let x = 2000.0 * (waypoint.x - 13.5);
                 let y = -4000.0 * (waypoint.y - 52.52);
-                Point2::new(x, y)
+                LineNode::new(Point2::new(x, y))
             })
-            .collect()
+            .collect::<Vec<_>>();
+
+        for station in &self.locations {
+            nodes.iter_mut().min_by(|a, b| {
+                let a = na::distance(&station.position(), &a.position());
+                let b = na::distance(&station.position(), &b.position());
+                a.partial_cmp(&b).unwrap()
+            }).unwrap().promote_to_stop();
+        }
+
+        nodes
     }
 
     pub fn freeze_trains(&self, date: &NaiveDate) -> Vec<serialization::Train> {
@@ -63,7 +63,6 @@ impl Route {
 
 #[derive(Debug, PartialEq)]
 struct Trip {
-    direction: Direction,
     service: Rc<Service>,
     arrivals: Vec<Duration>,
     departures: Vec<Duration>,
@@ -77,7 +76,7 @@ impl Trip {
         let departures = self.departures.iter()
             .map(|duration| duration.num_seconds() as u32)
             .collect();
-        serialization::Train::new(self.direction, arrivals, departures)
+        serialization::Train::new(arrivals, departures)
     }
 }
 
@@ -111,10 +110,9 @@ impl TripBuf {
     }
 
     fn into_trip(self, trips: &mut Vec<HashMap<(Id, Path), Vec<Trip>>>) {
-        let (path, direction) = Path::new(self.locations);
+        let path = Path::new(self.locations);
 
         let trip = Trip {
-            direction,
             service: self.service,
             arrivals: self.arrivals,
             departures: self.departures,

@@ -1,40 +1,30 @@
-use std::rc::Rc;
-
-use na::Point2;
-
 use simulation::Color;
+use simulation::LineNode;
 use super::train::Train;
-
-type StationBinding = [Rc<simulation::Station>];
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Line {
     name: String,
-    stops: Vec<usize>,
-    shape: Vec<Point2<f32>>,
+    nodes: Vec<LineNode>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, stops: Vec<usize>, shape: Vec<Point2<f32>>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, nodes: Vec<LineNode>, trains: Vec<Train>) -> Line {
         Line {
             name,
-            stops,
-            shape,
+            nodes,
             trains,
         }
     }
 
-    fn unfreeze(self, stations: &StationBinding, color: &Color) -> simulation::Line {
-        let stations = self.stops.into_iter()
-            .map(|stop| stations[stop].clone())
-            .collect::<Vec<_>>();
-
+    fn unfreeze(self) -> simulation::Line {
+        let nodes = self.nodes;
         let trains = self.trains.into_iter()
-            .map(|train| train.unfreeze())
+            .map(|train| train.unfreeze(&nodes))
             .collect();
 
-        simulation::Line::new(self.name, color.clone(), stations, self.shape, trains)
+        simulation::Line::new(self.name, nodes, trains)
     }
 }
 
@@ -49,11 +39,10 @@ impl LineGroup {
         LineGroup { color, lines }
     }
 
-    pub fn unfreeze(self, stations: &StationBinding) -> simulation::LineGroup {
-        let color = self.color;
+    pub fn unfreeze(self) -> simulation::LineGroup {
         let lines = self.lines.into_iter()
-            .map(|line| line.unfreeze(stations, &color))
+            .map(|line| line.unfreeze())
             .collect();
-        simulation::LineGroup::new(color, lines)
+        simulation::LineGroup::new(self.color, lines)
     }
 }

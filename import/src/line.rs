@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::rc::Rc;
 use std::fmt;
 use std::collections::HashMap;
 
@@ -9,7 +8,6 @@ use serde::de::{Deserialize, Visitor, Error as DeserializeError};
 use chrono::prelude::*;
 
 use super::utils::*;
-use super::location::Location;
 use super::trip::Route;
 use simulation::Color;
 
@@ -43,15 +41,14 @@ impl Line {
         }
     }
 
-    pub fn freeze(&self, stations: &[Rc<Location>], date: &NaiveDate) -> (Color, serialization::Line) {
+    pub fn freeze(&self, date: &NaiveDate) -> (Color, serialization::Line) {
         let route = self.routes.iter()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
-        let stops = route.freeze_stops(stations);
-        let shape = route.freeze_shape();
+        let nodes = route.freeze_nodes();
         let trains = route.freeze_trains(date);
         let color = self.color.clone().unwrap();
-        (color, serialization::Line::new(self.name.clone(), stops, shape, trains))
+        (color, serialization::Line::new(self.name.clone(), nodes, trains))
     }
 }
 

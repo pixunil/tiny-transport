@@ -1,11 +1,10 @@
 use std::rc::Rc;
 use std::convert::From;
-use std::collections::HashMap;
 
 use na::Point2;
 use wasm_bindgen::prelude::*;
 
-use simulation::{Station, LineGroup, Connection, TrackBundle};
+use simulation::{Station, LineGroup};
 use serialization::Dataset;
 
 use crate::view::View;
@@ -14,20 +13,13 @@ use crate::view::View;
 pub struct Map {
     stations: Vec<Rc<Station>>,
     line_groups: Vec<LineGroup>,
-    track_bundles: HashMap<Connection, TrackBundle>,
 }
 
 impl Map {
     fn new(stations: Vec<Rc<Station>>, line_groups: Vec<LineGroup>) -> Map {
-        let mut track_bundles = HashMap::new();
-        for line_group in &line_groups {
-            line_group.attach_tracks(&mut track_bundles);
-        }
-
         Map {
             stations,
             line_groups,
-            track_bundles,
         }
     }
 }
@@ -99,7 +91,7 @@ impl Map {
     pub fn train_vertices(&self) -> Vec<f32> {
         let mut buffer = Vec::new();
         for line_group in &self.line_groups {
-            line_group.fill_train_vertice_buffer(&mut buffer, &self.track_bundles);
+            line_group.fill_train_vertice_buffer(&mut buffer);
         }
         buffer
     }
@@ -121,7 +113,7 @@ impl From<Dataset> for Map {
             .collect::<Vec<_>>();
 
         let line_groups = dataset.line_groups.into_iter()
-            .map(|line_group| line_group.unfreeze(&stations))
+            .map(|line_group| line_group.unfreeze())
             .collect();
 
         Map::new(stations, line_groups)

@@ -6,8 +6,6 @@ use std::collections::{VecDeque, HashMap};
 
 use na::Point2;
 
-use simulation::Direction;
-
 use super::utils::*;
 
 #[derive(Debug, PartialEq)]
@@ -29,14 +27,18 @@ impl Location {
         (record.stop_id, location)
     }
 
+    pub fn position(&self) -> Point2<f32> {
+        let x = 2000.0 * (self.lon - 13.5);
+        let y = -4000.0 * (self.lat - 52.52);
+        Point2::new(x, y)
+    }
+
     pub fn station_cmp(&self, other: &Location) -> Ordering {
         self.id.cmp(&other.id)
     }
 
     pub fn freeze(&self) -> serialization::Station {
-        let x = 2000.0 * (self.lon - 13.5);
-        let y = -4000.0 * (self.lat - 52.52);
-        serialization::Station::new(Point2::new(x, y), self.name.clone())
+        serialization::Station::new(self.position(), self.name.clone())
     }
 }
 
@@ -45,14 +47,8 @@ pub struct Path {
 }
 
 impl Path {
-    pub fn new(mut locations: Vec<Rc<Location>>) -> (Path, Direction) {
-        let direction = if locations.first().unwrap().id <= locations.last().unwrap().id {
-            Direction::Upstream
-        } else {
-            locations.reverse();
-            Direction::Downstream
-        };
-        (Path { locations }, direction)
+    pub fn new(locations: Vec<Rc<Location>>) -> Path {
+        Path { locations }
     }
 }
 

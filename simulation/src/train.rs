@@ -1,50 +1,18 @@
-use std::collections::HashMap;
-
 use na::{Vector2, Matrix2};
 
-use crate::track::{Connection, Track, TrackBundle};
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
-pub enum Direction {
-    Upstream,
-    Downstream,
-}
-
-impl Direction {
-    fn tracks(self, tracks: &[Track], current: usize) -> (Option<&Track>, &Track, Option<&Track>) {
-        let index = match self {
-            Direction::Upstream => current,
-            Direction::Downstream => tracks.len() - 1 - current,
-        };
-
-        (
-            index.checked_sub(1).map(|index| &tracks[index]),
-            &tracks[index],
-            tracks.get(index + 1),
-        )
-    }
-
-    fn interpolation(self, travelled: f32) -> f32 {
-        match self {
-            Direction::Upstream => travelled,
-            Direction::Downstream => 1.0 - travelled,
-        }
-    }
-}
+use crate::line::LineNode;
 
 #[derive(Debug)]
 pub struct Train {
-    direction: Direction,
-    arrivals: Vec<u32>,
-    departures: Vec<u32>,
+    pub arrivals: Vec<u32>,
+    pub departures: Vec<u32>,
     current: usize,
     travelled: f32,
 }
 
 impl Train {
-    pub fn new(direction: Direction, arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
+    pub fn new(arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
         Train {
-            direction,
             arrivals,
             departures,
             current: 0,
@@ -68,21 +36,19 @@ impl Train {
         0 < self.current && self.current < self.arrivals.len()
     }
 
-    pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>, tracks: &[Track], track_bundles: &HashMap<Connection, TrackBundle>) {
-        let (preceding, track, following) = self.direction.tracks(tracks, self.current - 1);
-        let interpolation = self.direction.interpolation(self.travelled);
-        let (position, orientation) = track.interpolated_position(preceding, following, track_bundles, interpolation);
+    pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>, nodes: &[LineNode]) {
+        let current = &nodes[self.current - 1];
+        let next = &nodes[self.current];
+        let direction = next.position() - current.position();
+        let position = current.position() + direction * self.travelled;
+        let orientation = direction.normalize();
         let bounds = Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
 
         let right_front = position + bounds * Vector2::new(4.5, 3.0);
         let left_front = position + bounds * Vector2::new(-4.5, 3.0);
         let right_back = position + bounds * Vector2::new(4.5, -3.0);
         let left_back = position + bounds * Vector2::new(-4.5, -3.0);
-        buffer.extend(left_back.iter());
-        buffer.extend(left_front.iter());
-        buffer.extend(right_back.iter());
-        buffer.extend(right_front.iter());
-        buffer.extend(right_back.iter());
-        buffer.extend(left_front.iter());
+        buffer.extend(left_back.iter().chain(left_front.iter()).chain(right_back.iter()));
+        buffer.extend(right_front.iter().chain(right_back.iter()).chain(left_front.iter()));
     }
 }

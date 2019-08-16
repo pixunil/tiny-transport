@@ -82,7 +82,7 @@ fn store<'a, I>(lines: I) -> Result<(), Box<dyn Error>>
 
     let mut line_groups = HashMap::new();
     for line in lines {
-        let (color, line) = line.freeze(&stations, &date);
+        let (color, line) = line.freeze(&date);
         line_groups.entry(color.clone())
             .or_insert_with(Vec::new)
             .push(line)
