@@ -1,5 +1,7 @@
 use std::iter;
 
+use serde_derive::{Serialize, Deserialize};
+
 use simulation::LineNode;
 
 #[derive(Debug, Serialize, Deserialize)]

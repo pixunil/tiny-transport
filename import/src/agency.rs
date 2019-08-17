@@ -46,21 +46,21 @@ mod tests {
 
     fn agency_record() -> AgencyRecord {
         AgencyRecord {
-            agency_id: "1".into(),
-            agency_name: "Public Transport".into(),
+            agency_id: "1".to_string(),
+            agency_name: "Public Transport".to_string(),
         }
     }
 
     fn agency(lines: Vec<Line>) -> Agency {
         Agency {
-            name: "Public Transport".into(),
-            lines: lines,
+            name: "Public Transport".to_string(),
+            lines,
         }
     }
 
     fn lines() -> HashMap<Id, Vec<Line>> {
         let mut lines = HashMap::new();
-        lines.insert("1".into(), vec![blue_line()]);
+        lines.insert("1".to_string(), vec![blue_line()]);
         lines
     }
 

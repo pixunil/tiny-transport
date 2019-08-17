@@ -1,7 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate nalgebra as na;
-
 mod color;
 mod station;
 mod line;

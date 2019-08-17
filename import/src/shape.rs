@@ -56,7 +56,7 @@ impl Importer {
             })
             .filter(|(_, adjacent)| {
                 let angle = adjacent[0].angle(&adjacent[1]);
-                angle < (120f32).to_radians()
+                angle < (120_f32).to_radians()
             })
             .map(|(waypoint, _)| waypoint)
             .collect::<Vec<_>>();

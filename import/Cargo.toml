@@ -21,10 +21,10 @@ csv = "1"
 bincode = "1"
 zip = { version = "0.5", default-features = false, features = ["bzip2"] }
 chrono = { version = "0.4", features = ["serde"] }
-nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
+na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 
-gtfs-sim-simulation = { path = "../simulation" }
-gtfs-sim-serialization = { path = "../serialization" }
+simulation = { package = "gtfs-sim-simulation", path = "../simulation" }
+serialization = { package = "gtfs-sim-serialization", path = "../serialization" }
 
 [dev-dependencies]
 serde_test = "1"

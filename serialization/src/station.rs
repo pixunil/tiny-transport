@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use serde_derive::{Serialize, Deserialize};
+
 use na::Point2;
 
 #[derive(Debug, Serialize, Deserialize)]

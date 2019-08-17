@@ -124,9 +124,9 @@ pub mod tests {
 
     fn main_station_record() -> LocationRecord {
         LocationRecord {
-            stop_id: "1".into(),
+            stop_id: "1".to_string(),
             parent_station: None,
-            stop_name: "Main Station".into(),
+            stop_name: "Main Station".to_string(),
             stop_lat: 52.52,
             stop_lon: 13.37,
         }
@@ -134,8 +134,8 @@ pub mod tests {
 
     pub fn main_station() -> Location {
         Location {
-            id: "1".into(),
-            name: "Main Station".into(),
+            id: "1".to_string(),
+            name: "Main Station".to_string(),
             lat: 52.52,
             lon: 13.37,
         }
@@ -143,9 +143,9 @@ pub mod tests {
 
     fn main_station_platform_record() -> LocationRecord {
         LocationRecord {
-            stop_id: "2".into(),
-            parent_station: Some("1".into()),
-            stop_name: "Main Station Platform 1".into(),
+            stop_id: "2".to_string(),
+            parent_station: Some("1".to_string()),
+            stop_name: "Main Station Platform 1".to_string(),
             stop_lat: 52.52,
             stop_lon: 13.37,
         }
@@ -153,8 +153,8 @@ pub mod tests {
 
     pub fn museum() -> Location {
         Location {
-            id: "2".into(),
-            name: "Museum".into(),
+            id: "2".to_string(),
+            name: "Museum".to_string(),
             lat: 52.53,
             lon: 13.38,
         }
@@ -190,7 +190,7 @@ pub mod tests {
     fn test_process_child_with_parent() {
         let mut queue = VecDeque::new();
         let mut locations = HashMap::new();
-        locations.insert("1".into(), Rc::new(main_station()));
+        locations.insert("1".to_string(), Rc::new(main_station()));
         process_record(main_station_platform_record(), &mut queue, &mut locations);
         assert!(queue.is_empty());
         assert_eq!(locations.len(), 2);

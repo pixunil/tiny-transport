@@ -30,7 +30,9 @@ impl Line {
     }
 
     fn add_routes(&mut self, routes: Option<Vec<Route>>) {
-        routes.map(|routes| self.routes.extend(routes));
+        if let Some(routes) = routes {
+            self.routes.extend(routes)
+        }
     }
 
     fn add_color_when_applicable(&mut self, colors: &HashMap<String, Color>) {
@@ -41,7 +43,7 @@ impl Line {
         }
     }
 
-    pub fn freeze(&self, date: &NaiveDate) -> (Color, serialization::Line) {
+    pub fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {
         let route = self.routes.iter()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
@@ -72,9 +74,9 @@ impl Importer {
         let mut reader = dataset.read_csv("routes.txt")?;
         for result in reader.deserialize() {
             let record: LineRecord = result?;
-            let key = (record.agency_id.clone(), record.route_short_name.clone(), record.route_type.clone());
+            let key = (record.agency_id.clone(), record.route_short_name.clone(), record.route_type);
             let id = record.route_id.clone();
-            let (_record, ids) = deduplicated_records.entry(key)
+            let (_, ids) = deduplicated_records.entry(key)
                 .or_insert_with(|| (record, Vec::new()));
             ids.push(id);
         }
@@ -167,7 +169,7 @@ impl<'de> Deserialize<'de> for LineKind {
 #[derive(Debug, Deserialize)]
 struct LineColorRecord {
     line: String,
-    #[serde(deserialize_with = "deserialize_color")]
+    #[serde(deserialize_with = "deserialize::color")]
     color: Color,
 }
 
@@ -187,16 +189,16 @@ pub mod tests {
 
     fn blue_line_record() -> LineRecord {
         LineRecord {
-            route_id: "1".into(),
-            agency_id: "1".into(),
-            route_short_name: "Blue Line".into(),
+            route_id: "1".to_string(),
+            agency_id: "1".to_string(),
+            route_short_name: "Blue Line".to_string(),
             route_type: LineKind::SuburbanRailway,
         }
     }
 
     pub fn blue_line() -> Line {
         Line {
-            name: "Blue Line".into(),
+            name: "Blue Line".to_string(),
             color: None,
             kind: LineKind::SuburbanRailway,
             routes: Vec::new(),
@@ -205,7 +207,7 @@ pub mod tests {
 
     fn blue_line_replacement() -> Line {
         Line {
-            name: "Blue Line".into(),
+            name: "Blue Line".to_string(),
             color: None,
             kind: LineKind::Bus,
             routes: Vec::new(),
@@ -214,7 +216,7 @@ pub mod tests {
 
     fn colors() -> HashMap<String, Color> {
         let mut colors = HashMap::new();
-        colors.insert("Blue Line".into(), Color::new(0, 0, 255));
+        colors.insert("Blue Line".to_string(), Color::new(0, 0, 255));
         colors
     }
 

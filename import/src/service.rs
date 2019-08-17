@@ -39,13 +39,13 @@ impl Service {
         exception_set.insert(record.date);
     }
 
-    pub fn available_at(&self, date: &NaiveDate) -> bool {
-        self.added.contains(date) || (!self.removed.contains(date) && self.regulary_available_at(date))
+    pub fn available_at(&self, date: NaiveDate) -> bool {
+        self.added.contains(&date) || (!self.removed.contains(&date) && self.regulary_available_at(date))
     }
 
-    fn regulary_available_at(&self, date: &NaiveDate) -> bool {
+    fn regulary_available_at(&self, date: NaiveDate) -> bool {
         let day = date.weekday().num_days_from_monday() as usize;
-        &self.start <= date && date <= &self.end && self.weekdays[day]
+        self.start <= date && date <= self.end && self.weekdays[day]
     }
 }
 
@@ -82,23 +82,23 @@ pub fn from_csv(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Service>>, 
 #[derive(Debug, Deserialize)]
 struct ServiceRecord {
     service_id: Id,
-    #[serde(deserialize_with = "deserialize_naive_date")]
+    #[serde(deserialize_with = "deserialize::naive_date")]
     start_date: NaiveDate,
-    #[serde(deserialize_with = "deserialize_naive_date")]
+    #[serde(deserialize_with = "deserialize::naive_date")]
     end_date: NaiveDate,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     monday: bool,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     tuesday: bool,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     wednesday: bool,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     thursday: bool,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     friday: bool,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     saturday: bool,
-    #[serde(deserialize_with = "deserialize_numeric_bool")]
+    #[serde(deserialize_with = "deserialize::numeric_bool")]
     sunday: bool,
 }
 
@@ -139,7 +139,7 @@ impl<'de> Deserialize<'de> for ServiceExceptionType {
 #[derive(Debug, Deserialize)]
 struct ServiceExceptionRecord {
     service_id: Id,
-    #[serde(deserialize_with = "deserialize_naive_date")]
+    #[serde(deserialize_with = "deserialize::naive_date")]
     date: NaiveDate,
     exception_type: ServiceExceptionType,
 }
@@ -163,7 +163,7 @@ pub mod tests {
     #[test]
     fn test_import_service() {
         let record = ServiceRecord {
-            service_id: "1".into(),
+            service_id: "1".to_string(),
             start_date: NaiveDate::from_ymd(2019, 1, 1),
             end_date: NaiveDate::from_ymd(2019, 12, 31),
             monday: true,
@@ -174,14 +174,14 @@ pub mod tests {
             saturday: false,
             sunday: false,
         };
-        assert_eq!(Service::new(record), ("1".into(), service_monday_to_friday()));
+        assert_eq!(Service::new(record), ("1".to_string(), service_monday_to_friday()));
     }
 
     #[test]
     fn test_add_include_exception_to_service() {
         let mut service = service_monday_to_friday();
         let exception = ServiceExceptionRecord {
-            service_id: "1".into(),
+            service_id: "1".to_string(),
             date: NaiveDate::from_ymd(2019, 1, 5),
             exception_type: ServiceExceptionType::Added,
         };
@@ -194,7 +194,7 @@ pub mod tests {
     fn test_add_exclude_exception_to_service() {
         let mut service = service_monday_to_friday();
         let exception = ServiceExceptionRecord {
-            service_id: "1".into(),
+            service_id: "1".to_string(),
             date: NaiveDate::from_ymd(2019, 12, 24),
             exception_type: ServiceExceptionType::Removed,
         };
@@ -207,34 +207,34 @@ pub mod tests {
     fn test_regulary_available() {
         let service = service_monday_to_friday();
         let date = NaiveDate::from_ymd(2019, 1, 7);
-        assert!(service.regulary_available_at(&date));
-        assert!(service.available_at(&date));
+        assert!(service.regulary_available_at(date));
+        assert!(service.available_at(date));
     }
 
     #[test]
     fn test_regulary_unavailable() {
         let service = service_monday_to_friday();
         let date = NaiveDate::from_ymd(2019, 1, 5);
-        assert!(!service.regulary_available_at(&date));
-        assert!(!service.available_at(&date));
+        assert!(!service.regulary_available_at(date));
+        assert!(!service.available_at(date));
     }
 
     #[test]
     fn test_exceptionally_available() {
         let mut service = service_monday_to_friday();
         let date = NaiveDate::from_ymd(2019, 1, 5);
-        service.added.insert(date.clone());
-        assert!(!service.regulary_available_at(&date));
-        assert!(service.available_at(&date));
+        service.added.insert(date);
+        assert!(!service.regulary_available_at(date));
+        assert!(service.available_at(date));
     }
 
     #[test]
     fn test_exceptionally_unavailable() {
         let mut service = service_monday_to_friday();
         let date = NaiveDate::from_ymd(2019, 1, 7);
-        service.removed.insert(date.clone());
-        assert!(service.regulary_available_at(&date));
-        assert!(!service.available_at(&date));
+        service.removed.insert(date);
+        assert!(service.regulary_available_at(date));
+        assert!(!service.available_at(date));
     }
 
     #[test]

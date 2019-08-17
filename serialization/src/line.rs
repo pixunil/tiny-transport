@@ -1,3 +1,5 @@
+use serde_derive::{Serialize, Deserialize};
+
 use simulation::Color;
 use simulation::LineNode;
 use super::train::Train;

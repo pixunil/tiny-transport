@@ -14,11 +14,13 @@ crate-type = ["cdylib"]
 default = []
 
 [dependencies]
-nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
-approx = "0.3"
+na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 bincode = "1"
 wasm-bindgen = "0.2"
 console_error_panic_hook = { version = "0.1.6", optional = true }
 
-gtfs-sim-simulation = { path = "../simulation" }
-gtfs-sim-serialization = { path = "../serialization" }
+simulation = { package = "gtfs-sim-simulation", path = "../simulation" }
+serialization = { package = "gtfs-sim-serialization", path = "../serialization" }
+
+[dev-dependencies]
+approx = "0.3"

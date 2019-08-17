@@ -27,7 +27,7 @@ impl Route {
         Route { locations, shape, trips }
     }
 
-    pub fn num_trips_at(&self, date: &NaiveDate) -> usize {
+    pub fn num_trips_at(&self, date: NaiveDate) -> usize {
         self.trips.iter()
             .filter(|trip| trip.service.available_at(date))
             .count()
@@ -53,7 +53,7 @@ impl Route {
         nodes
     }
 
-    pub fn freeze_trains(&self, date: &NaiveDate) -> Vec<serialization::Train> {
+    pub fn freeze_trains(&self, date: NaiveDate) -> Vec<serialization::Train> {
         self.trips.iter()
             .filter(|trip| trip.service.available_at(date))
             .map(|trip| trip.freeze())
@@ -94,7 +94,7 @@ impl TripBuf {
     fn new(record: TripRecord, services: &HashMap<Id, Rc<Service>>, id_mapping: &HashMap<Id, usize>) -> (Id, TripBuf) {
         let trip = TripBuf {
             line_id: id_mapping[&record.route_id],
-            service: services[&record.service_id].clone(),
+            service: Rc::clone(&services[&record.service_id]),
             shape_id: record.shape_id,
             locations: Vec::new(),
             arrivals: Vec::new(),
@@ -104,7 +104,8 @@ impl TripBuf {
     }
 
     fn add_stop(&mut self, record: StopRecord, locations: &HashMap<Id, Rc<Location>>) {
-        self.locations.push(locations[&record.stop_id].clone());
+        let location = Rc::clone(&locations[&record.stop_id]);
+        self.locations.push(location);
         self.arrivals.push(record.arrival_time);
         self.departures.push(record.departure_time);
     }
@@ -175,7 +176,10 @@ impl<'a> Importer<'a> {
         let routes = trips.into_iter()
             .map(|routes| {
                 routes.into_iter()
-                .map(|((shape_id, path), trips)| Route::new(path.into(), self.shapes[&shape_id].clone(), trips))
+                .map(|((shape_id, path), trips)| {
+                    let shape = Rc::clone(&self.shapes[&shape_id]);
+                    Route::new(path.into(), shape, trips)
+                })
                 .collect()
             })
             .collect();
@@ -195,9 +199,9 @@ struct TripRecord {
 struct StopRecord {
     trip_id: Id,
     stop_id: Id,
-    #[serde(deserialize_with = "deserialize_duration")]
+    #[serde(deserialize_with = "deserialize::duration")]
     arrival_time: Duration,
-    #[serde(deserialize_with = "deserialize_duration")]
+    #[serde(deserialize_with = "deserialize::duration")]
     departure_time: Duration,
 }
 
@@ -212,7 +216,7 @@ mod tests {
         TripBuf {
             line_id: 0,
             service: Rc::new(service_monday_to_friday()),
-            shape_id: "1".into(),
+            shape_id: "1".to_string(),
             locations: Vec::new(),
             arrivals: Vec::new(),
             departures: Vec::new(),
@@ -222,42 +226,42 @@ mod tests {
     #[test]
     fn test_import_trip_buffer() {
         let mut services = HashMap::new();
-        services.insert("1".into(), Rc::new(service_monday_to_friday()));
+        services.insert("1".to_string(), Rc::new(service_monday_to_friday()));
         let mut id_mapping = HashMap::new();
-        id_mapping.insert("1".into(), 0);
+        id_mapping.insert("1".to_string(), 0);
         let record = TripRecord {
-            trip_id: "1".into(),
-            route_id: "1".into(),
-            service_id: "1".into(),
-            shape_id: "1".into(),
+            trip_id: "1".to_string(),
+            route_id: "1".to_string(),
+            service_id: "1".to_string(),
+            shape_id: "1".to_string(),
         };
-        assert_eq!(TripBuf::new(record, &services, &id_mapping), ("1".into(), empty_trip_buffer()));
+        assert_eq!(TripBuf::new(record, &services, &id_mapping), ("1".to_string(), empty_trip_buffer()));
     }
 
     #[test]
     fn test_add_stops_to_trip_buffer() {
         let records = vec![
             StopRecord {
-                trip_id: "1".into(),
-                stop_id: "1".into(),
+                trip_id: "1".to_string(),
+                stop_id: "1".to_string(),
                 arrival_time: Duration::minutes(0),
                 departure_time: Duration::minutes(1),
             },
             StopRecord {
-                trip_id: "1".into(),
-                stop_id: "2".into(),
+                trip_id: "1".to_string(),
+                stop_id: "2".to_string(),
                 arrival_time: Duration::minutes(5),
                 departure_time: Duration::minutes(6),
             },
         ];
         let mut locations = HashMap::new();
-        locations.insert("1".into(), Rc::new(main_station()));
-        locations.insert("2".into(), Rc::new(museum()));
+        locations.insert("1".to_string(), Rc::new(main_station()));
+        locations.insert("2".to_string(), Rc::new(museum()));
 
         let expected_buffer = TripBuf {
             line_id: 0,
             service: Rc::new(service_monday_to_friday()),
-            shape_id: "1".into(),
+            shape_id: "1".to_string(),
             locations: vec![Rc::new(main_station()), Rc::new(museum())],
             arrivals: vec![Duration::minutes(0), Duration::minutes(5)],
             departures: vec![Duration::minutes(1), Duration::minutes(6)],

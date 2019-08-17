@@ -1,9 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate nalgebra as na;
-extern crate gtfs_sim_simulation as simulation;
-extern crate gtfs_sim_serialization as serialization;
-
 use std::error::Error;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -58,7 +52,7 @@ fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     Ok(agencies)
 }
 
-fn filter<'a>(agencies: &'a Vec<Agency>) -> impl Iterator<Item = &'a Line> + Clone {
+fn filter(agencies: &[Agency]) -> impl Iterator<Item = &'_ Line> + Clone {
     let agency = agencies.iter()
         .find(|agency| agency.name == "S-Bahn Berlin GmbH")
         .unwrap();
@@ -67,9 +61,7 @@ fn filter<'a>(agencies: &'a Vec<Agency>) -> impl Iterator<Item = &'a Line> + Clo
         .filter(|line| line.kind == LineKind::SuburbanRailway)
 }
 
-fn store<'a, I>(lines: I) -> Result<(), Box<dyn Error>>
-    where I: Iterator<Item = &'a Line> + Clone
-{
+fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dyn Error>> {
     let mut stations = lines.clone()
         .flat_map(|line| &line.routes)
         .flat_map(|route| &route.locations)
@@ -82,7 +74,7 @@ fn store<'a, I>(lines: I) -> Result<(), Box<dyn Error>>
 
     let mut line_groups = HashMap::new();
     for line in lines {
-        let (color, line) = line.freeze(&date);
+        let (color, line) = line.freeze(date);
         line_groups.entry(color.clone())
             .or_insert_with(Vec::new)
             .push(line)

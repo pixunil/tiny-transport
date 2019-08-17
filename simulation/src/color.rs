@@ -1,3 +1,5 @@
+use serde_derive::{Serialize, Deserialize};
+
 use na::Vector3;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]

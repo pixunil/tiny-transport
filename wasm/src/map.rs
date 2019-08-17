@@ -40,8 +40,8 @@ impl Map {
     pub fn find_station(&self, view: &View, x: f32, y: f32) -> Option<String> {
         let position = view.unproject(Point2::new(x, y));
         self.stations.iter()
-            .find(|station| station.contains(&position))
-            .map(|station| station.name().into())
+            .find(|station| station.contains(position))
+            .map(|station| station.name().to_string())
     }
 
     pub fn station_size(&self) -> usize {

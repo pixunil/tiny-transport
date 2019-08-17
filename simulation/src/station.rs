@@ -17,15 +17,15 @@ impl Station {
     }
 
     pub fn position(&self) -> Point2<f32> {
-        self.position.clone()
+        self.position
     }
 
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn contains(&self, position: &Point2<f32>) -> bool {
-        na::distance(&self.position, position) < 5.0
+    pub fn contains(&self, position: Point2<f32>) -> bool {
+        na::distance(&self.position, &position) < 5.0
     }
 
     pub fn position_buffer_data(&self) -> impl Iterator<Item = f32> + '_ {

@@ -13,4 +13,4 @@ default = []
 [dependencies]
 serde = "1"
 serde_derive = "1"
-nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
+na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }

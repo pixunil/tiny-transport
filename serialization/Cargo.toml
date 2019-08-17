@@ -7,12 +7,9 @@ description = "Stores simulation data space-efficient"
 repository = "https://github.com/pixunil/gtfs-sim"
 license = "MIT"
 
-[features]
-default = []
-
 [dependencies]
 serde = "1"
 serde_derive = "1"
-nalgebra = { version = "0.18.0", features = ["serde-serialize"] }
+na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 
-gtfs-sim-simulation = { path = "../simulation" }
+simulation = { package = "gtfs-sim-simulation", path = "../simulation" }

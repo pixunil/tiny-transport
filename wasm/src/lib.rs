@@ -1,10 +1,3 @@
-#[cfg(test)]
-#[macro_use]
-extern crate approx;
-extern crate nalgebra as na;
-extern crate gtfs_sim_simulation as simulation;
-extern crate gtfs_sim_serialization as serialization;
-
 mod map;
 mod view;
 

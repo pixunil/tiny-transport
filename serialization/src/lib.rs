@@ -1,7 +1,4 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate nalgebra as na;
-extern crate gtfs_sim_simulation as simulation;
+use serde_derive::{Serialize, Deserialize};
 
 mod station;
 mod line;

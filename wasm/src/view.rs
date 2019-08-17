@@ -57,6 +57,7 @@ mod tests {
     use super::*;
 
     use std::f32::EPSILON;
+    use approx::assert_relative_eq;
     use na::{Point2, Transform2};
 
     fn transform_from_view(view: &View) -> Transform2<f32> {

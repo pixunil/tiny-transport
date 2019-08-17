@@ -1,4 +1,5 @@
 use std::fmt;
+use std::num::ParseIntError;
 
 use serde::Deserializer;
 use serde::de::{Visitor, Error as DeserializeError};
@@ -8,7 +9,7 @@ use chrono::Duration;
 
 use simulation::Color;
 
-pub fn deserialize_numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+pub fn numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
     where D: Deserializer<'de>
 {
     struct NumericBoolVisitor;
@@ -34,7 +35,7 @@ pub fn deserialize_numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Erro
     deserializer.deserialize_u64(NumericBoolVisitor)
 }
 
-pub fn deserialize_naive_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+pub fn naive_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
     where D: Deserializer<'de>
 {
     struct NaiveDateVisitor;
@@ -50,14 +51,14 @@ pub fn deserialize_naive_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::E
             where E: DeserializeError
         {
             NaiveDate::parse_from_str(value, "%Y%m%d")
-                .map_err(|err| E::custom(err))
+                .map_err(E::custom)
         }
     }
 
     deserializer.deserialize_str(NaiveDateVisitor)
 }
 
-pub fn deserialize_duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub fn duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
     where D: Deserializer<'de>
 {
     struct DurationVisitor;
@@ -72,10 +73,10 @@ pub fn deserialize_duration<'de, D>(deserializer: D) -> Result<Duration, D::Erro
         fn visit_str<E>(self, value: &str) -> Result<Duration, E>
             where E: DeserializeError
         {
-            let seconds = value.split(":")
-                .map(|part| part.parse::<i64>())
+            let seconds = value.splitn(3, ':')
+                .map(str::parse::<i64>)
                 .try_fold(0, |acc, time| Ok(60 * acc + time?))
-                .map_err(|err: ::std::num::ParseIntError| E::custom(err));
+                .map_err(E::custom::<ParseIntError>);
 
             Ok(Duration::seconds(seconds?))
         }
@@ -84,7 +85,7 @@ pub fn deserialize_duration<'de, D>(deserializer: D) -> Result<Duration, D::Erro
     deserializer.deserialize_str(DurationVisitor)
 }
 
-pub fn deserialize_color<'de, D>(deserializer: D) -> Result<Color, D::Error>
+pub fn color<'de, D>(deserializer: D) -> Result<Color, D::Error>
     where D: Deserializer<'de>
 {
     struct ColorVisitor;
@@ -103,7 +104,7 @@ pub fn deserialize_color<'de, D>(deserializer: D) -> Result<Color, D::Error>
                 let slice = value.get(2 * number + 1 ..= 2 * number + 2)
                     .ok_or_else(|| E::custom(""))?;
                 u8::from_str_radix(slice, 16)
-                    .map_err(|err| E::custom(err))
+                    .map_err(E::custom)
             };
             Ok(Color::new(component(0)?, component(1)?, component(2)?))
         }
@@ -124,81 +125,81 @@ mod tests {
     #[test]
     fn test_numeric_true() {
         let deserializer: U64Deserializer<ValueError> = 1u64.into_deserializer();
-        assert_eq!(deserialize_numeric_bool(deserializer), Ok(true));
+        assert_eq!(numeric_bool(deserializer), Ok(true));
     }
 
     #[test]
     fn test_numeric_false() {
         let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
-        assert_eq!(deserialize_numeric_bool(deserializer), Ok(false));
+        assert_eq!(numeric_bool(deserializer), Ok(false));
     }
 
     #[test]
     fn test_numeric_invalid_number() {
         let deserializer: U64Deserializer<ValueError> = 2u64.into_deserializer();
-        let error = deserialize_numeric_bool(deserializer).unwrap_err();
+        let error = numeric_bool(deserializer).unwrap_err();
         assert_eq!(error.description(), "invalid bool: 2");
     }
 
     #[test]
     fn test_numeric_empty() {
         let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
-        let error = deserialize_numeric_bool(deserializer).unwrap_err();
+        let error = numeric_bool(deserializer).unwrap_err();
         assert_eq!(error.description(), "invalid type: string \"\", expected either 0 or 1");
     }
 
     #[test]
     fn test_naive_date() {
         let deserializer: StrDeserializer<ValueError> = "20190711".into_deserializer();
-        assert_eq!(deserialize_naive_date(deserializer), Ok(NaiveDate::from_ymd(2019, 7, 11)));
+        assert_eq!(naive_date(deserializer), Ok(NaiveDate::from_ymd(2019, 7, 11)));
     }
 
     #[test]
     fn test_naive_date_empty() {
         let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
-        let error = deserialize_naive_date(deserializer).unwrap_err();
+        let error = naive_date(deserializer).unwrap_err();
         assert_eq!(error.description(), "premature end of input");
     }
 
     #[test]
     fn test_naive_date_invalid_type() {
         let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
-        let error = deserialize_naive_date(deserializer).unwrap_err();
+        let error = naive_date(deserializer).unwrap_err();
         assert_eq!(error.description(), "invalid type: integer `0`, expected date string");
     }
 
-    fn duration(hours: i64, minutes: i64, seconds: i64) -> Duration {
+    fn from_hms(hours: i64, minutes: i64, seconds: i64) -> Duration {
         Duration::seconds((hours * 60 + minutes) * 60 + seconds)
     }
 
     #[test]
     fn test_duration_one_hour_digit() {
         let deserializer: StrDeserializer<ValueError> = "1:34:56".into_deserializer();
-        assert_eq!(deserialize_duration(deserializer), Ok(duration(1, 34, 56)));
+        assert_eq!(duration(deserializer), Ok(from_hms(1, 34, 56)));
     }
 
     #[test]
     fn test_duration_two_hour_digit() {
         let deserializer: StrDeserializer<ValueError> = "12:34:56".into_deserializer();
-        assert_eq!(deserialize_duration(deserializer), Ok(duration(12, 34, 56)));
+        assert_eq!(duration(deserializer), Ok(from_hms(12, 34, 56)));
     }
 
     #[test]
     fn test_duration_after_midnight() {
         let deserializer: StrDeserializer<ValueError> = "24:34:56".into_deserializer();
-        assert_eq!(deserialize_duration(deserializer), Ok(duration(24, 34, 56)));
+        assert_eq!(duration(deserializer), Ok(from_hms(24, 34, 56)));
     }
 
     #[test]
     fn test_duration_invalid_type() {
         let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
-        let error = deserialize_duration(deserializer).unwrap_err();
+        let error = duration(deserializer).unwrap_err();
         assert_eq!(error.description(), "invalid type: integer `0`, expected time string");
     }
 
     #[test]
     fn test_color() {
         let deserializer: StrDeserializer<ValueError> = "#ff0420".into_deserializer();
-        assert_eq!(deserialize_color(deserializer), Ok(Color::new(255, 4, 32)));
+        assert_eq!(color(deserializer), Ok(Color::new(255, 4, 32)));
     }
 }

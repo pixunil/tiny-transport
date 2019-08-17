@@ -3,6 +3,8 @@ use na::{Point2, Vector2};
 use crate::color::Color;
 use crate::train::Train;
 
+use serde_derive::{Serialize, Deserialize};
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum LineNodeKind {
     Waypoint,
