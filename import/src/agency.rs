@@ -6,31 +6,45 @@ use super::line::Line;
 
 #[derive(Debug, PartialEq)]
 pub struct Agency {
-    pub name: String,
-    pub lines: Vec<Line>,
+    name: String,
+    lines: Vec<Line>,
 }
 
 impl Agency {
-    fn new(record: AgencyRecord, lines: &mut HashMap<Id, Vec<Line>>) -> Agency {
+    fn new(name: String, lines: Vec<Line>) -> Agency {
+        Agency { name, lines }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn lines(&self) -> &[Line] {
+        &self.lines
+    }
+}
+
+pub struct Importer;
+
+impl Importer {
+    pub fn import(dataset: &mut impl Dataset, mut lines: HashMap<Id, Vec<Line>>) -> Result<Vec<Agency>, Box<dyn Error>> {
+        let mut agencies = Vec::new();
+        let mut reader = dataset.read_csv("agency.txt")?;
+        for result in reader.deserialize() {
+            let agency = Self::from_record(result?, &mut lines);
+            agencies.push(agency);
+        }
+
+        Ok(agencies)
+    }
+
+    fn from_record(record: AgencyRecord, lines: &mut HashMap<Id, Vec<Line>>) -> Agency {
         let lines = lines.remove(&record.agency_id)
             .unwrap_or_else(Vec::new);
-        Agency {
-            name: record.agency_name,
-            lines,
-        }
+        Agency::new(record.agency_name, lines)
     }
 }
 
-pub fn from_csv(dataset: &mut impl Dataset, mut lines: HashMap<Id, Vec<Line>>) -> Result<Vec<Agency>, Box<dyn Error>> {
-    let mut agencies = Vec::new();
-    let mut reader = dataset.read_csv("agency.txt")?;
-    for result in reader.deserialize() {
-        let agency = Agency::new(result?, &mut lines);
-        agencies.push(agency);
-    }
-
-    Ok(agencies)
-}
 
 #[derive(Debug, Deserialize)]
 struct AgencyRecord {
@@ -42,7 +56,16 @@ struct AgencyRecord {
 mod tests {
     use super::*;
 
-    use crate::line::tests::blue_line;
+    use crate::line_;
+
+    macro_rules! agency {
+        ($name:literal, [$($line:ident),*]) => (
+            Agency::new($name.to_string(), vec![$(line_!($line)),*])
+        );
+        (pubtrans, [$($line:ident),*]) => (
+            agency!("Public Transport", [$($line),*])
+        );
+    }
 
     fn agency_record() -> AgencyRecord {
         AgencyRecord {
@@ -51,29 +74,22 @@ mod tests {
         }
     }
 
-    fn agency(lines: Vec<Line>) -> Agency {
-        Agency {
-            name: "Public Transport".to_string(),
-            lines,
-        }
-    }
-
     fn lines() -> HashMap<Id, Vec<Line>> {
         let mut lines = HashMap::new();
-        lines.insert("1".to_string(), vec![blue_line()]);
+        lines.insert("1".to_string(), vec![line_!(blue)]);
         lines
     }
 
     #[test]
     fn test_import_agency_without_lines() {
         let mut lines = HashMap::new();
-        assert_eq!(Agency::new(agency_record(), &mut lines), agency(vec![]));
+        assert_eq!(Importer::from_record(agency_record(), &mut lines), agency!(pubtrans, []));
     }
 
     #[test]
     fn test_import_agency_with_line() {
         let mut lines = lines();
-        assert_eq!(Agency::new(agency_record(), &mut lines), agency(vec![blue_line()]));
+        assert_eq!(Importer::from_record(agency_record(), &mut lines), agency!(pubtrans, [blue]));
         assert!(lines.is_empty());
     }
 
@@ -85,7 +101,7 @@ mod tests {
                 1,         "Public Transport"
         );
 
-        let agencies = from_csv(&mut dataset, lines()).unwrap();
-        assert_eq!(agencies, vec![agency(vec![blue_line()])]);
+        let agencies = Importer::import(&mut dataset, lines()).unwrap();
+        assert_eq!(agencies, vec![agency!(pubtrans, [blue])]);
     }
 }

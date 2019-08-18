@@ -12,24 +12,17 @@ use super::utils::*;
 pub struct Location {
     pub id: Id,
     pub name: String,
-    lat: f32,
-    lon: f32,
+    position: Point2<f32>,
 }
 
 impl Location {
-    fn new(record: LocationRecord) -> (Id, Location) {
-        let location = Location {
-            id: record.stop_id.clone(),
-            name: record.stop_name,
-            lat: record.stop_lat,
-            lon: record.stop_lon,
-        };
-        (record.stop_id, location)
+    pub fn new(id: Id, name: String, position: Point2<f32>) -> Location {
+        Location { id, name, position }
     }
 
     pub fn position(&self) -> Point2<f32> {
-        let x = 2000.0 * (self.lon - 13.5);
-        let y = -4000.0 * (self.lat - 52.52);
+        let x = 2000.0 * (self.position.x - 13.5);
+        let y = -4000.0 * (self.position.y - 52.52);
         Point2::new(x, y)
     }
 
@@ -39,6 +32,13 @@ impl Location {
 
     pub fn freeze(&self) -> serialization::Station {
         serialization::Station::new(self.position(), self.name.clone())
+    }
+}
+
+impl From<LocationRecord> for Location {
+    fn from(record: LocationRecord) -> Location {
+        let position = Point2::new(record.stop_lon, record.stop_lat);
+        Location::new(record.stop_id, record.stop_name, position)
     }
 }
 
@@ -88,25 +88,29 @@ fn process_record(record: LocationRecord, queue: &mut VecDeque<LocationRecord>, 
             }
         },
         None => {
-            let (id, location) = Location::new(record);
-            locations.insert(id, Rc::new(location));
+            let id = record.stop_id.clone();
+            locations.insert(id, Rc::new(Location::from(record)));
         },
     }
 }
 
-pub fn from_csv(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Location>>, Box<dyn Error>> {
-    let mut queue = VecDeque::new();
-    let mut locations = HashMap::new();
-    let mut reader = dataset.read_csv("stops.txt")?;
-    for result in reader.deserialize() {
-        process_record(result?, &mut queue, &mut locations);
-    }
+pub struct Importer;
 
-    while let Some(record) = queue.pop_front() {
-        process_record(record, &mut queue, &mut locations);
-    }
+impl Importer {
+    pub fn import(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Location>>, Box<dyn Error>> {
+        let mut queue = VecDeque::new();
+        let mut locations = HashMap::new();
+        let mut reader = dataset.read_csv("stops.txt")?;
+        for result in reader.deserialize() {
+            process_record(result?, &mut queue, &mut locations);
+        }
 
-    Ok(locations)
+        while let Some(record) = queue.pop_front() {
+            process_record(record, &mut queue, &mut locations);
+        }
+
+        Ok(locations)
+    }
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -119,8 +123,21 @@ struct LocationRecord {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
+
+    #[macro_export]
+    macro_rules! station {
+        ($id:expr, $name:expr, $lat:expr, $lon:expr) => (
+            $crate::location::Location::new($id.to_string(), $name.to_string(), Point2::new($lon, $lat))
+        );
+        (main_station) => (
+            $crate::station!("1", "Main Station", 52.52, 13.37)
+        );
+        (museum) => (
+            $crate::station!("2", "Museum", 52.53, 13.38)
+        );
+    }
 
     fn main_station_record() -> LocationRecord {
         LocationRecord {
@@ -129,15 +146,6 @@ pub mod tests {
             stop_name: "Main Station".to_string(),
             stop_lat: 52.52,
             stop_lon: 13.37,
-        }
-    }
-
-    pub fn main_station() -> Location {
-        Location {
-            id: "1".to_string(),
-            name: "Main Station".to_string(),
-            lat: 52.52,
-            lon: 13.37,
         }
     }
 
@@ -151,20 +159,10 @@ pub mod tests {
         }
     }
 
-    pub fn museum() -> Location {
-        Location {
-            id: "2".to_string(),
-            name: "Museum".to_string(),
-            lat: 52.53,
-            lon: 13.38,
-        }
-    }
-
     #[test]
     fn test_import_location() {
-        let (id, location) = Location::new(main_station_record());
-        assert_eq!(id, "1");
-        assert_eq!(location, main_station());
+        let location = Location::from(main_station_record());
+        assert_eq!(location, station!(main_station));
     }
 
     #[test]
@@ -174,7 +172,7 @@ pub mod tests {
         process_record(main_station_record(), &mut queue, &mut locations);
         assert!(queue.is_empty());
         assert_eq!(locations.len(), 1);
-        assert_eq!(*locations["1"], main_station());
+        assert_eq!(*locations["1"], station!(main_station));
     }
 
     #[test]
@@ -190,11 +188,11 @@ pub mod tests {
     fn test_process_child_with_parent() {
         let mut queue = VecDeque::new();
         let mut locations = HashMap::new();
-        locations.insert("1".to_string(), Rc::new(main_station()));
+        locations.insert("1".to_string(), Rc::new(station!(main_station)));
         process_record(main_station_platform_record(), &mut queue, &mut locations);
         assert!(queue.is_empty());
         assert_eq!(locations.len(), 2);
-        assert_eq!(*locations["2"], main_station());
+        assert_eq!(*locations["2"], station!(main_station));
     }
 
     #[test]
@@ -202,12 +200,13 @@ pub mod tests {
         let mut dataset = crate::dataset!(
             stops:
                 stop_id, stop_name,      stop_lat, stop_lon, parent_station;
-                1,       "Main Station", 52.52,    13.37,    ""
-
+                1,       "Main Station", 52.52,    13.37,    "";
+                2,       "Museum",       52.53,    13.38,    ""
         );
 
-        let locations = from_csv(&mut dataset).unwrap();
-        assert_eq!(locations.len(), 1);
-        assert_eq!(*locations["1"], main_station());
+        let locations = Importer::import(&mut dataset).unwrap();
+        assert_eq!(locations.len(), 2);
+        assert_eq!(*locations["1"], station!(main_station));
+        assert_eq!(*locations["2"], station!(museum));
     }
 }

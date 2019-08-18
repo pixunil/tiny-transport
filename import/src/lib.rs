@@ -41,23 +41,23 @@ pub fn compress() -> Result<(), Box<dyn Error>> {
 }
 
 fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
-    let services = service::from_csv(&mut dataset)?;
-    let locations = location::from_csv(&mut dataset)?;
+    let services = service::Importer::import(&mut dataset)?;
+    let locations = location::Importer::import(&mut dataset)?;
     let shapes = shape::Importer::import(&mut dataset)?;
     let line_importer = line::Importer::import(&mut dataset)?;
     let trip_importer = trip::Importer::new(&services, &locations, &shapes, line_importer.id_mapping(), line_importer.num_lines());
     let routes = trip_importer.import(&mut dataset)?;
     let lines = line_importer.add_routes(routes)?;
-    let agencies = agency::from_csv(&mut dataset, lines)?;
+    let agencies = agency::Importer::import(&mut dataset, lines)?;
     Ok(agencies)
 }
 
 fn filter(agencies: &[Agency]) -> impl Iterator<Item = &'_ Line> + Clone {
     let agency = agencies.iter()
-        .find(|agency| agency.name == "S-Bahn Berlin GmbH")
+        .find(|agency| agency.name() == "S-Bahn Berlin GmbH")
         .unwrap();
 
-    agency.lines.iter()
+    agency.lines().iter()
         .filter(|line| line.kind == LineKind::SuburbanRailway)
 }
 

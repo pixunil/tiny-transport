@@ -27,7 +27,7 @@ impl<R: Read + Seek> Dataset for ZipArchive<R> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     use std::io;
@@ -56,6 +56,6 @@ mod test {
                 dataset.insert(format!("{}.txt", stringify!($name)), data);
             )*
             dataset
-        })
+        });
     }
 }

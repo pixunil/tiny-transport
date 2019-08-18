@@ -209,13 +209,12 @@ struct StopRecord {
 mod tests {
     use super::*;
 
-    use crate::service::tests::service_monday_to_friday;
-    use crate::location::tests::{main_station, museum};
+    use crate::{service, station};
 
     fn empty_trip_buffer() -> TripBuf {
         TripBuf {
             line_id: 0,
-            service: Rc::new(service_monday_to_friday()),
+            service: Rc::new(service!(mon-fri)),
             shape_id: "1".to_string(),
             locations: Vec::new(),
             arrivals: Vec::new(),
@@ -226,7 +225,7 @@ mod tests {
     #[test]
     fn test_import_trip_buffer() {
         let mut services = HashMap::new();
-        services.insert("1".to_string(), Rc::new(service_monday_to_friday()));
+        services.insert("1".to_string(), Rc::new(service!(mon-fri)));
         let mut id_mapping = HashMap::new();
         id_mapping.insert("1".to_string(), 0);
         let record = TripRecord {
@@ -255,14 +254,14 @@ mod tests {
             },
         ];
         let mut locations = HashMap::new();
-        locations.insert("1".to_string(), Rc::new(main_station()));
-        locations.insert("2".to_string(), Rc::new(museum()));
+        locations.insert("1".to_string(), Rc::new(station!(main_station)));
+        locations.insert("2".to_string(), Rc::new(station!(museum)));
 
         let expected_buffer = TripBuf {
             line_id: 0,
-            service: Rc::new(service_monday_to_friday()),
+            service: Rc::new(service!(mon-fri)),
             shape_id: "1".to_string(),
-            locations: vec![Rc::new(main_station()), Rc::new(museum())],
+            locations: vec![Rc::new(station!(main_station)), Rc::new(station!(museum))],
             arrivals: vec![Duration::minutes(0), Duration::minutes(5)],
             departures: vec![Duration::minutes(1), Duration::minutes(6)],
         };

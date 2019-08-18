@@ -74,40 +74,40 @@ struct ShapeRecord {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     #[macro_export]
     macro_rules! shape {
         ($($lat:expr, $lon:expr);*) => (
-            vec![$(::na::Point2::new($lat, $lon)),*]
+            vec![$(::na::Point2::new($lon, $lat)),*]
         );
         (blue) => (
-            $crate::shape!(13.37, 52.52; 13.37, 52.53; 13.38, 52.53)
-        )
+            $crate::shape!(52.52, 13.37; 52.53, 13.37; 52.53, 13.38)
+        );
     }
 
     #[test]
     fn test_remove_overlapping() {
-        let shape = shape!(13.37, 52.52; 13.37, 52.53; 13.37, 52.53; 13.38, 52.53);
+        let shape = shape!(52.52, 13.37; 52.53, 13.37; 52.53, 13.37; 52.53, 13.38);
         assert_eq!(Importer::smooth(shape), shape!(blue));
     }
 
     #[test]
     fn test_remove_on_segment() {
-        let shape = shape!(13.37, 52.52; 13.37, 52.525; 13.37, 52.53; 13.38, 52.53);
+        let shape = shape!(52.52, 13.37; 52.525, 13.37; 52.53, 13.37; 52.53, 13.38);
         assert_eq!(Importer::smooth(shape), shape!(blue));
     }
 
     #[test]
     fn test_remove_spike() {
-        let shape = shape!(13.37, 52.52; 13.0, 52.525; 13.37, 52.53; 13.38, 52.53);
+        let shape = shape!(52.52, 13.37; 52.525, 13.0; 52.53, 13.37; 52.53, 13.38);
         assert_eq!(Importer::smooth(shape), shape!(blue));
     }
 
     #[test]
     fn test_remove_jump() {
-        let shape = shape!(13.37, 52.52; 13.37, 52.51; 13.37, 52.52; 13.37, 52.53; 13.38, 52.53);
+        let shape = shape!(52.52, 13.37; 52.51, 13.37; 52.52, 13.37; 52.53, 13.37; 52.53, 13.38);
         assert_eq!(Importer::smooth(shape), shape!(blue));
     }
 
@@ -125,7 +125,7 @@ pub mod tests {
 
         let shapes = Importer::import(&mut dataset).unwrap();
         assert_eq!(shapes.len(), 2);
-        assert_eq!(*shapes["1"], shape!(13.37, 52.51; 13.37, 52.52));
+        assert_eq!(*shapes["1"], shape!(52.51, 13.37; 52.52, 13.37));
         assert_eq!(*shapes["2"], shape!(blue));
     }
 }

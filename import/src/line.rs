@@ -20,12 +20,12 @@ pub struct Line {
 }
 
 impl Line {
-    fn new(record: LineRecord) -> Line {
+    pub fn new(name: String, kind: LineKind) -> Line {
         Line {
-            name: record.route_short_name,
+            name,
             color: None,
-            kind: record.route_type,
-            routes: Vec::new(),
+            kind,
+            routes: Vec::new()
         }
     }
 
@@ -51,6 +51,12 @@ impl Line {
         let trains = route.freeze_trains(date);
         let color = self.color.clone().unwrap();
         (color, serialization::Line::new(self.name.clone(), nodes, trains))
+    }
+}
+
+impl From<LineRecord> for Line {
+    fn from(record: LineRecord) -> Line {
+        Line::new(record.route_short_name, record.route_type)
     }
 }
 
@@ -112,7 +118,7 @@ impl Importer {
         let mut lines = HashMap::new();
         for record in self.records.into_iter().rev() {
             let agency_id = record.agency_id.clone();
-            let mut line = Line::new(record);
+            let mut line = Line::from(record);
             line.add_routes(routes.pop());
             line.add_color_when_applicable(&self.colors);
             lines.entry(agency_id)
@@ -182,36 +188,23 @@ struct LineRecord {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     use serde_test::{Token, assert_de_tokens, assert_de_tokens_error};
+    use crate::dataset;
 
-    fn blue_line_record() -> LineRecord {
-        LineRecord {
-            route_id: "1".to_string(),
-            agency_id: "1".to_string(),
-            route_short_name: "Blue Line".to_string(),
-            route_type: LineKind::SuburbanRailway,
-        }
-    }
-
-    pub fn blue_line() -> Line {
-        Line {
-            name: "Blue Line".to_string(),
-            color: None,
-            kind: LineKind::SuburbanRailway,
-            routes: Vec::new(),
-        }
-    }
-
-    fn blue_line_replacement() -> Line {
-        Line {
-            name: "Blue Line".to_string(),
-            color: None,
-            kind: LineKind::Bus,
-            routes: Vec::new(),
-        }
+    #[macro_export]
+    macro_rules! line_ {
+        ($name:expr, $kind:ident) => (
+            $crate::line::Line::new($name.to_string(), $crate::line::LineKind::$kind)
+        );
+        (blue) => (
+            $crate::line_!("Blue Line", SuburbanRailway)
+        );
+        (blue-replacement) => (
+            $crate::line_!("Blue Line", Bus)
+        );
     }
 
     fn colors() -> HashMap<String, Color> {
@@ -222,12 +215,18 @@ pub mod tests {
 
     #[test]
     fn test_import_line() {
-        assert_eq!(Line::new(blue_line_record()), blue_line());
+        let record = LineRecord {
+            route_id: "1".to_string(),
+            agency_id: "1".to_string(),
+            route_short_name: "Blue Line".to_string(),
+            route_type: LineKind::SuburbanRailway,
+        };
+        assert_eq!(Line::from(record), line_!(blue));
     }
 
     #[test]
     fn test_deduplication() {
-        let mut dataset = crate::dataset!(
+        let mut dataset = dataset!(
             routes:
                 route_id, agency_id, route_short_name, route_type;
                 1,        1,         "Blue Line",      109;
@@ -242,14 +241,14 @@ pub mod tests {
 
     #[test]
     fn test_add_color_to_applicable() {
-        let mut line = blue_line();
+        let mut line = line_!(blue);
         line.add_color_when_applicable(&colors());
         assert_eq!(line.color, Some(Color::new(0, 0, 255)));
     }
 
     #[test]
     fn test_add_color_to_unapplicable() {
-        let mut line = blue_line_replacement();
+        let mut line = line_!(blue-replacement);
         line.add_color_when_applicable(&colors());
         assert_eq!(line.color, None);
     }

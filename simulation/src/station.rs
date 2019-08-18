@@ -26,7 +26,7 @@ impl Station {
 
 
 #[cfg(test)]
-mod test {
+mod tests {
     use super::*;
 
     use approx::assert_relative_eq;
@@ -35,7 +35,7 @@ mod test {
     macro_rules! station {
         (main_station) => (
             Station::new(Point2::new(200.0, 100.0), "Main Station".to_string())
-        )
+        );
     }
 
     #[test]

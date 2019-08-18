@@ -20,15 +20,14 @@ pub struct Service {
 }
 
 impl Service {
-    fn new(record: ServiceRecord) -> (Id, Service) {
-        let service = Service {
-            start: record.start_date,
-            end: record.end_date,
-            weekdays: [record.monday, record.tuesday, record.wednesday, record.thursday, record.friday, record.saturday, record.sunday],
+    pub fn new(start: NaiveDate, end: NaiveDate, weekdays: [bool; 7]) -> Service {
+        Service {
+            start,
+            end,
+            weekdays,
             added: HashSet::new(),
             removed: HashSet::new(),
-        };
-        (record.service_id, service)
+        }
     }
 
     fn add_exception(&mut self, record: ServiceExceptionRecord) {
@@ -49,35 +48,48 @@ impl Service {
     }
 }
 
-fn import_services(dataset: &mut impl Dataset) -> Result<HashMap<Id, Service>, Box<dyn Error>> {
-    let mut services = HashMap::new();
-    let mut reader = dataset.read_csv("calendar.txt")?;
-    for result in reader.deserialize() {
-        let (id, service) = Service::new(result?);
-        services.insert(id, service);
+impl From<ServiceRecord> for Service {
+    fn from(record: ServiceRecord) -> Service {
+        let weekdays = [record.monday, record.tuesday, record.wednesday, record.thursday, record.friday, record.saturday, record.sunday];
+        Service::new(record.start_date, record.end_date, weekdays)
     }
-    Ok(services)
 }
 
-fn add_service_exceptions(dataset: &mut impl Dataset, services: &mut HashMap<Id, Service>) -> Result<(), Box<dyn Error>> {
-    let mut reader = dataset.read_csv("calendar_dates.txt")?;
-    for result in reader.deserialize() {
-        let record: ServiceExceptionRecord = result?;
-        services.get_mut(&record.service_id).unwrap().add_exception(record);
+pub struct Importer;
+
+impl Importer {
+    pub fn import(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Service>>, Box<dyn Error>> {
+        let mut services = Self::import_services(dataset)?;
+        Self::add_service_exceptions(dataset, &mut services)?;
+
+        let services = services.into_iter()
+            .map(|(id, service)| (id, Rc::new(service)))
+            .collect();
+
+        Ok(services)
     }
-    Ok(())
+
+    fn import_services(dataset: &mut impl Dataset) -> Result<HashMap<Id, Service>, Box<dyn Error>> {
+        let mut services = HashMap::new();
+        let mut reader = dataset.read_csv("calendar.txt")?;
+        for result in reader.deserialize() {
+            let record: ServiceRecord = result?;
+            let id = record.service_id.clone();
+            services.insert(id, Service::from(record));
+        }
+        Ok(services)
+    }
+
+    fn add_service_exceptions(dataset: &mut impl Dataset, services: &mut HashMap<Id, Service>) -> Result<(), Box<dyn Error>> {
+        let mut reader = dataset.read_csv("calendar_dates.txt")?;
+        for result in reader.deserialize() {
+            let record: ServiceExceptionRecord = result?;
+            services.get_mut(&record.service_id).unwrap().add_exception(record);
+        }
+        Ok(())
+    }
 }
 
-pub fn from_csv(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Service>>, Box<dyn Error>> {
-    let mut services = import_services(dataset)?;
-    add_service_exceptions(dataset, &mut services)?;
-
-    let services = services.into_iter()
-        .map(|(id, service)| (id, Rc::new(service)))
-        .collect();
-
-    Ok(services)
-}
 
 #[derive(Debug, Deserialize)]
 struct ServiceRecord {
@@ -145,19 +157,21 @@ struct ServiceExceptionRecord {
 }
 
 #[cfg(test)]
-pub mod tests {
+mod tests {
     use super::*;
 
     use serde_test::{Token, assert_de_tokens, assert_de_tokens_error};
 
-    pub fn service_monday_to_friday() -> Service {
-        Service {
-            start: NaiveDate::from_ymd(2019, 1, 1),
-            end: NaiveDate::from_ymd(2019, 12, 31),
-            weekdays: [true, true, true, true, true, false, false],
-            added: HashSet::new(),
-            removed: HashSet::new(),
-        }
+    #[macro_export]
+    macro_rules! service {
+        ($start:expr, $end:expr, $weekdays:expr) => ({
+            let start = NaiveDate::from_ymd($start[0], $start[1], $start[2]);
+            let end = NaiveDate::from_ymd($end[0], $end[1], $end[2]);
+            Service::new(start, end, $weekdays)
+        });
+        (mon-fri) => (
+            $crate::service!([2019, 1, 1], [2019, 12, 31], [true, true, true, true, true, false, false])
+        );
     }
 
     #[test]
@@ -174,12 +188,12 @@ pub mod tests {
             saturday: false,
             sunday: false,
         };
-        assert_eq!(Service::new(record), ("1".to_string(), service_monday_to_friday()));
+        assert_eq!(Service::from(record), service!(mon-fri));
     }
 
     #[test]
     fn test_add_include_exception_to_service() {
-        let mut service = service_monday_to_friday();
+        let mut service = service!(mon-fri);
         let exception = ServiceExceptionRecord {
             service_id: "1".to_string(),
             date: NaiveDate::from_ymd(2019, 1, 5),
@@ -192,7 +206,7 @@ pub mod tests {
 
     #[test]
     fn test_add_exclude_exception_to_service() {
-        let mut service = service_monday_to_friday();
+        let mut service = service!(mon-fri);
         let exception = ServiceExceptionRecord {
             service_id: "1".to_string(),
             date: NaiveDate::from_ymd(2019, 12, 24),
@@ -205,7 +219,7 @@ pub mod tests {
 
     #[test]
     fn test_regulary_available() {
-        let service = service_monday_to_friday();
+        let service = service!(mon-fri);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(service.regulary_available_at(date));
         assert!(service.available_at(date));
@@ -213,7 +227,7 @@ pub mod tests {
 
     #[test]
     fn test_regulary_unavailable() {
-        let service = service_monday_to_friday();
+        let service = service!(mon-fri);
         let date = NaiveDate::from_ymd(2019, 1, 5);
         assert!(!service.regulary_available_at(date));
         assert!(!service.available_at(date));
@@ -221,7 +235,7 @@ pub mod tests {
 
     #[test]
     fn test_exceptionally_available() {
-        let mut service = service_monday_to_friday();
+        let mut service = service!(mon-fri);
         let date = NaiveDate::from_ymd(2019, 1, 5);
         service.added.insert(date);
         assert!(!service.regulary_available_at(date));
@@ -230,7 +244,7 @@ pub mod tests {
 
     #[test]
     fn test_exceptionally_unavailable() {
-        let mut service = service_monday_to_friday();
+        let mut service = service!(mon-fri);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         service.removed.insert(date);
         assert!(service.regulary_available_at(date));
@@ -260,11 +274,11 @@ pub mod tests {
 
         );
 
-        let mut service = service_monday_to_friday();
+        let mut service = service!(mon-fri);
         service.added.insert(NaiveDate::from_ymd(2019, 1, 5));
         service.removed.insert(NaiveDate::from_ymd(2019, 1, 7));
 
-        let services = from_csv(&mut dataset).unwrap();
+        let services = Importer::import(&mut dataset).unwrap();
         assert_eq!(services.len(), 1);
         assert_eq!(*services["1"], service);
     }
