@@ -144,3 +144,47 @@ impl LineGroup {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use approx::assert_relative_eq;
+
+    #[macro_export]
+    macro_rules! line_nodes {
+        ($($x:expr, $y:expr);*) => (
+            vec![$(
+                LineNode::new(na::Point2::new($x, $y))
+            ),*]
+        );
+        (blue) => (
+            $crate::line_nodes!(200.0, 100.0; 220.0, 100.0; 230.0, 105.0)
+        )
+    }
+
+    #[test]
+    fn test_line_vertices() {
+        let line = Line {
+            name: "Blue Line".to_string(),
+            nodes: line_nodes!(blue),
+            trains: Vec::new(),
+        };
+        let line_group = LineGroup {
+            color: Color::new(0, 0, 255),
+            lines: vec![line],
+        };
+
+        let mut buffer = Vec::new();
+        line_group.fill_vertice_buffer_data(&mut buffer);
+        assert_relative_eq!(*buffer, [
+            200.0, 101.0,
+            200.0, 99.0,
+            219.76, 101.0,
+            220.24, 99.0,
+            229.55, 105.89,
+            230.45, 104.11,
+        ], epsilon = 0.01);
+    }
+}

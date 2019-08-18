@@ -45,10 +45,68 @@ impl Train {
         let bounds = Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
 
         let right_front = position + bounds * Vector2::new(4.5, 3.0);
-        let left_front = position + bounds * Vector2::new(-4.5, 3.0);
-        let right_back = position + bounds * Vector2::new(4.5, -3.0);
+        let left_front = position + bounds * Vector2::new(4.5, -3.0);
+        let right_back = position + bounds * Vector2::new(-4.5, 3.0);
         let left_back = position + bounds * Vector2::new(-4.5, -3.0);
         buffer.extend(left_back.iter().chain(left_front.iter()).chain(right_back.iter()));
         buffer.extend(right_front.iter().chain(right_back.iter()).chain(left_front.iter()));
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use approx::assert_relative_eq;
+
+    #[test]
+    fn test_before_dispatch() {
+        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        train.update(0);
+        assert!(!train.is_active());
+    }
+
+    #[test]
+    fn test_stopped() {
+        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        train.update(2);
+        assert!(train.is_active());
+
+        let mut buffer = Vec::new();
+        train.fill_vertice_buffer(&mut buffer, &crate::line_nodes!(blue));
+        assert_relative_eq!(*buffer, [
+            195.5, 97.0,
+            204.5, 97.0,
+            195.5, 103.0,
+            204.5, 103.0,
+            195.5, 103.0,
+            204.5, 97.0,
+        ]);
+    }
+
+    #[test]
+    fn test_driving() {
+        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        train.update(3);
+        assert!(train.is_active());
+
+        let mut buffer = Vec::new();
+        train.fill_vertice_buffer(&mut buffer, &crate::line_nodes!(blue));
+        assert_relative_eq!(*buffer, [
+            205.5, 97.0,
+            214.5, 97.0,
+            205.5, 103.0,
+            214.5, 103.0,
+            205.5, 103.0,
+            214.5, 97.0,
+        ]);
+    }
+
+    #[test]
+    fn test_after_terminus() {
+        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        train.update(8);
+        assert!(!train.is_active());
     }
 }

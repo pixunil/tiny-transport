@@ -2,22 +2,13 @@ use na::Point2;
 
 #[derive(Debug)]
 pub struct Station {
-    id: usize,
     position: Point2<f32>,
     name: String,
 }
 
 impl Station {
-    pub fn new(id: usize, position: Point2<f32>, name: String) -> Station {
-        Station { id, position, name }
-    }
-
-    pub fn id(&self) -> usize {
-        self.id
-    }
-
-    pub fn position(&self) -> Point2<f32> {
-        self.position
+    pub fn new(position: Point2<f32>, name: String) -> Station {
+        Station { position, name }
     }
 
     pub fn name(&self) -> &str {
@@ -25,10 +16,56 @@ impl Station {
     }
 
     pub fn contains(&self, position: Point2<f32>) -> bool {
-        na::distance(&self.position, &position) < 5.0
+        na::distance(&self.position, &position) <= 5.0
     }
 
-    pub fn position_buffer_data(&self) -> impl Iterator<Item = f32> + '_ {
-        self.position.iter().cloned()
+    pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>) {
+        buffer.extend(self.position.iter())
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use approx::assert_relative_eq;
+
+    #[macro_export]
+    macro_rules! station {
+        (main_station) => (
+            Station::new(Point2::new(200.0, 100.0), "Main Station".to_string())
+        )
+    }
+
+    #[test]
+    fn test_station_contains_center() {
+        let station = station!(main_station);
+        assert!(station.contains(Point2::new(200.0, 100.0)));
+    }
+
+    #[test]
+    fn test_station_contains_border() {
+        let station = station!(main_station);
+        assert!(station.contains(Point2::new(205.0, 100.0)));
+        assert!(station.contains(Point2::new(200.0, 95.0)));
+        assert!(station.contains(Point2::new(195.0, 100.0)));
+        assert!(station.contains(Point2::new(200.0, 105.0)));
+    }
+
+    #[test]
+    fn test_station_excludes_outside() {
+        let station = station!(main_station);
+        assert!(!station.contains(Point2::new(195.0, 95.0)));
+        assert!(!station.contains(Point2::new(205.0, 105.0)));
+        assert!(!station.contains(Point2::new(206.0, 100.0)));
+    }
+
+    #[test]
+    fn test_station_vertices() {
+        let station = station!(main_station);
+        let mut buffer = Vec::new();
+        station.fill_vertice_buffer(&mut buffer);
+        assert_relative_eq!(*buffer, [200.0, 100.0])
     }
 }

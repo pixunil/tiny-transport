@@ -175,6 +175,7 @@ dependencies = [
 name = "gtfs-sim-simulation"
 version = "0.1.0"
 dependencies = [
+ "approx 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.91 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.92 (registry+https://github.com/rust-lang/crates.io-index)",

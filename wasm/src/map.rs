@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::convert::From;
 
 use na::Point2;
@@ -11,12 +10,12 @@ use crate::view::View;
 
 #[wasm_bindgen]
 pub struct Map {
-    stations: Vec<Rc<Station>>,
+    stations: Vec<Station>,
     line_groups: Vec<LineGroup>,
 }
 
 impl Map {
-    fn new(stations: Vec<Rc<Station>>, line_groups: Vec<LineGroup>) -> Map {
+    fn new(stations: Vec<Station>, line_groups: Vec<LineGroup>) -> Map {
         Map {
             stations,
             line_groups,
@@ -49,9 +48,11 @@ impl Map {
     }
 
     pub fn station_positions(&self) -> Vec<f32> {
-        self.stations.iter()
-            .flat_map(|station| station.position_buffer_data())
-            .collect()
+        let mut buffer = Vec::new();
+        for station in &self.stations {
+            station.fill_vertice_buffer(&mut buffer);
+        }
+        buffer
     }
 
     pub fn line_colors(&self) -> Vec<f32> {
@@ -108,8 +109,7 @@ impl Map {
 impl From<Dataset> for Map {
     fn from(dataset: Dataset) -> Map {
         let stations = dataset.stations.into_iter()
-            .enumerate()
-            .map(|(id, station)| station.unfreeze(id))
+            .map(serialization::Station::unfreeze)
             .collect::<Vec<_>>();
 
         let line_groups = dataset.line_groups.into_iter()

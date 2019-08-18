@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use serde_derive::{Serialize, Deserialize};
 
 use na::Point2;
@@ -15,7 +13,7 @@ impl Station {
         Station { position, name }
     }
 
-    pub fn unfreeze(self, id: usize) -> Rc<simulation::Station> {
-        Rc::new(simulation::Station::new(id, self.position, self.name))
+    pub fn unfreeze(self) -> simulation::Station {
+        simulation::Station::new(self.position, self.name)
     }
 }
