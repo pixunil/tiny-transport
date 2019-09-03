@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "import" => {
             let path = env::args_os().nth(2).unwrap();
             import(path)
-        }
+        },
         _ => Ok(()),
     }
 }

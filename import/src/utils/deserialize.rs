@@ -7,7 +7,7 @@ use serde::de::{Visitor, Error as DeserializeError};
 use chrono::prelude::*;
 use chrono::Duration;
 
-use simulation::Color;
+use simulation::{Color, Direction};
 
 pub fn numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
     where D: Deserializer<'de>
@@ -113,6 +113,32 @@ pub fn color<'de, D>(deserializer: D) -> Result<Color, D::Error>
     deserializer.deserialize_str(ColorVisitor)
 }
 
+pub fn direction<'de, D>(deserializer: D) -> Result<Direction, D::Error>
+    where D: Deserializer<'de>
+{
+    struct DirectionVisitor;
+
+    impl<'de> Visitor<'de> for DirectionVisitor {
+        type Value = Direction;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("either 0 or 1")
+        }
+
+        fn visit_u64<E>(self, value: u64) -> Result<Direction, E>
+            where E: DeserializeError
+        {
+            match value {
+                0 => Ok(Direction::Upstream),
+                1 => Ok(Direction::Downstream),
+                _ => Err(E::custom(format!("invalid direction: {}", value))),
+            }
+        }
+    }
+
+    deserializer.deserialize_u64(DirectionVisitor)
+}
+
 #[cfg(test)]
 mod tests {
     use std::error::Error;
@@ -201,5 +227,31 @@ mod tests {
     fn test_color() {
         let deserializer: StrDeserializer<ValueError> = "#ff0420".into_deserializer();
         assert_eq!(color(deserializer), Ok(Color::new(255, 4, 32)));
+    }
+
+    #[test]
+    fn test_direction_upstream() {
+        let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
+        assert_eq!(direction(deserializer), Ok(Direction::Upstream));
+    }
+
+    #[test]
+    fn test_direction_downstream() {
+        let deserializer: U64Deserializer<ValueError> = 1u64.into_deserializer();
+        assert_eq!(direction(deserializer), Ok(Direction::Downstream));
+    }
+
+    #[test]
+    fn test_invalid_direction() {
+        let deserializer: U64Deserializer<ValueError> = 2u64.into_deserializer();
+        let error = direction(deserializer).unwrap_err();
+        assert_eq!(error.description(), "invalid direction: 2");
+    }
+
+    #[test]
+    fn test_direction_empty() {
+        let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
+        let error = direction(deserializer).unwrap_err();
+        assert_eq!(error.description(), "invalid type: string \"\", expected either 0 or 1");
     }
 }

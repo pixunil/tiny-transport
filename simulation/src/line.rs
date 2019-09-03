@@ -5,13 +5,13 @@ use crate::train::Train;
 
 use serde_derive::{Serialize, Deserialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 enum LineNodeKind {
     Waypoint,
     Stop,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct LineNode {
     position: Point2<f32>,
     kind: LineNodeKind,

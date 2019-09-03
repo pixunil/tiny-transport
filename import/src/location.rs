@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::rc::Rc;
 use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
 use std::collections::{VecDeque, HashMap};
 
 use na::Point2;
@@ -39,39 +38,6 @@ impl From<LocationRecord> for Location {
     fn from(record: LocationRecord) -> Location {
         let position = Point2::new(record.stop_lon, record.stop_lat);
         Location::new(record.stop_id, record.stop_name, position)
-    }
-}
-
-pub struct Path {
-    locations: Vec<Rc<Location>>,
-}
-
-impl Path {
-    pub fn new(locations: Vec<Rc<Location>>) -> Path {
-        Path { locations }
-    }
-}
-
-impl Into<Vec<Rc<Location>>> for Path {
-    fn into(self) -> Vec<Rc<Location>> {
-        self.locations
-    }
-}
-
-impl PartialEq for Path {
-    fn eq(&self, other: &Path) -> bool {
-        self.locations.iter().zip(&other.locations)
-            .all(|(a, b)| a.id == b.id)
-    }
-}
-
-impl Eq for Path {}
-
-impl Hash for Path {
-    fn hash<H: Hasher>(&self, hasher: &mut H) {
-        for location in &self.locations {
-            location.id.hash(hasher);
-        }
     }
 }
 

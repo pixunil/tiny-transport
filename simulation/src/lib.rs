@@ -6,4 +6,4 @@ mod train;
 pub use crate::color::Color;
 pub use crate::station::Station;
 pub use crate::line::{LineGroup, Line, LineNode};
-pub use crate::train::Train;
+pub use crate::train::{Direction, Train};

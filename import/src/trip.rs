@@ -10,10 +10,11 @@ use na::Point2;
 
 use simulation::LineNode;
 
-use super::utils::*;
-use super::service::Service;
-use super::shape::Shape;
-use super::location::{Location, Path};
+use crate::utils::*;
+use crate::service::Service;
+use crate::shape::Shape;
+use crate::location::Location;
+use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
 pub struct Route {
@@ -23,8 +24,12 @@ pub struct Route {
 }
 
 impl Route {
-    fn new(locations: Vec<Rc<Location>>, shape: Rc<Shape>, trips: Vec<Trip>) -> Route {
-        Route { locations, shape, trips }
+    fn new(locations: Vec<Rc<Location>>, shape: Rc<Shape>) -> Route {
+        Route {
+            locations,
+            shape,
+            trips: Vec::new(),
+        }
     }
 
     pub fn num_trips_at(&self, date: NaiveDate) -> usize {
@@ -63,6 +68,7 @@ impl Route {
 
 #[derive(Debug, PartialEq)]
 struct Trip {
+    direction: Direction,
     service: Rc<Service>,
     arrivals: Vec<Duration>,
     departures: Vec<Duration>,
@@ -76,7 +82,7 @@ impl Trip {
         let departures = self.departures.iter()
             .map(|duration| duration.num_seconds() as u32)
             .collect();
-        serialization::Train::new(arrivals, departures)
+        serialization::Train::new(self.direction, arrivals, departures)
     }
 }
 
@@ -85,22 +91,23 @@ struct TripBuf {
     line_id: usize,
     service: Rc<Service>,
     shape_id: Id,
+    direction: Direction,
     locations: Vec<Rc<Location>>,
     arrivals: Vec<Duration>,
     departures: Vec<Duration>,
 }
 
 impl TripBuf {
-    fn new(record: TripRecord, services: &HashMap<Id, Rc<Service>>, id_mapping: &HashMap<Id, usize>) -> (Id, TripBuf) {
-        let trip = TripBuf {
-            line_id: id_mapping[&record.route_id],
-            service: Rc::clone(&services[&record.service_id]),
-            shape_id: record.shape_id,
+    fn new(line_id: usize, service: Rc<Service>, shape_id: Id, direction: Direction) -> TripBuf {
+        TripBuf {
+            line_id,
+            service,
+            shape_id,
+            direction,
             locations: Vec::new(),
             arrivals: Vec::new(),
             departures: Vec::new(),
-        };
-        (record.trip_id, trip)
+        }
     }
 
     fn add_stop(&mut self, record: StopRecord, locations: &HashMap<Id, Rc<Location>>) {
@@ -110,18 +117,28 @@ impl TripBuf {
         self.departures.push(record.departure_time);
     }
 
-    fn into_trip(self, trips: &mut Vec<HashMap<(Id, Path), Vec<Trip>>>) {
-        let path = Path::new(self.locations);
+    fn termini(&self) -> (Id, Id) {
+        let first = self.locations.first().unwrap().id.clone();
+        let last = self.locations.last().unwrap().id.clone();
+        match self.direction {
+            Direction::Upstream => (first, last),
+            Direction::Downstream => (last, first),
+        }
+    }
 
+    fn into_trip(self, shapes: &HashMap<Id, Rc<Shape>>, routes: &mut Vec<HashMap<(Id, Id), Route>>) {
+        let route = routes[self.line_id].entry(self.termini())
+            .or_insert_with(|| {
+                let shape = Rc::clone(&shapes[&self.shape_id]);
+                Route::new(self.locations.clone(), shape)
+            });
         let trip = Trip {
+            direction: self.direction,
             service: self.service,
             arrivals: self.arrivals,
             departures: self.departures,
         };
-
-        trips[self.line_id].entry((self.shape_id, path))
-            .or_insert_with(Vec::new)
-            .push(trip);
+        route.trips.push(trip);
     }
 }
 
@@ -145,8 +162,11 @@ impl<'a> Importer<'a> {
         let mut buffers = HashMap::new();
         let mut reader = dataset.read_csv("trips.txt")?;
         for result in reader.deserialize() {
-            let (id, buffer) = TripBuf::new(result?, &self.services,  &self.id_mapping);
-            buffers.insert(id, buffer);
+            let record: TripRecord = result?;
+            let line_id = self.id_mapping[&record.route_id];
+            let service = Rc::clone(&self.services[&record.service_id]);
+            let buffer = TripBuf::new(line_id, service, record.shape_id, record.direction_id);
+            buffers.insert(record.trip_id, buffer);
         }
         Ok(buffers)
     }
@@ -161,26 +181,22 @@ impl<'a> Importer<'a> {
         Ok(())
     }
 
-    pub fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>>
-    {
+    pub fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
         let mut buffers = self.import_trip_buffers(dataset)?;
         self.add_trip_stops(dataset, &mut buffers)?;
 
-        let mut trips = iter::repeat_with(HashMap::new)
+        let mut routes = iter::repeat_with(HashMap::new)
             .take(self.num_lines)
             .collect();
         for (_id, buffer) in buffers {
-            buffer.into_trip(&mut trips);
+            buffer.into_trip(&self.shapes, &mut routes);
         }
 
-        let routes = trips.into_iter()
-            .map(|routes| {
-                routes.into_iter()
-                .map(|((shape_id, path), trips)| {
-                    let shape = Rc::clone(&self.shapes[&shape_id]);
-                    Route::new(path.into(), shape, trips)
-                })
-                .collect()
+        let routes = routes.into_iter()
+            .map(|line_routes| {
+                line_routes.into_iter()
+                    .map(|(_, route)| route)
+                    .collect()
             })
             .collect();
         Ok(routes)
@@ -193,6 +209,8 @@ struct TripRecord {
     route_id: Id,
     service_id: Id,
     shape_id: Id,
+    #[serde(deserialize_with = "deserialize::direction")]
+    direction_id: Direction,
 }
 
 #[derive(Debug, Deserialize)]
@@ -216,25 +234,11 @@ mod tests {
             line_id: 0,
             service: Rc::new(service!(mon-fri)),
             shape_id: "1".to_string(),
+            direction: Direction::Upstream,
             locations: Vec::new(),
             arrivals: Vec::new(),
             departures: Vec::new(),
         }
-    }
-
-    #[test]
-    fn test_import_trip_buffer() {
-        let mut services = HashMap::new();
-        services.insert("1".to_string(), Rc::new(service!(mon-fri)));
-        let mut id_mapping = HashMap::new();
-        id_mapping.insert("1".to_string(), 0);
-        let record = TripRecord {
-            trip_id: "1".to_string(),
-            route_id: "1".to_string(),
-            service_id: "1".to_string(),
-            shape_id: "1".to_string(),
-        };
-        assert_eq!(TripBuf::new(record, &services, &id_mapping), ("1".to_string(), empty_trip_buffer()));
     }
 
     #[test]
@@ -261,6 +265,7 @@ mod tests {
             line_id: 0,
             service: Rc::new(service!(mon-fri)),
             shape_id: "1".to_string(),
+            direction: Direction::Upstream,
             locations: vec![Rc::new(station!(main_station)), Rc::new(station!(museum))],
             arrivals: vec![Duration::minutes(0), Duration::minutes(5)],
             departures: vec![Duration::minutes(1), Duration::minutes(6)],

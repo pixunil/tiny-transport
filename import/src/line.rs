@@ -7,8 +7,8 @@ use serde::de::{Deserialize, Visitor, Error as DeserializeError};
 
 use chrono::prelude::*;
 
-use super::utils::*;
-use super::trip::Route;
+use crate::utils::*;
+use crate::trip::Route;
 use simulation::Color;
 
 #[derive(Debug, PartialEq)]

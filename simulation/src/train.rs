@@ -1,9 +1,27 @@
+use serde_derive::{Serialize, Deserialize};
 use na::{Vector2, Matrix2};
 
 use crate::line::LineNode;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Direction {
+    Upstream,
+    Downstream,
+}
+
+impl Direction {
+    fn track(self, nodes: &[LineNode], current: usize) -> (&LineNode, &LineNode) {
+        let len = nodes.len();
+        match self {
+            Direction::Upstream => (&nodes[current - 1], &nodes[current]),
+            Direction::Downstream => (&nodes[len - current], &nodes[len - current - 1]),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Train {
+    direction: Direction,
     pub arrivals: Vec<u32>,
     pub departures: Vec<u32>,
     current: usize,
@@ -11,8 +29,9 @@ pub struct Train {
 }
 
 impl Train {
-    pub fn new(arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
+    pub fn new(direction: Direction, arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
         Train {
+            direction,
             arrivals,
             departures,
             current: 0,
@@ -37,8 +56,7 @@ impl Train {
     }
 
     pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>, nodes: &[LineNode]) {
-        let current = &nodes[self.current - 1];
-        let next = &nodes[self.current];
+        let (current, next) = self.direction.track(nodes, self.current);
         let direction = next.position() - current.position();
         let position = current.position() + direction * self.travelled;
         let orientation = direction.normalize();
@@ -62,14 +80,14 @@ mod tests {
 
     #[test]
     fn test_before_dispatch() {
-        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
         train.update(0);
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_stopped() {
-        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
         train.update(2);
         assert!(train.is_active());
 
@@ -87,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_driving() {
-        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
         train.update(3);
         assert!(train.is_active());
 
@@ -105,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_after_terminus() {
-        let mut train = Train::new(vec![1, 4, 7], vec![2, 6, 8]);
+        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
         train.update(8);
         assert!(!train.is_active());
     }
