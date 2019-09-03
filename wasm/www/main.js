@@ -198,8 +198,8 @@ class TrainRenderer extends Renderer {
         }
     }
 
-    fillBuffers(model, time) {
-        model.update(time);
+    fillBuffers(model, timePassed) {
+        model.update(timePassed);
         this.size = model.train_size();
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
@@ -262,7 +262,6 @@ class Controller {
             this.renderer.station.fillBuffers(this.model),
         ]);
 
-        this.time = 14010;
         this.milliseconds = performance.now();
         this.drawLoop(this.milliseconds);
         this.addControlListeners();
@@ -277,6 +276,7 @@ class Controller {
     async setUpModel() {
         const data = new Uint8Array(await sources.data);
         this.model = Map.parse(data);
+        this.model.update(14010);
     }
 
     addControlListeners() {
@@ -328,8 +328,8 @@ class Controller {
         const speed = parseInt(document.querySelector("input").value);
         const millisecondsPassed = milliseconds - this.milliseconds;
         this.milliseconds = milliseconds;
-        this.time += Math.floor(millisecondsPassed * speed / 1000);
-        this.renderer.train.fillBuffers(this.model, this.time);
+        const timePassed = Math.floor(millisecondsPassed * speed / 1000);
+        this.renderer.train.fillBuffers(this.model, timePassed);
     }
 
     draw() {

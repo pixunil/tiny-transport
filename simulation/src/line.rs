@@ -5,6 +5,8 @@ use crate::train::Train;
 
 use serde_derive::{Serialize, Deserialize};
 
+use approx::AbsDiffEq;
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 enum LineNodeKind {
     Waypoint,
@@ -38,6 +40,21 @@ impl LineNode {
     }
 }
 
+type Epsilon = <Point2<f32> as AbsDiffEq>::Epsilon;
+
+impl AbsDiffEq for LineNode {
+    type Epsilon = Epsilon;
+
+    fn default_epsilon() -> Epsilon {
+        Point2::<f32>::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &LineNode, epsilon: Epsilon) -> bool {
+        self.kind == other.kind &&
+        Point2::abs_diff_eq(&self.position, &other.position, epsilon)
+    }
+}
+
 #[derive(Debug)]
 pub struct Line {
     name: String,
@@ -54,9 +71,9 @@ impl Line {
         }
     }
 
-    pub fn update(&mut self, time: u32) {
+    pub fn update(&mut self, time_passed: u32) {
         for train in &mut self.trains {
-            train.update(time);
+            train.update(time_passed, &self.nodes);
         }
     }
 
@@ -78,9 +95,9 @@ impl LineGroup {
         LineGroup { color, lines }
     }
 
-    pub fn update(&mut self, time: u32) {
+    pub fn update(&mut self, time_passed: u32) {
         for line in &mut self.lines {
-            line.update(time);
+            line.update(time_passed);
         }
     }
 
@@ -154,14 +171,16 @@ mod tests {
 
     #[macro_export]
     macro_rules! line_nodes {
-        ($($x:expr, $y:expr);*) => (
-            vec![$(
-                LineNode::new(na::Point2::new($x, $y))
-            ),*]
-        );
-        (blue) => (
-            $crate::line_nodes!(200.0, 100.0; 220.0, 100.0; 230.0, 105.0)
-        );
+        (blue) => ({
+            let mut nodes = vec![
+                LineNode::new(na::Point2::new(200.0, 100.0)),
+                LineNode::new(na::Point2::new(220.0, 100.0)),
+                LineNode::new(na::Point2::new(230.0, 105.0)),
+            ];
+            nodes[0].promote_to_stop();
+            nodes[2].promote_to_stop();
+            nodes
+        });
     }
 
     #[test]

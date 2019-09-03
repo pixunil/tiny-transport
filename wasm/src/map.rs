@@ -30,9 +30,9 @@ impl Map {
         dataset.into()
     }
 
-    pub fn update(&mut self, time: u32) {
+    pub fn update(&mut self, time_passed: u32) {
         for line_group in &mut self.line_groups {
-            line_group.update(time);
+            line_group.update(time_passed);
         }
     }
 

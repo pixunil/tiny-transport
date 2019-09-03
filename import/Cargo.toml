@@ -28,3 +28,4 @@ serialization = { package = "gtfs-sim-serialization", path = "../serialization" 
 
 [dev-dependencies]
 serde_test = "1"
+approx = "0.3"

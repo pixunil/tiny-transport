@@ -77,7 +77,7 @@ fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dy
         let (color, line) = line.freeze(date);
         line_groups.entry(color.clone())
             .or_insert_with(Vec::new)
-            .push(line)
+            .push(line);
     }
 
     let stations = stations.into_iter()

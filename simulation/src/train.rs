@@ -1,7 +1,48 @@
 use serde_derive::{Serialize, Deserialize};
-use na::{Vector2, Matrix2};
+use na::{Point2, Vector2, Matrix2};
 
 use crate::line::LineNode;
+
+#[derive(Debug, Clone, Copy)]
+enum TrainState {
+    WaitingForDispatch,
+    Stopped {
+        at: usize,
+    },
+    Driving {
+        from: usize,
+        to: usize,
+    },
+    Finished,
+}
+
+impl TrainState {
+    fn next(self, direction: Direction, nodes: &[LineNode]) -> TrainState {
+        match self {
+            TrainState::WaitingForDispatch => {
+                let at = direction.start(nodes.len());
+                TrainState::Stopped { at }
+            },
+            TrainState::Driving { from: _, to } => {
+                if nodes[to].is_stop() {
+                    TrainState::Stopped { at: to }
+                } else if to == direction.end(nodes.len()) {
+                    TrainState::Finished
+                } else {
+                    TrainState::Driving { from: to, to: direction.next(to) }
+                }
+            },
+            TrainState::Stopped { at } => {
+                if at == direction.end(nodes.len()) {
+                    TrainState::Finished
+                } else {
+                    TrainState::Driving { from: at, to: direction.next(at) }
+                }
+            },
+            TrainState::Finished => TrainState::Finished
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Direction {
@@ -10,11 +51,24 @@ pub enum Direction {
 }
 
 impl Direction {
-    fn track(self, nodes: &[LineNode], current: usize) -> (&LineNode, &LineNode) {
-        let len = nodes.len();
+    fn start(self, len: usize) -> usize {
         match self {
-            Direction::Upstream => (&nodes[current - 1], &nodes[current]),
-            Direction::Downstream => (&nodes[len - current], &nodes[len - current - 1]),
+            Direction::Upstream => 0,
+            Direction::Downstream => len - 1,
+        }
+    }
+
+    fn end(self, len: usize) -> usize {
+        match self {
+            Direction::Upstream => len - 1,
+            Direction::Downstream => 0,
+        }
+    }
+
+    fn next(self, position: usize) -> usize {
+        match self {
+            Direction::Upstream => position + 1,
+            Direction::Downstream => position - 1,
         }
     }
 }
@@ -22,46 +76,71 @@ impl Direction {
 #[derive(Debug)]
 pub struct Train {
     direction: Direction,
-    pub arrivals: Vec<u32>,
-    pub departures: Vec<u32>,
+    durations: Vec<u32>,
     current: usize,
-    travelled: f32,
+    current_passed: u32,
+    state: TrainState,
 }
 
 impl Train {
-    pub fn new(direction: Direction, arrivals: Vec<u32>, departures: Vec<u32>) -> Train {
+    pub fn new(direction: Direction, durations: Vec<u32>) -> Train {
         Train {
             direction,
-            arrivals,
-            departures,
+            durations,
             current: 0,
-            travelled: 0.0,
+            current_passed: 0,
+            state: TrainState::WaitingForDispatch,
         }
     }
 
-    pub fn update(&mut self, time: u32) {
-        while self.current < self.arrivals.len() && self.arrivals[self.current] < time {
-            self.current += 1;
-        }
+    pub fn update(&mut self, time_passed: u32, nodes: &[LineNode]) {
+        self.current_passed += time_passed;
 
-        if self.is_active() {
-            let travelled_time = time.checked_sub(self.departures[self.current - 1]).unwrap_or(0);
-            let travel_time = self.arrivals[self.current] - self.departures[self.current - 1];
-            self.travelled = travelled_time as f32 / travel_time as f32;
+        while self.current < self.durations.len() && self.current_passed > self.durations[self.current] {
+            self.current_passed -= self.durations[self.current];
+            self.current += 1;
+            self.state = self.state.next(self.direction, nodes);
         }
     }
 
     pub fn is_active(&self) -> bool {
-        0 < self.current && self.current < self.arrivals.len()
+        match self.state {
+            TrainState::Driving { .. } | TrainState::Stopped { .. } => true,
+            TrainState::WaitingForDispatch | TrainState::Finished => false,
+        }
     }
 
     pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>, nodes: &[LineNode]) {
-        let (current, next) = self.direction.track(nodes, self.current);
-        let direction = next.position() - current.position();
-        let position = current.position() + direction * self.travelled;
-        let orientation = direction.normalize();
-        let bounds = Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
+        let (position, orientation) = self.calculate_rectangle(nodes);
+        self.write_rectangle(buffer, position, orientation);
+    }
 
+    fn calculate_rectangle(&self, nodes: &[LineNode]) -> (Point2<f32>, Vector2<f32>) {
+        match self.state {
+            TrainState::Stopped { at } => {
+                let current = nodes[at].position();
+                let orientation = if at == 0 {
+                    nodes[at + 1].position() - current
+                } else if at == nodes.len() - 1 {
+                    current - nodes[at - 1].position()
+                } else {
+                    nodes[at + 1].position() - nodes[at - 1].position()
+                };
+                (current, orientation.normalize())
+            },
+            TrainState::Driving { from, to } => {
+                let travelled = self.current_passed as f32 / self.durations[self.current] as f32;
+                let from = nodes[from].position();
+                let to = nodes[to].position();
+                let segment = to - from;
+                (from + segment * travelled, segment.normalize())
+            },
+            TrainState::WaitingForDispatch | TrainState::Finished => unreachable!(),
+        }
+    }
+
+    fn write_rectangle(&self, buffer: &mut Vec<f32>, position: Point2<f32>, orientation: Vector2<f32>) {
+        let bounds = Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
         let right_front = position + bounds * Vector2::new(4.5, 3.0);
         let left_front = position + bounds * Vector2::new(4.5, -3.0);
         let right_back = position + bounds * Vector2::new(-4.5, 3.0);
@@ -78,21 +157,54 @@ mod tests {
 
     use approx::assert_relative_eq;
 
+    use crate::line_nodes;
+
+    fn train() -> Train {
+        Train::new(Direction::Upstream, vec![10, 1, 2, 2, 1])
+    }
+
     #[test]
     fn test_before_dispatch() {
-        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
-        train.update(0);
+        let mut train = train();
+        train.update(0, &line_nodes!(blue));
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_stopped() {
-        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
-        train.update(2);
+        let mut train = train();
+        train.update(11, &line_nodes!(blue));
         assert!(train.is_active());
 
+        let (position, orientation) = train.calculate_rectangle(&line_nodes!(blue));
+        assert_relative_eq!(position, Point2::new(200.0, 100.0));
+        assert_relative_eq!(orientation, Vector2::new(1.0, 0.0));
+    }
+
+    #[test]
+    fn test_driving() {
+        let mut train = train();
+        train.update(12, &line_nodes!(blue));
+        assert!(train.is_active());
+
+        let (position, orientation) = train.calculate_rectangle(&line_nodes!(blue));
+        assert_relative_eq!(position, Point2::new(210.0, 100.0));
+        assert_relative_eq!(orientation, Vector2::new(1.0, 0.0));
+    }
+
+    #[test]
+    fn test_after_terminus() {
+        let mut train = train();
+        train.update(17, &line_nodes!(blue));
+        assert!(!train.is_active());
+    }
+
+    #[test]
+    fn test_rectangle_horizontal() {
+        let mut train = train();
+        train.update(10, &line_nodes!(blue));
         let mut buffer = Vec::new();
-        train.fill_vertice_buffer(&mut buffer, &crate::line_nodes!(blue));
+        train.write_rectangle(&mut buffer, Point2::new(200.0, 100.0), Vector2::new(1.0, 0.0));
         assert_relative_eq!(*buffer, [
             195.5, 97.0,
             204.5, 97.0,
@@ -101,30 +213,5 @@ mod tests {
             195.5, 103.0,
             204.5, 97.0,
         ]);
-    }
-
-    #[test]
-    fn test_driving() {
-        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
-        train.update(3);
-        assert!(train.is_active());
-
-        let mut buffer = Vec::new();
-        train.fill_vertice_buffer(&mut buffer, &crate::line_nodes!(blue));
-        assert_relative_eq!(*buffer, [
-            205.5, 97.0,
-            214.5, 97.0,
-            205.5, 103.0,
-            214.5, 103.0,
-            205.5, 103.0,
-            214.5, 97.0,
-        ]);
-    }
-
-    #[test]
-    fn test_after_terminus() {
-        let mut train = Train::new(Direction::Upstream, vec![1, 4, 7], vec![2, 6, 8]);
-        train.update(8);
-        assert!(!train.is_active());
     }
 }
