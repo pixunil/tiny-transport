@@ -94,7 +94,7 @@ fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dy
     Ok(())
 }
 
-pub fn import(path: impl AsRef<OsStr>) -> Result<(), Box<Error>> {
+pub fn import(path: impl AsRef<OsStr>) -> Result<(), Box<dyn Error>> {
     let path = Path::new(&path);
     let agencies = if path.is_dir() {
         let mut path = PathBuf::from(&path);

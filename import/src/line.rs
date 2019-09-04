@@ -14,7 +14,7 @@ use simulation::Color;
 #[derive(Debug, PartialEq)]
 pub struct Line {
     name: String,
-    color: Option<Color>,
+    color: Color,
     pub kind: LineKind,
     pub routes: Vec<Route>,
 }
@@ -23,7 +23,7 @@ impl Line {
     pub fn new(name: String, kind: LineKind) -> Line {
         Line {
             name,
-            color: None,
+            color: kind.color(),
             kind,
             routes: Vec::new()
         }
@@ -37,8 +37,11 @@ impl Line {
 
     fn add_color_when_applicable(&mut self, colors: &HashMap<String, Color>) {
         match self.kind {
-            LineKind::Railway | LineKind::SuburbanRailway | LineKind::UrbanRailway
-              => self.color = colors.get(&self.name).cloned(),
+            LineKind::Railway | LineKind::SuburbanRailway | LineKind::UrbanRailway => {
+                if let Some(color) = colors.get(&self.name).cloned() {
+                    self.color = color;
+                }
+            },
             _ => {},
         }
     }
@@ -49,7 +52,7 @@ impl Line {
             .unwrap();
         let nodes = route.freeze_nodes();
         let trains = route.freeze_trains(date);
-        let color = self.color.clone().unwrap();
+        let color = self.color.clone();
         (color, serialization::Line::new(self.name.clone(), nodes, trains))
     }
 }
@@ -138,6 +141,19 @@ pub enum LineKind {
     Bus,
     Tram,
     WaterTransport,
+}
+
+impl LineKind {
+    fn color(self) -> Color {
+        match self {
+            LineKind::Railway => Color::new(227, 0, 27),
+            LineKind::SuburbanRailway => Color::new(0, 114, 56),
+            LineKind::UrbanRailway => Color::new(0, 100, 173),
+            LineKind::Bus => Color::new(125, 23, 107),
+            LineKind::Tram => Color::new(204, 10, 34),
+            LineKind::WaterTransport => Color::new(0, 128, 186),
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for LineKind {
@@ -243,14 +259,14 @@ mod tests {
     fn test_add_color_to_applicable() {
         let mut line = line_!(blue);
         line.add_color_when_applicable(&colors());
-        assert_eq!(line.color, Some(Color::new(0, 0, 255)));
+        assert_eq!(line.color, Color::new(0, 0, 255));
     }
 
     #[test]
     fn test_add_color_to_unapplicable() {
         let mut line = line_!(blue-replacement);
         line.add_color_when_applicable(&colors());
-        assert_eq!(line.color, None);
+        assert_eq!(line.color, LineKind::Bus.color());
     }
 
     #[test]
