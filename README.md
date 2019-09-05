@@ -1,6 +1,7 @@
 # Gtfs-Simulator
 
 [![Build Status][travis-image]][travis-url]
+[![Code Coverage][codecov-image]][codecov-url]
 
 An experiment using open [Gtfs-Data of VBB][vbb-data] to render a minimalistic simulation with WebGL.
 
@@ -34,6 +35,8 @@ xdg-open http://localhost:8917/wasm/www
 
 [travis-image]: https://travis-ci.org/pixunil/gtfs-sim.svg?branch=master
 [travis-url]: https://travis-ci.org/pixunil/gtfs-sim
+[codecov-image]: https://codecov.io/gh/pixunil/gtfs-sim/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/pixunil/gtfs-sim
 [vbb-data]: https://www.vbb.de/unsere-themen/vbbdigital/api-entwicklerinfos/datensaetze
 [install-rust]: https://www.rust-lang.org/tools/install
 [install-wasm-pack]: https://rustwasm.github.io/wasm-pack/installer/

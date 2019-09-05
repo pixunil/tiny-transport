@@ -13,48 +13,33 @@ os: linux
 addons:
   apt:
     packages:
-      - libcurl4-openssl-dev
-      - libelf-dev
-      - libdw-dev
-      - cmake
-      - gcc
-      - binutils-dev
-      - libiberty-dev
-
-env:
-  - RUSTFLAGS="-C link-dead-code"
+      - libssl-dev
 
 rust:
   - stable
   - beta
   - nightly
 
-after_success:
-  - |
-      wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-      tar xzf master.tar.gz &&
-      cd kcov-master &&
-      mkdir build &&
-      cd build &&
-      cmake .. &&
-      make &&
-      make install DESTDIR=../../kcov-build &&
-      cd ../.. &&
-      rm -rf kcov-master &&
-      for file in target/debug/gtfs_sim*; do [ -x "${file}" ] || continue; mkdir -p "target/cov/$(basename $file)"; ./kcov-build/usr/local/bin/kcov --exclude-pattern=/.cargo,/usr/lib --verify "target/cov/$(basename $file)" "$file"; done &&
-      bash <(curl -s https://codecov.io/bash) &&
-      echo "Uploaded code coverage"
+script:
+  - cargo build --all
+  - cargo test --all
+
+after_success: |
+  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+    cargo install cargo-tarpaulin --force &&
+    cargo tarpaulin --all --ignore-tests --out Xml &&
+    bash <(curl -s https://codecov.io/bash)
+  fi
 
 jobs:
   include:
     - stage: build
-      env: RUSTFLAGS=""
       install:
         - cargo install --force wasm-pack
       before_script:
         - git lfs pull
       script:
-        - cargo run --release import import/data/vbb.bzip
+        - cargo run --package gtfs-sim-import --release import import/data/vbb.bzip
         - wasm-pack build wasm --target web --out-dir www/wasm
       after_success:
         - echo "Skipped coverage reporting"
