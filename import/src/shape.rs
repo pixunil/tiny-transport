@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::rc::Rc;
 use std::collections::HashMap;
 
 use na::Point2;
@@ -11,7 +10,7 @@ pub type Shape = Vec<Point2<f32>>;
 pub struct Importer;
 
 impl Importer {
-    pub fn import(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Shape>>, Box<dyn Error>> {
+    pub fn import(dataset: &mut impl Dataset) -> Result<HashMap<Id, Shape>, Box<dyn Error>> {
         let mut shapes = HashMap::new();
 
         for result in dataset.read_csv("shapes.txt")?.deserialize() {
@@ -24,8 +23,7 @@ impl Importer {
 
         let shapes = shapes.into_iter()
             .map(|(id, shape)| {
-                let shape = Self::smooth(shape);
-                (id, Rc::new(shape))
+                (id, Self::smooth(shape))
             })
             .collect();
 
@@ -125,7 +123,7 @@ mod tests {
 
         let shapes = Importer::import(&mut dataset).unwrap();
         assert_eq!(shapes.len(), 2);
-        assert_eq!(*shapes["1"], shape!(52.51, 13.37; 52.52, 13.37));
-        assert_eq!(*shapes["2"], shape!(blue));
+        assert_eq!(shapes["1"], shape!(52.51, 13.37; 52.52, 13.37));
+        assert_eq!(shapes["2"], shape!(blue));
     }
 }

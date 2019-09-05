@@ -3,7 +3,7 @@ use na::{Point2, Vector2, Matrix2};
 
 use crate::line::LineNode;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum TrainState {
     WaitingForDispatch,
     Stopped {
@@ -18,28 +18,25 @@ enum TrainState {
 
 impl TrainState {
     fn next(self, direction: Direction, nodes: &[LineNode]) -> TrainState {
-        match self {
+        let (at, already_stopped) = match self {
             TrainState::WaitingForDispatch => {
-                let at = direction.start(nodes.len());
-                TrainState::Stopped { at }
+                (direction.start(nodes.len()), false)
             },
             TrainState::Driving { from: _, to } => {
-                if nodes[to].is_stop() {
-                    TrainState::Stopped { at: to }
-                } else if to == direction.end(nodes.len()) {
-                    TrainState::Finished
-                } else {
-                    TrainState::Driving { from: to, to: direction.next(to) }
-                }
+                (to, false)
             },
             TrainState::Stopped { at } => {
-                if at == direction.end(nodes.len()) {
-                    TrainState::Finished
-                } else {
-                    TrainState::Driving { from: at, to: direction.next(at) }
-                }
+                (at, true)
             },
-            TrainState::Finished => TrainState::Finished
+            TrainState::Finished => return TrainState::Finished,
+        };
+
+        if !already_stopped && nodes[at].is_stop() {
+            TrainState::Stopped { at }
+        } else if at == direction.end(nodes.len()) {
+            TrainState::Finished
+        } else {
+            TrainState::Driving { from: at, to: direction.next(at) }
         }
     }
 }
@@ -167,6 +164,7 @@ mod tests {
     fn test_before_dispatch() {
         let mut train = train();
         train.update(0, &line_nodes!(blue));
+        assert_eq!(train.state, TrainState::WaitingForDispatch);
         assert!(!train.is_active());
     }
 
@@ -174,6 +172,7 @@ mod tests {
     fn test_stopped() {
         let mut train = train();
         train.update(11, &line_nodes!(blue));
+        assert_eq!(train.state, TrainState::Stopped { at: 0 });
         assert!(train.is_active());
 
         let (position, orientation) = train.calculate_rectangle(&line_nodes!(blue));
@@ -185,6 +184,7 @@ mod tests {
     fn test_driving() {
         let mut train = train();
         train.update(12, &line_nodes!(blue));
+        assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
         assert!(train.is_active());
 
         let (position, orientation) = train.calculate_rectangle(&line_nodes!(blue));
@@ -193,10 +193,35 @@ mod tests {
     }
 
     #[test]
-    fn test_after_terminus() {
+    fn test_finished() {
         let mut train = train();
         train.update(17, &line_nodes!(blue));
+        assert_eq!(train.state, TrainState::Finished);
         assert!(!train.is_active());
+    }
+
+    #[test]
+    fn test_nodes_before_start() {
+        let mut nodes = line_nodes!(blue);
+        nodes.insert(0, LineNode::new(Point2::new(190.0, 100.0)));
+        let mut train = train();
+        train.durations.insert(1, 1);
+
+        train.update(11, &nodes);
+        assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
+        assert!(train.is_active());
+    }
+
+    #[test]
+    fn test_nodes_after_terminus() {
+        let mut nodes = line_nodes!(blue);
+        nodes.push(LineNode::new(Point2::new(240.0, 105.0)));
+        let mut train = train();
+        train.durations.push(1);
+
+        train.update(17, &nodes);
+        assert_eq!(train.state, TrainState::Driving { from: 2, to: 3 });
+        assert!(train.is_active());
     }
 
     #[test]

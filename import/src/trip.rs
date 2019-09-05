@@ -19,12 +19,12 @@ use simulation::Direction;
 #[derive(Debug, PartialEq)]
 pub struct Route {
     pub locations: Vec<Rc<Location>>,
-    shape: Rc<Shape>,
+    shape: Shape,
     trips: Vec<Trip>,
 }
 
 impl Route {
-    fn new(locations: Vec<Rc<Location>>, shape: Rc<Shape>) -> Route {
+    fn new(locations: Vec<Rc<Location>>, shape: Shape) -> Route {
         Route {
             locations,
             shape,
@@ -159,11 +159,16 @@ impl TripBuf {
         }
     }
 
-    fn place_into_routes(self, shapes: &HashMap<Id, Rc<Shape>>, routes: &mut Vec<HashMap<(Id, Id), Route>>) {
+    fn place_into_routes(self, shapes: &HashMap<Id, Shape>, routes: &mut Vec<HashMap<(Id, Id), Route>>) {
         let route = routes[self.line_id].entry(self.termini())
             .or_insert_with(|| {
-                let shape = Rc::clone(&shapes[&self.shape_id]);
-                Route::new(self.locations.clone(), shape)
+                let mut locations = self.locations.clone();
+                let mut shape = shapes[&self.shape_id].clone();
+                if self.direction == Direction::Downstream {
+                    locations.reverse();
+                    shape.reverse();
+                }
+                Route::new(locations, shape)
             });
         route.trips.push(self.into_trip());
     }
@@ -172,14 +177,14 @@ impl TripBuf {
 pub struct Importer<'a> {
     services: &'a HashMap<Id, Rc<Service>>,
     locations: &'a HashMap<Id, Rc<Location>>,
-    shapes: &'a HashMap<Id, Rc<Shape>>,
+    shapes: &'a HashMap<Id, Shape>,
     id_mapping: &'a HashMap<Id, usize>,
     num_lines: usize,
 }
 
 impl<'a> Importer<'a> {
     pub fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<Id, Rc<Location>>,
-        shapes: &'a HashMap<Id, Rc<Shape>>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
+        shapes: &'a HashMap<Id, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
         -> Importer<'a>
     {
         Importer { services, locations, shapes, id_mapping, num_lines }
@@ -331,7 +336,7 @@ mod tests {
     #[test]
     fn test_freeze_nodes_exact_shape() {
         let shape = shape!(52.526, 13.369; 52.523, 13.378; 52.520, 13.387; 52.521, 13.394; 52.523, 13.402);
-        let route = Route::new(station![main_station, center, market], Rc::new(shape));
+        let route = Route::new(station![main_station, center, market], shape);
         let mut expected_nodes = [
             LineNode::new(Point2::new(-262.0, -24.0)),
             LineNode::new(Point2::new(-244.0, -12.0)),
@@ -348,7 +353,7 @@ mod tests {
     #[test]
     fn test_freeze_nodes_circle() {
         let shape = shape!(52.549, 13.388; 52.503, 13.469; 52.475, 13.366; 52.501, 13.283; 52.549, 13.388);
-        let route = Route::new(station![north_cross, east_cross, south_cross, west_cross, north_cross], Rc::new(shape));
+        let route = Route::new(station![north_cross, east_cross, south_cross, west_cross, north_cross], shape);
         let mut expected_nodes = [
             LineNode::new(Point2::new(-224.0, -116.0)),
             LineNode::new(Point2::new( -62.0,   68.0)),
