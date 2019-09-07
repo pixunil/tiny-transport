@@ -42,7 +42,7 @@ impl Route {
         let mut nodes = self.shape.iter()
             .map(|waypoint| {
                 let x = 2000.0 * (waypoint.x - 13.5);
-                let y = -4000.0 * (waypoint.y - 52.52);
+                let y = -2000.0 * (waypoint.y - 105.04);
                 LineNode::new(Point2::new(x, y))
             })
             .collect::<Vec<_>>();

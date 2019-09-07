@@ -15,6 +15,7 @@ name = "gtfs-sim-import"
 path = "src/main.rs"
 
 [dependencies]
+itertools = "0.8"
 serde = "1"
 serde_derive = "1"
 csv = "1"
