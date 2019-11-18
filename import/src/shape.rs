@@ -39,9 +39,14 @@ impl Importer {
 
     fn smooth(mut shape: Shape) -> Shape {
         shape.dedup();
-        shape = Self::remove_spikes(shape);
-        shape = Self::remove_spikes(shape);
-        Self::smooth_zigzags(shape)
+        loop {
+            let len = shape.len();
+            shape = Self::remove_spikes(shape);
+            shape = Self::smooth_zigzags(shape);
+            if shape.len() == len {
+                return shape;
+            }
+        }
     }
 
     fn remove_spikes(shape: Shape) -> Shape {
