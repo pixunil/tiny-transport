@@ -8,6 +8,7 @@ use serde::de::{Deserialize, Visitor, Error as DeserializeError};
 use chrono::prelude::*;
 
 use crate::utils::*;
+use crate::agency::AgencyId;
 use crate::trip::Route;
 use simulation::Color;
 
@@ -117,7 +118,7 @@ impl Importer {
         self.records.len()
     }
 
-    pub(crate) fn add_routes(self, mut routes: Vec<Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>> {
+    pub(crate) fn add_routes(self, mut routes: Vec<Vec<Route>>) -> Result<HashMap<AgencyId, Vec<Line>>, Box<dyn Error>> {
         let mut lines = HashMap::new();
         for record in self.records.into_iter().rev() {
             let agency_id = record.agency_id.clone();
@@ -198,7 +199,7 @@ struct LineColorRecord {
 #[derive(Debug, Deserialize)]
 struct LineRecord {
     route_id: Id,
-    agency_id: Id,
+    agency_id: AgencyId,
     route_short_name: String,
     route_type: LineKind,
 }
@@ -233,7 +234,7 @@ mod tests {
     fn test_import_line() {
         let record = LineRecord {
             route_id: "1".to_string(),
-            agency_id: "1".to_string(),
+            agency_id: "1".into(),
             route_short_name: "Blue Line".to_string(),
             route_type: LineKind::SuburbanRailway,
         };
