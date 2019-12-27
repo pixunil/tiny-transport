@@ -2,17 +2,19 @@ use std::cmp::Ordering;
 
 use na::Point2;
 
-use crate::utils::Id;
+use crate::create_id_type;
+
+create_id_type!(LocationId);
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Location {
-    pub id: Id,
+    pub id: LocationId,
     pub name: String,
     position: Point2<f32>,
 }
 
 impl Location {
-    pub(crate) fn new(id: Id, name: String, position: Point2<f32>) -> Location {
+    pub(crate) fn new(id: LocationId, name: String, position: Point2<f32>) -> Location {
         Location { id, name, position }
     }
 

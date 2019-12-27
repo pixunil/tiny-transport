@@ -13,7 +13,7 @@ use simulation::LineNode;
 use crate::utils::*;
 use crate::service::Service;
 use crate::shape::Shape;
-use crate::location::Location;
+use crate::location::{Location, LocationId};
 use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
@@ -125,14 +125,14 @@ impl TripBuf {
         }
     }
 
-    fn add_stop(&mut self, record: StopRecord, locations: &HashMap<Id, Rc<Location>>) {
+    fn add_stop(&mut self, record: StopRecord, locations: &HashMap<LocationId, Rc<Location>>) {
         let location = Rc::clone(&locations[&record.stop_id]);
         self.locations.push(location);
         self.arrivals.push(record.arrival_time);
         self.departures.push(record.departure_time);
     }
 
-    fn termini(&self) -> (Id, Id) {
+    fn termini(&self) -> (LocationId, LocationId) {
         let first = self.locations.first().unwrap().id.clone();
         let last = self.locations.last().unwrap().id.clone();
         match self.direction {
@@ -159,7 +159,7 @@ impl TripBuf {
         }
     }
 
-    fn place_into_routes(self, shapes: &HashMap<Id, Shape>, routes: &mut Vec<HashMap<(Id, Id), Route>>) {
+    fn place_into_routes(self, shapes: &HashMap<Id, Shape>, routes: &mut Vec<HashMap<(LocationId, LocationId), Route>>) {
         let route = routes[self.line_id].entry(self.termini())
             .or_insert_with(|| {
                 let mut locations = self.locations.clone();
@@ -176,14 +176,14 @@ impl TripBuf {
 
 pub(crate) struct Importer<'a> {
     services: &'a HashMap<Id, Rc<Service>>,
-    locations: &'a HashMap<Id, Rc<Location>>,
+    locations: &'a HashMap<LocationId, Rc<Location>>,
     shapes: &'a HashMap<Id, Shape>,
     id_mapping: &'a HashMap<Id, usize>,
     num_lines: usize,
 }
 
 impl<'a> Importer<'a> {
-    pub(crate) fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<Id, Rc<Location>>,
+    pub(crate) fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<LocationId, Rc<Location>>,
         shapes: &'a HashMap<Id, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
         -> Importer<'a>
     {
@@ -248,7 +248,7 @@ struct TripRecord {
 #[derive(Debug, Deserialize)]
 struct StopRecord {
     trip_id: Id,
-    stop_id: Id,
+    stop_id: LocationId,
     #[serde(deserialize_with = "deserialize::duration")]
     arrival_time: Duration,
     #[serde(deserialize_with = "deserialize::duration")]
@@ -292,27 +292,27 @@ mod tests {
         let records = vec![
             StopRecord {
                 trip_id: "1".to_string(),
-                stop_id: "1".to_string(),
+                stop_id: "1".into(),
                 arrival_time: Duration::minutes(1),
                 departure_time: Duration::minutes(1),
             },
             StopRecord {
                 trip_id: "1".to_string(),
-                stop_id: "2".to_string(),
+                stop_id: "2".into(),
                 arrival_time: Duration::minutes(5),
                 departure_time: Duration::minutes(6),
             },
             StopRecord {
                 trip_id: "1".to_string(),
-                stop_id: "3".to_string(),
+                stop_id: "3".into(),
                 arrival_time: Duration::minutes(10),
                 departure_time: Duration::minutes(10),
             },
         ];
         let mut locations = HashMap::new();
-        locations.insert("1".to_string(), Rc::new(station!(main_station)));
-        locations.insert("2".to_string(), Rc::new(station!(center)));
-        locations.insert("3".to_string(), Rc::new(station!(market)));
+        locations.insert("1".into(), Rc::new(station!(main_station)));
+        locations.insert("2".into(), Rc::new(station!(center)));
+        locations.insert("3".into(), Rc::new(station!(market)));
 
         let mut buffer = empty_trip_buffer();
         for record in records {

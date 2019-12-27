@@ -2,13 +2,13 @@ use std::rc::Rc;
 use std::error::Error;
 use std::collections::HashMap;
 
-use crate::utils::{Id, Dataset};
-use super::{Location, LocationRecord, LocationImportError};
+use crate::utils::Dataset;
+use super::{Location, LocationId, LocationRecord, LocationImportError};
 
 pub(crate) struct Importer;
 
 impl Importer {
-    pub(crate) fn import(dataset: &mut impl Dataset) -> Result<HashMap<Id, Rc<Location>>, Box<dyn Error>> {
+    pub(crate) fn import(dataset: &mut impl Dataset) -> Result<HashMap<LocationId, Rc<Location>>, Box<dyn Error>> {
         let mut queues = (Vec::new(), Vec::new());
         let mut locations = HashMap::new();
         let mut reader = dataset.read_csv("stops.txt")?;
@@ -35,7 +35,7 @@ mod tests {
     #[macro_export]
     macro_rules! station {
         ($id:expr, $name:expr, $lat:expr, $lon:expr) => (
-            $crate::location::Location::new($id.to_string(), $name.to_string(), ::na::Point2::new($lon, $lat))
+            $crate::location::Location::new($id.into(), $name.to_string(), ::na::Point2::new($lon, $lat))
         );
         (main_station) => (
             $crate::station!("1", "Main Station", 52.526, 13.369)
@@ -98,7 +98,7 @@ mod tests {
 
         let locations = Importer::import(&mut dataset).unwrap();
         assert_eq!(locations.len(), 2);
-        assert_eq!(*locations["1"], station!(main_station));
-        assert_eq!(*locations["2"], station!(center));
+        assert_eq!(*locations[&"1".into()], station!(main_station));
+        assert_eq!(*locations[&"2".into()], station!(center));
     }
 }
