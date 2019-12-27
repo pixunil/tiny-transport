@@ -5,7 +5,7 @@ use super::utils::*;
 use super::line::Line;
 
 #[derive(Debug, PartialEq)]
-pub struct Agency {
+pub(crate) struct Agency {
     name: String,
     lines: Vec<Line>,
 }
@@ -15,19 +15,19 @@ impl Agency {
         Agency { name, lines }
     }
 
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn lines(&self) -> &[Line] {
+    pub(crate) fn lines(&self) -> &[Line] {
         &self.lines
     }
 }
 
-pub struct Importer;
+pub(crate) struct Importer;
 
 impl Importer {
-    pub fn import(dataset: &mut impl Dataset, mut lines: HashMap<Id, Vec<Line>>) -> Result<Vec<Agency>, Box<dyn Error>> {
+    pub(crate) fn import(dataset: &mut impl Dataset, mut lines: HashMap<Id, Vec<Line>>) -> Result<Vec<Agency>, Box<dyn Error>> {
         let mut agencies = Vec::new();
         let mut reader = dataset.read_csv("agency.txt")?;
         for result in reader.deserialize() {

@@ -12,15 +12,15 @@ use crate::trip::Route;
 use simulation::Color;
 
 #[derive(Debug, PartialEq)]
-pub struct Line {
+pub(crate) struct Line {
     name: String,
     color: Color,
-    pub kind: LineKind,
-    pub routes: Vec<Route>,
+    pub(crate) kind: LineKind,
+    pub(crate) routes: Vec<Route>,
 }
 
 impl Line {
-    pub fn new(name: String, kind: LineKind) -> Line {
+    pub(crate) fn new(name: String, kind: LineKind) -> Line {
         Line {
             name,
             color: kind.color(),
@@ -46,7 +46,7 @@ impl Line {
         }
     }
 
-    pub fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {
+    pub(crate) fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {
         let route = self.routes.iter()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
@@ -63,14 +63,14 @@ impl From<LineRecord> for Line {
     }
 }
 
-pub struct Importer {
+pub(crate) struct Importer {
     records: Vec<LineRecord>,
     id_mapping: HashMap<Id, usize>,
     colors: HashMap<String, Color>,
 }
 
 impl Importer {
-    pub fn import(dataset: &mut impl Dataset) -> Result<Importer, Box<dyn Error>> {
+    pub(crate) fn import(dataset: &mut impl Dataset) -> Result<Importer, Box<dyn Error>> {
         let (records, id_mapping) = Self::import_lines(dataset)?;
         let colors = Self::import_colors(dataset)?;
         Ok(Importer { records, id_mapping, colors })
@@ -109,15 +109,15 @@ impl Importer {
         Ok(colors)
     }
 
-    pub fn id_mapping(&self) -> &HashMap<Id, usize> {
+    pub(crate) fn id_mapping(&self) -> &HashMap<Id, usize> {
         &self.id_mapping
     }
 
-    pub fn num_lines(&self) -> usize {
+    pub(crate) fn num_lines(&self) -> usize {
         self.records.len()
     }
 
-    pub fn add_routes(self, mut routes: Vec<Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>> {
+    pub(crate) fn add_routes(self, mut routes: Vec<Vec<Route>>) -> Result<HashMap<Id, Vec<Line>>, Box<dyn Error>> {
         let mut lines = HashMap::new();
         for record in self.records.into_iter().rev() {
             let agency_id = record.agency_id.clone();

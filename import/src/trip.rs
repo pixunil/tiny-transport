@@ -17,8 +17,8 @@ use crate::location::Location;
 use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
-pub struct Route {
-    pub locations: Vec<Rc<Location>>,
+pub(crate) struct Route {
+    pub(crate) locations: Vec<Rc<Location>>,
     shape: Shape,
     trips: Vec<Trip>,
 }
@@ -174,7 +174,7 @@ impl TripBuf {
     }
 }
 
-pub struct Importer<'a> {
+pub(crate) struct Importer<'a> {
     services: &'a HashMap<Id, Rc<Service>>,
     locations: &'a HashMap<Id, Rc<Location>>,
     shapes: &'a HashMap<Id, Shape>,
@@ -183,7 +183,7 @@ pub struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    pub fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<Id, Rc<Location>>,
+    pub(crate) fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<Id, Rc<Location>>,
         shapes: &'a HashMap<Id, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
         -> Importer<'a>
     {
@@ -213,7 +213,7 @@ impl<'a> Importer<'a> {
         Ok(())
     }
 
-    pub fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
+    pub(crate) fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
         let mut buffers = self.import_trip_buffers(dataset)?;
         self.add_trip_stops(dataset, &mut buffers)?;
 
