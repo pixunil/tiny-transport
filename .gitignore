@@ -1,3 +1,9 @@
+# development
+.idea
+
+# rust
 /target
-**/*.rs.bk
-data.bin
+
+# project data
+import/data/**/*.txt
+wasm/www/data.bin
