@@ -21,7 +21,7 @@ mod trip;
 
 use utils::Dataset;
 use agency::Agency;
-use line::{Line, LineKind};
+use line::{Line, Kind as LineKind};
 
 pub fn compress() -> Result<(), Box<dyn Error>> {
     let mut zip = ZipWriter::new(File::create("import/data/vbb.bzip")?);
@@ -47,7 +47,7 @@ fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     let line_importer = line::Importer::import(&mut dataset)?;
     let trip_importer = trip::Importer::new(&services, &locations, &shapes, line_importer.id_mapping(), line_importer.num_lines());
     let routes = trip_importer.import(&mut dataset)?;
-    let lines = line_importer.add_routes(routes)?;
+    let lines = line_importer.finish(routes)?;
     let agencies = agency::Importer::import(&mut dataset, lines)?;
     Ok(agencies)
 }

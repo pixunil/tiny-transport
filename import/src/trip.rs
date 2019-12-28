@@ -14,6 +14,7 @@ use crate::utils::*;
 use crate::service::{Service, ServiceId};
 use crate::shape::{Shape, ShapeId};
 use crate::location::{Location, LocationId};
+use crate::line::LineId;
 use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
@@ -178,13 +179,13 @@ pub(crate) struct Importer<'a> {
     services: &'a HashMap<ServiceId, Rc<Service>>,
     locations: &'a HashMap<LocationId, Rc<Location>>,
     shapes: &'a HashMap<ShapeId, Shape>,
-    id_mapping: &'a HashMap<Id, usize>,
+    id_mapping: &'a HashMap<LineId, usize>,
     num_lines: usize,
 }
 
 impl<'a> Importer<'a> {
     pub(crate) fn new(services: &'a HashMap<ServiceId, Rc<Service>>, locations: &'a HashMap<LocationId, Rc<Location>>,
-        shapes: &'a HashMap<ShapeId, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
+        shapes: &'a HashMap<ShapeId, Shape>, id_mapping: &'a HashMap<LineId, usize>, num_lines: usize)
         -> Importer<'a>
     {
         Importer { services, locations, shapes, id_mapping, num_lines }
@@ -238,7 +239,7 @@ impl<'a> Importer<'a> {
 #[derive(Debug, Deserialize)]
 struct TripRecord {
     trip_id: Id,
-    route_id: Id,
+    route_id: LineId,
     service_id: ServiceId,
     shape_id: ShapeId,
     #[serde(deserialize_with = "deserialize::direction")]
