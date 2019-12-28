@@ -11,7 +11,7 @@ use na::Point2;
 use simulation::LineNode;
 
 use crate::utils::*;
-use crate::service::Service;
+use crate::service::{Service, ServiceId};
 use crate::shape::Shape;
 use crate::location::{Location, LocationId};
 use simulation::Direction;
@@ -175,7 +175,7 @@ impl TripBuf {
 }
 
 pub(crate) struct Importer<'a> {
-    services: &'a HashMap<Id, Rc<Service>>,
+    services: &'a HashMap<ServiceId, Rc<Service>>,
     locations: &'a HashMap<LocationId, Rc<Location>>,
     shapes: &'a HashMap<Id, Shape>,
     id_mapping: &'a HashMap<Id, usize>,
@@ -183,7 +183,7 @@ pub(crate) struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    pub(crate) fn new(services: &'a HashMap<Id, Rc<Service>>, locations: &'a HashMap<LocationId, Rc<Location>>,
+    pub(crate) fn new(services: &'a HashMap<ServiceId, Rc<Service>>, locations: &'a HashMap<LocationId, Rc<Location>>,
         shapes: &'a HashMap<Id, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
         -> Importer<'a>
     {
@@ -239,7 +239,7 @@ impl<'a> Importer<'a> {
 struct TripRecord {
     trip_id: Id,
     route_id: Id,
-    service_id: Id,
+    service_id: ServiceId,
     shape_id: Id,
     #[serde(deserialize_with = "deserialize::direction")]
     direction_id: Direction,
