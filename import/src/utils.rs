@@ -5,8 +5,6 @@ pub use serde_derive::Deserialize;
 
 pub use dataset::Dataset;
 
-pub type Id = String;
-
 #[macro_export]
 macro_rules! create_id_type {
     ($name:ident) => (
