@@ -25,17 +25,7 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::line_;
-
-    #[macro_export]
-    macro_rules! agency {
-        ($name:literal, [$($line:ident),*]) => (
-            Agency::new($name.to_string(), vec![$(line_!($line)),*])
-        );
-        (pubtrans, [$($line:ident),*]) => (
-            agency!("Public Transport", [$($line),*])
-        );
-    }
+    use crate::{agency, line_};
 
     #[test]
     fn test_from_csv() {

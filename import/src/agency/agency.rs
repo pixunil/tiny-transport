@@ -22,3 +22,27 @@ impl Agency {
         &self.lines
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::line_;
+
+    #[macro_export]
+    macro_rules! agency {
+        ($name:literal, [$($line:ident),*]) => (
+            Agency::new($name.to_string(), vec![$($crate::line_!($line)),*])
+        );
+        (pubtrans, [$($line:ident),*]) => (
+            agency!("Public Transport", [$($line),*])
+        );
+    }
+
+    #[test]
+    fn test_getters() {
+        let agency = agency!(pubtrans, [blue]);
+        assert_eq!(agency.name(), "Public Transport");
+        assert_eq!(agency.lines(), &[line_!(blue)]);
+    }
+}
