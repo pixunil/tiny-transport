@@ -12,7 +12,7 @@ use simulation::LineNode;
 
 use crate::utils::*;
 use crate::service::{Service, ServiceId};
-use crate::shape::Shape;
+use crate::shape::{Shape, ShapeId};
 use crate::location::{Location, LocationId};
 use simulation::Direction;
 
@@ -105,7 +105,7 @@ impl Trip {
 struct TripBuf {
     line_id: usize,
     service: Rc<Service>,
-    shape_id: Id,
+    shape_id: ShapeId,
     direction: Direction,
     locations: Vec<Rc<Location>>,
     arrivals: Vec<Duration>,
@@ -113,7 +113,7 @@ struct TripBuf {
 }
 
 impl TripBuf {
-    fn new(line_id: usize, service: Rc<Service>, shape_id: Id, direction: Direction) -> TripBuf {
+    fn new(line_id: usize, service: Rc<Service>, shape_id: ShapeId, direction: Direction) -> TripBuf {
         TripBuf {
             line_id,
             service,
@@ -159,7 +159,7 @@ impl TripBuf {
         }
     }
 
-    fn place_into_routes(self, shapes: &HashMap<Id, Shape>, routes: &mut Vec<HashMap<(LocationId, LocationId), Route>>) {
+    fn place_into_routes(self, shapes: &HashMap<ShapeId, Shape>, routes: &mut Vec<HashMap<(LocationId, LocationId), Route>>) {
         let route = routes[self.line_id].entry(self.termini())
             .or_insert_with(|| {
                 let mut locations = self.locations.clone();
@@ -177,14 +177,14 @@ impl TripBuf {
 pub(crate) struct Importer<'a> {
     services: &'a HashMap<ServiceId, Rc<Service>>,
     locations: &'a HashMap<LocationId, Rc<Location>>,
-    shapes: &'a HashMap<Id, Shape>,
+    shapes: &'a HashMap<ShapeId, Shape>,
     id_mapping: &'a HashMap<Id, usize>,
     num_lines: usize,
 }
 
 impl<'a> Importer<'a> {
     pub(crate) fn new(services: &'a HashMap<ServiceId, Rc<Service>>, locations: &'a HashMap<LocationId, Rc<Location>>,
-        shapes: &'a HashMap<Id, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
+        shapes: &'a HashMap<ShapeId, Shape>, id_mapping: &'a HashMap<Id, usize>, num_lines: usize)
         -> Importer<'a>
     {
         Importer { services, locations, shapes, id_mapping, num_lines }
@@ -240,7 +240,7 @@ struct TripRecord {
     trip_id: Id,
     route_id: Id,
     service_id: ServiceId,
-    shape_id: Id,
+    shape_id: ShapeId,
     #[serde(deserialize_with = "deserialize::direction")]
     direction_id: Direction,
 }
@@ -267,7 +267,7 @@ mod tests {
         TripBuf {
             line_id: 0,
             service: Rc::new(service!(mon-fri)),
-            shape_id: "1".to_string(),
+            shape_id: "1".into(),
             direction: Direction::Upstream,
             locations: Vec::new(),
             arrivals: Vec::new(),
@@ -279,7 +279,7 @@ mod tests {
         TripBuf {
             line_id: 0,
             service: Rc::new(service!(mon-fri)),
-            shape_id: "1".to_string(),
+            shape_id: "1".into(),
             direction: Direction::Upstream,
             locations: station![main_station, center, market],
             arrivals: vec![Duration::minutes(1), Duration::minutes(5), Duration::minutes(10)],
