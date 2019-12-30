@@ -25,7 +25,7 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::{agency, line_};
+    use crate::{map, agency, line_};
 
     #[test]
     fn test_from_csv() {
@@ -35,8 +35,9 @@ mod tests {
                 1,         "Public Transport"
         );
 
-        let mut lines = HashMap::new();
-        lines.insert("1".into(), vec![line_!(blue)]);
+        let lines = map! {
+            "1" => vec![line_!(blue)],
+        };
         let agencies = Importer::import(&mut dataset, lines).unwrap();
         assert_eq!(agencies, vec![agency!(pubtrans, [blue])]);
     }

@@ -67,7 +67,7 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::{dataset, line_};
+    use crate::{map, dataset, line_};
 
     #[test]
     fn test_deduplication() {
@@ -80,9 +80,10 @@ mod tests {
 
         let importer = Importer::import_lines(&mut dataset).unwrap();
         let id_mapping = importer.id_mapping;
-        assert_eq!(id_mapping.len(), 2);
-        assert_eq!(id_mapping[&"1".into()], 0);
-        assert_eq!(id_mapping[&"2".into()], 0);
+        assert_eq!(id_mapping, map! {
+            "1" => 0,
+            "2" => 0,
+        });
     }
 
     #[test]

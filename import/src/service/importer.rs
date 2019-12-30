@@ -45,21 +45,11 @@ mod tests {
 
     use chrono::NaiveDate;
 
-    #[macro_export]
-    macro_rules! service {
-        ($start:expr, $end:expr, $weekdays:expr) => ({
-            let start = chrono::NaiveDate::from_ymd($start[0], $start[1], $start[2]);
-            let end = chrono::NaiveDate::from_ymd($end[0], $end[1], $end[2]);
-            crate::service::Service::new(start, end, $weekdays)
-        });
-        (mon-fri) => (
-            $crate::service!([2019, 1, 1], [2019, 12, 31], [true, true, true, true, true, false, false])
-        );
-    }
+    use crate::{map, dataset, service};
 
     #[test]
     fn test_from_csv() {
-        let mut dataset = crate::dataset!(
+        let mut dataset = dataset!(
             calendar:
                 service_id, monday, tuesday, wednesday, thursday, friday, saturday, sunday, start_date, end_date;
                 1,          1,      1,       1,         1,        1,      0,        0,      20190101,   20191231
@@ -74,7 +64,8 @@ mod tests {
         service.remove_date(NaiveDate::from_ymd(2019, 1, 7));
 
         let services = Importer::import(&mut dataset).unwrap();
-        assert_eq!(services.len(), 1);
-        assert_eq!(*services[&"1".into()], service);
+        assert_eq!(services, map! {
+            "1" => Rc::new(service),
+        });
     }
 }

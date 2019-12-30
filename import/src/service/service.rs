@@ -48,7 +48,17 @@ impl Service {
 mod tests {
     use super::*;
 
-    use crate::service;
+    #[macro_export]
+    macro_rules! service {
+        ($start:expr, $end:expr, $weekdays:expr) => ({
+            let start = chrono::NaiveDate::from_ymd($start[0], $start[1], $start[2]);
+            let end = chrono::NaiveDate::from_ymd($end[0], $end[1], $end[2]);
+            crate::service::Service::new(start, end, $weekdays)
+        });
+        (mon-fri) => (
+            $crate::service!([2019, 1, 1], [2019, 12, 31], [true, true, true, true, true, false, false])
+        );
+    }
 
     #[test]
     fn test_regularly_available() {

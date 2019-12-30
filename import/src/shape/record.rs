@@ -24,6 +24,8 @@ impl ShapeRecord {
 mod tests {
     use super::*;
 
+    use crate::map;
+
     #[test]
     fn test_import() {
         let mut shapes = HashMap::new();
@@ -33,7 +35,8 @@ mod tests {
             shape_pt_lon: 13.369,
         };
         record.import(&mut shapes);
-        assert_eq!(shapes.len(), 1);
-        assert_eq!(shapes[&"1".into()], [transform(52.526, 13.369)]);
+        assert_eq!(shapes, map! {
+            "1" => vec![transform(52.526, 13.369)],
+        });
     }
 }

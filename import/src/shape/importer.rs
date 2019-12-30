@@ -106,7 +106,7 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::shape;
+    use crate::{map, dataset, shape};
     use crate::shape::transform;
 
     #[test]
@@ -143,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_from_csv() {
-        let mut dataset = crate::dataset!(
+        let mut dataset = dataset!(
             shapes:
                 shape_id, shape_pt_lat, shape_pt_lon;
                 1,        52.51,        13.37;
@@ -156,8 +156,9 @@ mod tests {
         );
 
         let shapes = Importer::import(&mut dataset).unwrap();
-        assert_eq!(shapes.len(), 2);
-        assert_eq!(shapes[&"1".into()], shape!(52.51, 13.37; 52.52, 13.37));
-        assert_eq!(shapes[&"2".into()], shape!(blue));
+        assert_eq!(shapes, map! {
+            "1" => shape!(52.51, 13.37; 52.52, 13.37),
+            "2" => shape!(blue),
+        });
     }
 }

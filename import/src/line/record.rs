@@ -52,7 +52,7 @@ impl LineColorRecord {
 mod tests {
     use super::*;
 
-    use crate::incomplete_line;
+    use crate::{map, incomplete_line};
 
     fn blue_line_record() -> LineRecord {
         LineRecord {
@@ -68,8 +68,9 @@ mod tests {
         let mut id_mapping = HashMap::new();
         let mut incomplete_lines = Vec::new();
         blue_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
-        assert_eq!(id_mapping.len(), 1);
-        assert_eq!(id_mapping[&"1".into()], 0);
+        assert_eq!(id_mapping, map! {
+            "1" => 0,
+        });
         assert_eq!(incomplete_lines, [incomplete_line!(blue)]);
     }
 
@@ -82,9 +83,10 @@ mod tests {
         duplicated.line_id = "2".into();
         blue_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
         duplicated.deduplicate(&mut id_mapping, &mut incomplete_lines);
-        assert_eq!(id_mapping.len(), 2);
-        assert_eq!(id_mapping[&"1".into()], 0);
-        assert_eq!(id_mapping[&"2".into()], 0);
+        assert_eq!(id_mapping, map! {
+            "1" => 0,
+            "2" => 0,
+        });
         assert_eq!(incomplete_lines, [incomplete_line!(blue)]);
     }
 }

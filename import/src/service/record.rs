@@ -67,7 +67,7 @@ impl ServiceExceptionRecord {
 mod tests {
     use super::*;
 
-    use crate::service;
+    use crate::{map, service};
 
     fn working_day_service_record() -> ServiceRecord {
         ServiceRecord {
@@ -99,9 +99,9 @@ mod tests {
     }
 
     fn services() -> HashMap<ServiceId, Service> {
-        let mut services = HashMap::new();
-        services.insert("1".into(), service!(mon-fri));
-        services
+        map! {
+            "1" => service!(mon-fri),
+        }
     }
 
     #[test]

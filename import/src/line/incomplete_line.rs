@@ -44,6 +44,8 @@ impl IncompleteLine {
 mod tests {
     use super::*;
 
+    use crate::map;
+
     #[macro_export]
     macro_rules! incomplete_line {
         ($name:expr, $kind:ident) => (
@@ -58,9 +60,9 @@ mod tests {
     }
 
     fn colors() -> HashMap<String, Color> {
-        let mut colors = HashMap::new();
-        colors.insert("Blue Line".to_string(), Color::new(0, 0, 255));
-        colors
+        map! {
+            "Blue Line" => Color::new(0, 0, 255),
+        }
     }
 
     #[test]

@@ -77,7 +77,7 @@ impl Into<Location> for LocationRecord {
 mod tests {
     use super::*;
 
-    use crate::station;
+    use crate::{map, station};
 
     fn main_station_record() -> LocationRecord {
         LocationRecord {
@@ -111,8 +111,9 @@ mod tests {
     fn test_import_parent() {
         let mut locations = HashMap::new();
         main_station_record().try_import(&mut locations).unwrap();
-        assert_eq!(locations.len(), 1);
-        assert_eq!(*locations[&"1".into()], station!(main_station));
+        assert_eq!(locations, map! {
+            "1" => Rc::new(station!(main_station)),
+        });
     }
 
     #[test]
@@ -125,10 +126,13 @@ mod tests {
 
     #[test]
     fn test_import_child_with_parent() {
-        let mut locations = HashMap::new();
-        locations.insert("1".into(), Rc::new(station!(main_station)));
+        let mut locations = map! {
+            "1" => Rc::new(station!(main_station)),
+        };
         main_station_platform_record().try_import(&mut locations).unwrap();
-        assert_eq!(locations.len(), 2);
-        assert_eq!(*locations[&"2".into()], station!(main_station));
+        assert_eq!(locations, map! {
+            "1" => Rc::new(station!(main_station)),
+            "2" => Rc::new(station!(main_station)),
+        });
     }
 }

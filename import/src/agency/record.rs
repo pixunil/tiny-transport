@@ -23,7 +23,7 @@ impl AgencyRecord {
 mod tests {
     use super::*;
 
-    use crate::{agency, line_};
+    use crate::{map, agency, line_};
 
     fn agency_record() -> AgencyRecord {
         AgencyRecord {
@@ -34,14 +34,15 @@ mod tests {
 
     #[test]
     fn test_import_agency_without_lines() {
-        let mut lines = HashMap::new();
+        let mut lines = map! {};
         assert_eq!(agency_record().import(&mut lines), agency!(pubtrans, []));
     }
 
     #[test]
     fn test_import_agency_with_line() {
-        let mut lines = HashMap::new();
-        lines.insert("1".into(), vec![line_!(blue)]);
+        let mut lines = map! {
+            "1" => vec![line_!(blue)],
+        };
         assert_eq!(agency_record().import(&mut lines), agency!(pubtrans, [blue]));
         assert!(lines.is_empty());
     }
