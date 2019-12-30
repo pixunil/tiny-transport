@@ -9,7 +9,7 @@ use chrono::Duration;
 
 use simulation::{Color, Direction};
 
-pub fn numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
+pub(crate) fn numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
     where D: Deserializer<'de>
 {
     struct NumericBoolVisitor;
@@ -35,7 +35,7 @@ pub fn numeric_bool<'de, D>(deserializer: D) -> Result<bool, D::Error>
     deserializer.deserialize_u64(NumericBoolVisitor)
 }
 
-pub fn naive_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
+pub(crate) fn naive_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
     where D: Deserializer<'de>
 {
     struct NaiveDateVisitor;
@@ -58,7 +58,7 @@ pub fn naive_date<'de, D>(deserializer: D) -> Result<NaiveDate, D::Error>
     deserializer.deserialize_str(NaiveDateVisitor)
 }
 
-pub fn duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+pub(crate) fn duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
     where D: Deserializer<'de>
 {
     struct DurationVisitor;
@@ -85,7 +85,7 @@ pub fn duration<'de, D>(deserializer: D) -> Result<Duration, D::Error>
     deserializer.deserialize_str(DurationVisitor)
 }
 
-pub fn color<'de, D>(deserializer: D) -> Result<Color, D::Error>
+pub(crate) fn color<'de, D>(deserializer: D) -> Result<Color, D::Error>
     where D: Deserializer<'de>
 {
     struct ColorVisitor;
@@ -113,7 +113,7 @@ pub fn color<'de, D>(deserializer: D) -> Result<Color, D::Error>
     deserializer.deserialize_str(ColorVisitor)
 }
 
-pub fn direction<'de, D>(deserializer: D) -> Result<Direction, D::Error>
+pub(crate) fn direction<'de, D>(deserializer: D) -> Result<Direction, D::Error>
     where D: Deserializer<'de>
 {
     struct DirectionVisitor;

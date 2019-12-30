@@ -1,9 +1,7 @@
-pub mod deserialize;
+pub(crate) mod deserialize;
 mod dataset;
 
-pub use serde_derive::Deserialize;
-
-pub use dataset::Dataset;
+pub(crate) use dataset::Dataset;
 
 #[macro_export]
 macro_rules! create_id_type {

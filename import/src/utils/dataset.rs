@@ -7,7 +7,7 @@ use csv::Reader as Csv;
 
 use zip::read::ZipArchive;
 
-pub trait Dataset {
+pub(crate) trait Dataset {
     fn read_csv<'a>(&'a mut self, name: &str) -> Result<csv::Reader<Box<dyn Read + 'a>>, Box<dyn Error>>;
 }
 
