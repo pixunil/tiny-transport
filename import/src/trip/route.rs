@@ -90,6 +90,22 @@ mod tests {
 
     use crate::{station, shape};
 
+    #[macro_export]
+    macro_rules! route {
+        ([$($location:ident),*], $shape:ident, [$(($trip:ident, $direction:ident, $start:expr)),*]) => ({
+            let locations = vec![$(Rc::new($crate::station!($location))),*];
+            #[allow(unused_mut)]
+            let mut route = $crate::trip::Route::new(locations, $crate::shape!($shape));
+            $(
+                route.add_trip($crate::trip!($trip, $direction, $start));
+            )*
+            route
+        });
+        (blue, $trips:tt) => (
+            $crate::route!([main_station, center, market], blue, $trips)
+        );
+    }
+
     #[test]
     fn test_freeze_nodes_exact_shape() {
         let shape = shape!(52.526, 13.369; 52.523, 13.378; 52.520, 13.387; 52.521, 13.394; 52.523, 13.402);

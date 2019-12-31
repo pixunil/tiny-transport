@@ -55,14 +55,14 @@ mod tests {
             let end = chrono::NaiveDate::from_ymd($end[0], $end[1], $end[2]);
             crate::service::Service::new(start, end, $weekdays)
         });
-        (mon-fri) => (
+        (mon_fri) => (
             $crate::service!([2019, 1, 1], [2019, 12, 31], [true, true, true, true, true, false, false])
         );
     }
 
     #[test]
     fn test_regularly_available() {
-        let service = service!(mon-fri);
+        let service = service!(mon_fri);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(service.regularly_available_at(date));
         assert!(service.available_at(date));
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_regularly_unavailable() {
-        let service = service!(mon-fri);
+        let service = service!(mon_fri);
         let date = NaiveDate::from_ymd(2019, 1, 5);
         assert!(!service.regularly_available_at(date));
         assert!(!service.available_at(date));
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_exceptionally_available() {
-        let mut service = service!(mon-fri);
+        let mut service = service!(mon_fri);
         let date = NaiveDate::from_ymd(2019, 1, 5);
         service.add_date(date);
         assert!(!service.regularly_available_at(date));
@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn test_exceptionally_unavailable() {
-        let mut service = service!(mon-fri);
+        let mut service = service!(mon_fri);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         service.remove_date(date);
         assert!(service.regularly_available_at(date));

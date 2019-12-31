@@ -84,49 +84,111 @@ impl TripBuffer {
 mod tests {
     use super::*;
 
-    use crate::{service, station};
+    use crate::{map, shape, station, trip, route};
 
-    fn empty_trip_buffer() -> TripBuffer {
-        TripBuffer {
-            line_id: 0,
-            service: Rc::new(service!(mon-fri)),
-            shape_id: "1".into(),
-            direction: Direction::Upstream,
-            locations: Vec::new(),
-            arrivals: Vec::new(),
-            departures: Vec::new(),
-        }
-    }
-
-    fn completed_trip_buffer() -> TripBuffer {
-        TripBuffer {
-            line_id: 0,
-            service: Rc::new(service!(mon-fri)),
-            shape_id: "1".into(),
-            direction: Direction::Upstream,
-            locations: station![main_station, center, market],
-            arrivals: vec![Duration::minutes(1), Duration::minutes(5), Duration::minutes(10)],
-            departures: vec![Duration::minutes(1), Duration::minutes(6), Duration::minutes(10)],
-        }
+    #[macro_export]
+    macro_rules! trip_buffer {
+        ($line:expr, $service:ident, $shape:expr, $direction:ident, $start:expr, [$(($station:ident, $arrival:expr, $departure:expr)),* $(,)?]) => ({
+            let service = Rc::new($crate::service!($service));
+            #[allow(unused_mut)]
+            let mut trip_buffer = TripBuffer::new($line, service, $shape.into(), simulation::Direction::$direction);
+            $(
+                let location = Rc::new($crate::station!($station));
+                trip_buffer.add_stop(location, Duration::minutes($start + $arrival), Duration::minutes($start + $departure));
+            )*
+            trip_buffer
+        });
+        (blue, Upstream, $start:expr, $locations:tt) => (
+            $crate::trip_buffer!(0, mon_fri, "1", Upstream, $start, $locations)
+        );
+        (blue, Upstream, $start:expr) => (
+            $crate::trip_buffer!(blue, Upstream, $start, [
+                (main_station, 0, 0),
+                (center, 4, 5),
+                (market, 9, 9),
+             ])
+        );
+        (blue, Downstream, $start:expr, $locations:tt) => (
+            $crate::trip_buffer!(0, mon_fri, "2", Downstream, $start, $locations)
+        );
+        (blue, Downstream, $start:expr) => (
+            $crate::trip_buffer!(blue, Downstream, $start, [
+                (market, 0, 0),
+                (center, 4, 5),
+                (main_station, 9, 9),
+             ])
+        );
     }
 
     #[test]
     fn test_add_stop() {
-        let mut buffer = empty_trip_buffer();
+        let mut buffer = trip_buffer!(blue, Upstream, 1, []);
         buffer.add_stop(Rc::new(station!(main_station)), Duration::minutes(1), Duration::minutes(1));
         buffer.add_stop(Rc::new(station!(center)), Duration::minutes(5), Duration::minutes(6));
         buffer.add_stop(Rc::new(station!(market)), Duration::minutes(10), Duration::minutes(10));
-        assert_eq!(buffer, completed_trip_buffer());
+        assert_eq!(buffer.locations, station![main_station, center, market]);
+        assert_eq!(buffer.arrivals, vec![Duration::minutes(1), Duration::minutes(5), Duration::minutes(10)]);
+        assert_eq!(buffer.departures, vec![Duration::minutes(1), Duration::minutes(6), Duration::minutes(10)]);
+    }
+
+    #[test]
+    fn test_termini_for_upstream() {
+        let buffer = trip_buffer!(blue, Upstream, 1);
+        assert_eq!(buffer.termini(), (station!(main_station).id, station!(market).id));
+    }
+
+    #[test]
+    fn test_termini_for_downstream() {
+        let buffer = trip_buffer!(blue, Downstream, 1);
+        assert_eq!(buffer.termini(), (station!(main_station).id, station!(market).id));
     }
 
     #[test]
     fn test_into_trip() {
-        let buffer = completed_trip_buffer();
-        let trip = Trip::new(
-            Direction::Upstream,
-            Rc::new(service!(mon-fri)),
-            vec![Duration::minutes(1), Duration::minutes(0), Duration::minutes(4),
-                 Duration::minutes(1), Duration::minutes(4), Duration::minutes(0)]);
-        assert_eq!(buffer.into_trip(), trip);
+        let buffer = trip_buffer!(blue, Upstream, 1);
+        assert_eq!(buffer.into_trip(), trip!(blue, Upstream, 1));
+        let buffer = trip_buffer!(blue, Upstream, 21);
+        assert_eq!(buffer.into_trip(), trip!(blue, Upstream, 21));
+    }
+
+    fn shapes() -> HashMap<ShapeId, Shape> {
+        map! {
+            "1" => shape!(blue),
+            "2" => shape!(blue reversed),
+        }
+    }
+
+    #[test]
+    fn test_create_route_with_upstream_buffer() {
+        let mut routes = vec![HashMap::new()];
+        let buffer = trip_buffer!(blue, Upstream, 1);
+        buffer.place_into_routes(&shapes(), &mut routes);
+        assert_eq!(routes[0], map! {
+            (station!(main_station).id, station!(market).id) => route!(blue, [(blue, Upstream, 1)]),
+        });
+    }
+
+    #[test]
+    fn test_create_route_with_downstream_buffer() {
+        let mut routes = vec![HashMap::new()];
+        let buffer = trip_buffer!(blue, Downstream, 1);
+        buffer.place_into_routes(&shapes(), &mut routes);
+        assert_eq!(routes[0], map! {
+            (station!(main_station).id, station!(market).id) => route!(blue, [(blue, Downstream, 1)]),
+        });
+    }
+
+    #[test]
+    fn test_add_trips_to_route() {
+        let mut routes = vec![HashMap::new()];
+        let buffer = trip_buffer!(blue, Upstream, 1);
+        buffer.place_into_routes(&shapes(), &mut routes);
+        let buffer = trip_buffer!(blue, Downstream, 1);
+        buffer.place_into_routes(&shapes(), &mut routes);
+        let buffer = trip_buffer!(blue, Upstream, 21);
+        buffer.place_into_routes(&shapes(), &mut routes);
+        assert_eq!(routes[0], map! {
+            (station!(main_station).id, station!(market).id) => route!(blue, [(blue, Upstream, 1), (blue, Downstream, 1), (blue, Upstream, 21)]),
+        });
     }
 }

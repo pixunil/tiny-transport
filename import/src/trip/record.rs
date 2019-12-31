@@ -48,3 +48,58 @@ impl StopRecord {
             .add_stop(Rc::clone(&locations[&self.stop_id]), self.arrival_time, self.departure_time);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::{map, service, trip_buffer};
+
+    fn blue_trip_record() -> TripRecord {
+        TripRecord {
+            trip_id: "1".into(),
+            route_id: "1".into(),
+            service_id: "1".into(),
+            shape_id: "1".into(),
+            direction_id: Direction::Upstream,
+        }
+    }
+
+    fn services() -> HashMap<ServiceId, Rc<Service>> {
+        map! {
+            "1" => Rc::new(service!(mon_fri)),
+        }
+    }
+
+    #[test]
+    fn test_import_trip() {
+        let record = blue_trip_record();
+        let id_mapping = map! {
+            "1" => 0,
+        };
+        let mut buffers = HashMap::new();
+        record.import(&id_mapping, &services(), &mut buffers);
+        assert_eq!(buffers, map! {
+            "1" => trip_buffer!(blue, Upstream, 1, []),
+        });
+    }
+
+    #[test]
+    fn test_merges_lines() {
+        let first = blue_trip_record();
+        let mut second = blue_trip_record();
+        second.trip_id = "2".into();
+        second.route_id = "2".into();
+        let id_mapping = map! {
+            "1" => 0,
+            "2" => 0,
+        };
+        let mut buffers = HashMap::new();
+        first.import(&id_mapping, &services(), &mut buffers);
+        second.import(&id_mapping, &services(), &mut buffers);
+        assert_eq!(buffers, map! {
+            "1" => trip_buffer!(blue, Upstream, 1, []),
+            "2" => trip_buffer!(blue, Upstream, 1, []),
+        });
+    }
+}

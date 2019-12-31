@@ -32,3 +32,32 @@ impl Trip {
         self.service.available_at(date)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[macro_export]
+    macro_rules! trip {
+        ($direction:ident, $service:ident, [$($duration:expr),*]) => (
+            Trip::new(
+                Direction::$direction,
+                Rc::new($crate::service!($service)),
+                vec![$(chrono::Duration::minutes($duration)),*],
+            )
+        );
+        (blue, Upstream, $start:expr) => (
+            $crate::trip!(Upstream, mon_fri, [$start, 0, 4, 1, 4, 0])
+        );
+        (blue, Downstream, $start:expr) => (
+            $crate::trip!(Downstream, mon_fri, [$start, 0, 4, 1, 4, 0])
+        );
+    }
+
+    #[test]
+    fn test_available_at() {
+        let trip = trip!(blue, Upstream, 1);
+        let date = NaiveDate::from_ymd(2019, 1, 7);
+        assert!(trip.available_at(date));
+    }
+}

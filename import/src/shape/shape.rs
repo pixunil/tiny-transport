@@ -20,5 +20,10 @@ mod tests {
         (blue) => (
             $crate::shape!(52.526, 13.369; 52.523, 13.378; 52.520, 13.387; 52.521, 13.394; 52.523, 13.402)
         );
+        ($shape:ident reversed) => ({
+            let mut shape = $crate::shape!($shape);
+            shape.reverse();
+            shape
+        });
     }
 }

@@ -59,7 +59,7 @@ mod tests {
                 1,          20190107, 2
         );
 
-        let mut service = service!(mon-fri);
+        let mut service = service!(mon_fri);
         service.add_date(NaiveDate::from_ymd(2019, 1, 5));
         service.remove_date(NaiveDate::from_ymd(2019, 1, 7));
 
