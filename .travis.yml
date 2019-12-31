@@ -26,8 +26,7 @@ script:
 
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo install cargo-tarpaulin --force &&
-    cargo tarpaulin --all --ignore-tests --out Xml &&
+    docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin sh -c "cargo tarpaulin --all --ignore-tests --out Xml" &&
     bash <(curl -s https://codecov.io/bash)
   fi
 
