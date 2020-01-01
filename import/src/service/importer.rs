@@ -1,8 +1,9 @@
 use std::error::Error;
 use std::rc::Rc;
 use std::collections::HashMap;
+use std::time::Instant;
 
-use crate::utils::Dataset;
+use crate::utils::{Dataset, progress::elapsed};
 use super::{Service, ServiceId, ServiceRecord, ServiceExceptionRecord};
 
 pub(crate) struct Importer;
@@ -21,20 +22,27 @@ impl Importer {
 
     fn import_services(dataset: &mut impl Dataset) -> Result<HashMap<ServiceId, Service>, Box<dyn Error>> {
         let mut services = HashMap::new();
-        let mut reader = dataset.read_csv("calendar.txt")?;
-        for result in reader.deserialize() {
+
+        let records = dataset.read_csv("calendar.txt", "Importing services")?;
+        let started = Instant::now();
+        for result in records {
             let record: ServiceRecord = result?;
             record.import(&mut services);
         }
+
+        eprintln!("Imported {} services in {:.2}s", services.len(), elapsed(started));
         Ok(services)
     }
 
     fn add_service_exceptions(dataset: &mut impl Dataset, services: &mut HashMap<ServiceId, Service>) -> Result<(), Box<dyn Error>> {
-        let mut reader = dataset.read_csv("calendar_dates.txt")?;
-        for result in reader.deserialize() {
+        let records = dataset.read_csv("calendar_dates.txt", "Importing service exceptions")?;
+        let started = Instant::now();
+        for result in records {
             let record: ServiceExceptionRecord = result?;
             record.apply_to(services);
         }
+
+        eprintln!("Imported service exceptions in {:.2}s", elapsed(started));
         Ok(())
     }
 }

@@ -1,10 +1,15 @@
 use std::error::Error;
 use std::collections::HashMap;
 use std::iter::once;
+use std::time::Instant;
 
 use itertools::{Itertools, EitherOrBoth::*};
 
-use crate::utils::Dataset;
+use console::Term;
+
+use indicatif::ProgressIterator;
+
+use crate::utils::{Dataset, progress::{elapsed, percent_bar}};
 use super::{Shape, ShapeId, ShapeRecord};
 
 pub(crate) struct Importer;
@@ -13,17 +18,26 @@ impl Importer {
     pub(crate) fn import(dataset: &mut impl Dataset) -> Result<HashMap<ShapeId, Shape>, Box<dyn Error>> {
         let mut shapes = HashMap::new();
 
-        for result in dataset.read_csv("shapes.txt")?.deserialize() {
+        let records = dataset.read_csv("shapes.txt", "Importing shapes")?;
+        let started = Instant::now();
+        for result in records {
             let record: ShapeRecord = result?;
             record.import(&mut shapes);
         }
 
+        eprintln!("Imported {} shapes in {:.2}s", shapes.len(), elapsed(started));
+
+        let started = Instant::now();
+        let progress_bar = percent_bar(shapes.len() as u64, "Smoothing shapes");
         let shapes = shapes.into_iter()
+            .progress_with(progress_bar)
             .map(|(id, shape)| {
                 (id, Self::smooth(shape))
             })
             .collect();
 
+        Term::stderr().clear_last_lines(1).unwrap();
+        eprintln!("Smoothed shapes in {:.2}s", started.elapsed().as_millis() as f64 / 1000.0);
         Ok(shapes)
     }
 

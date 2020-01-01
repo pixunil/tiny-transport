@@ -1,8 +1,9 @@
 use std::rc::Rc;
 use std::error::Error;
 use std::collections::HashMap;
+use std::time::Instant;
 
-use crate::utils::Dataset;
+use crate::utils::{Dataset, progress::elapsed};
 use super::{Location, LocationId, LocationRecord, LocationImportError};
 
 pub(crate) struct Importer;
@@ -11,8 +12,10 @@ impl Importer {
     pub(crate) fn import(dataset: &mut impl Dataset) -> Result<HashMap<LocationId, Rc<Location>>, Box<dyn Error>> {
         let mut queues = (Vec::new(), Vec::new());
         let mut locations = HashMap::new();
-        let mut reader = dataset.read_csv("stops.txt")?;
-        for result in reader.deserialize() {
+
+        let records = dataset.read_csv("stops.txt", "Importing locations")?;
+        let started = Instant::now();
+        for result in records {
             let record: LocationRecord = result?;
             record.import_or_enqueue(&mut locations, &mut queues)?;
         }
@@ -23,6 +26,7 @@ impl Importer {
             }
         }
 
+        eprintln!("Imported {} locations in {:.2}s", locations.len(), elapsed(started));
         Ok(locations)
     }
 }

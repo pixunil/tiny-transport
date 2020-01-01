@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::collections::HashMap;
+use std::time::Instant;
 
-use crate::utils::Dataset;
+use crate::utils::{Dataset, progress::elapsed};
 use crate::agency::AgencyId;
 use crate::trip::Route;
 use super::{Line, LineId, IncompleteLine, LineRecord, LineColorRecord};
@@ -21,19 +22,24 @@ impl Importer {
     fn import_lines(dataset: &mut impl Dataset) -> Result<Self, Box<dyn Error>> {
         let mut id_mapping = HashMap::new();
         let mut incomplete_lines = Vec::new();
-        let mut reader = dataset.read_csv("routes.txt")?;
-        for result in reader.deserialize() {
+
+        let records = dataset.read_csv("routes.txt", "Importing lines")?;
+        let started = Instant::now();
+        for result in records {
             let record: LineRecord = result?;
             record.deduplicate(&mut id_mapping, &mut incomplete_lines);
         }
 
+        eprintln!("Imported {} lines in {:.2}s", incomplete_lines.len(), elapsed(started));
         Ok(Self { id_mapping, incomplete_lines })
     }
 
     fn import_colors(&mut self, dataset: &mut impl Dataset) -> Result<(), Box<dyn Error>> {
         let mut colors = HashMap::new();
-        let mut reader = dataset.read_csv("colors.txt")?;
-        for result in reader.deserialize() {
+
+        let records = dataset.read_csv("colors.txt", "Importing colors")?;
+        let started = Instant::now();
+        for result in records {
             let record: LineColorRecord = result?;
             record.import(&mut colors);
         }
@@ -42,6 +48,7 @@ impl Importer {
             incomplete_line.add_color_when_applicable(&mut colors);
         }
 
+        eprintln!("Imported line colors in {:.2}s", elapsed(started));
         Ok(())
     }
 

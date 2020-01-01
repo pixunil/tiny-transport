@@ -1,4 +1,5 @@
 pub(crate) mod deserialize;
+pub(crate) mod progress;
 mod dataset;
 
 pub(crate) use dataset::Dataset;
