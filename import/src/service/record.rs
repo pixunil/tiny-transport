@@ -67,7 +67,8 @@ impl ServiceExceptionRecord {
 mod tests {
     use super::*;
 
-    use crate::{map, service};
+    use crate::map;
+    use crate::service::fixtures::*;
 
     fn working_day_service_record() -> ServiceRecord {
         ServiceRecord {
@@ -87,7 +88,7 @@ mod tests {
     #[test]
     fn test_into_service() {
         let service: Service = working_day_service_record().into();
-        assert_eq!(service, service!(mon_fri));
+        assert_eq!(service, services::mon_fri());
     }
 
     #[test]
@@ -95,12 +96,12 @@ mod tests {
         let mut services = HashMap::new();
         working_day_service_record().import(&mut services);
         assert_eq!(services.len(), 1);
-        assert_eq!(services[&"1".into()], service!(mon_fri));
+        assert_eq!(services[&"1".into()], services::mon_fri());
     }
 
     fn services() -> HashMap<ServiceId, Service> {
         map! {
-            "1" => service!(mon_fri),
+            "1" => services::mon_fri(),
         }
     }
 

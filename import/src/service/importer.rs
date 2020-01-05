@@ -53,7 +53,8 @@ mod tests {
 
     use chrono::NaiveDate;
 
-    use crate::{map, dataset, service};
+    use crate::{map, dataset};
+    use crate::service::fixtures::*;
 
     #[test]
     fn test_from_csv() {
@@ -67,7 +68,7 @@ mod tests {
                 1,          20190107, 2
         );
 
-        let mut service = service!(mon_fri);
+        let mut service = services::mon_fri();
         service.add_date(NaiveDate::from_ymd(2019, 1, 5));
         service.remove_date(NaiveDate::from_ymd(2019, 1, 7));
 

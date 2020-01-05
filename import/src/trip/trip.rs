@@ -42,7 +42,7 @@ mod tests {
         ($direction:ident, $service:ident, [$($duration:expr),*]) => (
             Trip::new(
                 Direction::$direction,
-                Rc::new($crate::service!($service)),
+                Rc::new($crate::service::fixtures::services::$service()),
                 vec![$(chrono::Duration::minutes($duration)),*],
             )
         );

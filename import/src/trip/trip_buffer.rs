@@ -90,7 +90,7 @@ mod tests {
     #[macro_export]
     macro_rules! trip_buffer {
         ($line:expr, $service:ident, $shape:expr, $direction:ident, $start:expr, [$(($station:ident, $arrival:expr, $departure:expr)),* $(,)?]) => ({
-            let service = Rc::new($crate::service!($service));
+            let service = Rc::new($crate::service::fixtures::services::$service());
             #[allow(unused_mut)]
             let mut trip_buffer = TripBuffer::new($line, service, $shape.into(), simulation::Direction::$direction);
             $(

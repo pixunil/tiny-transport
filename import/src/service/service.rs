@@ -45,24 +45,35 @@ impl Service {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod fixtures {
     use super::*;
 
-    #[macro_export]
-    macro_rules! service {
-        ($start:expr, $end:expr, $weekdays:expr) => ({
-            let start = chrono::NaiveDate::from_ymd($start[0], $start[1], $start[2]);
-            let end = chrono::NaiveDate::from_ymd($end[0], $end[1], $end[2]);
-            crate::service::Service::new(start, end, $weekdays)
-        });
-        (mon_fri) => (
-            $crate::service!([2019, 1, 1], [2019, 12, 31], [true, true, true, true, true, false, false])
+    macro_rules! services {
+        ($($service:ident: $start:expr, $end:expr, $weekdays:expr);* $(;)?) => (
+            $(
+                pub(crate) fn $service() -> Service {
+                    let start = NaiveDate::from_ymd($start.0, $start.1, $start.2);
+                    let end = NaiveDate::from_ymd($end.0, $end.1, $end.2);
+                    Service::new(start, end, $weekdays)
+                }
+            )*
         );
     }
 
+    services! {
+        mon_fri: (2019, 1, 1), (2019, 12, 31), [true, true, true, true, true, false, false];
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::service::fixtures::*;
+
     #[test]
     fn test_regularly_available() {
-        let service = service!(mon_fri);
+        let service = services::mon_fri();
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(service.regularly_available_at(date));
         assert!(service.available_at(date));
@@ -70,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_regularly_unavailable() {
-        let service = service!(mon_fri);
+        let service = services::mon_fri();
         let date = NaiveDate::from_ymd(2019, 1, 5);
         assert!(!service.regularly_available_at(date));
         assert!(!service.available_at(date));
@@ -78,7 +89,7 @@ mod tests {
 
     #[test]
     fn test_exceptionally_available() {
-        let mut service = service!(mon_fri);
+        let mut service = services::mon_fri();
         let date = NaiveDate::from_ymd(2019, 1, 5);
         service.add_date(date);
         assert!(!service.regularly_available_at(date));
@@ -87,7 +98,7 @@ mod tests {
 
     #[test]
     fn test_exceptionally_unavailable() {
-        let mut service = service!(mon_fri);
+        let mut service = services::mon_fri();
         let date = NaiveDate::from_ymd(2019, 1, 7);
         service.remove_date(date);
         assert!(service.regularly_available_at(date));

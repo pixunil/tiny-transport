@@ -53,7 +53,8 @@ impl StopRecord {
 mod tests {
     use super::*;
 
-    use crate::{map, service, trip_buffer};
+    use crate::{map, trip_buffer};
+    use crate::service::fixtures::*;
 
     fn blue_trip_record() -> TripRecord {
         TripRecord {
@@ -67,7 +68,7 @@ mod tests {
 
     fn services() -> HashMap<ServiceId, Rc<Service>> {
         map! {
-            "1" => Rc::new(service!(mon_fri)),
+            "1" => Rc::new(services::mon_fri()),
         }
     }
 
