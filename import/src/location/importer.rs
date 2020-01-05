@@ -36,45 +36,46 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::{map, dataset, station};
+    use crate::{map, dataset};
+    use crate::location::location::fixtures as locations;
 
     #[test]
     fn test_station_with_parent() {
         let mut dataset = dataset!(
             stops:
-                stop_id, stop_name,      stop_lat, stop_lon, location_type, parent_station;
-                1,       "Main Station", 52.526,   13.369,   1,             10
+                stop_id,        stop_name,      stop_lat, stop_lon, location_type, parent_station;
+                "hauptbahnhof", "Hauptbahnhof", 52.526,   13.369,   1,             "bahnhof"
         );
 
         let error = Importer::import(&mut dataset).unwrap_err();
-        assert_eq!(format!("{}", error), "forbidden parent 10 for station 1");
+        assert_eq!(format!("{}", error), "forbidden parent bahnhof for station hauptbahnhof");
     }
 
     #[test]
     fn test_child_missing_parent() {
         let mut dataset = dataset!(
             stops:
-                stop_id, stop_name,                 stop_lat, stop_lon, location_type, parent_station;
-                2,       "Main Station Platform 1", 52.526,   13.369,   0,             1
+                stop_id,          stop_name,              stop_lat, stop_lon, location_type, parent_station;
+                "hauptbahnhof_1", "Hauptbahnhof Gleis 1", 52.526,   13.369,   0,             "hauptbahnhof"
         );
 
         let error = Importer::import(&mut dataset).unwrap_err();
-        assert_eq!(format!("{}", error), "parent 1 for location 2 not found");
+        assert_eq!(format!("{}", error), "parent hauptbahnhof for location hauptbahnhof_1 not found");
     }
 
     #[test]
     fn test_from_csv() {
         let mut dataset = dataset!(
             stops:
-                stop_id, stop_name,      stop_lat, stop_lon, location_type, parent_station;
-                1,       "Main Station", 52.526,   13.369,   1,             "";
-                2,       "Center",       52.520,   13.387,   1,             ""
+                stop_id,         stop_name,       stop_lat, stop_lon, location_type, parent_station;
+                "hauptbahnhof",  "Hauptbahnhof",  52.526,   13.369,   1,             "";
+                "friedrichstr",  "Friedrichstr.", 52.520,   13.387,   1,             ""
         );
 
         let locations = Importer::import(&mut dataset).unwrap();
         assert_eq!(locations, map! {
-            "1" => Rc::new(station!(main_station)),
-            "2" => Rc::new(station!(center)),
+            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
+            "friedrichstr" => Rc::new(locations::friedrichstr()),
         });
     }
 }

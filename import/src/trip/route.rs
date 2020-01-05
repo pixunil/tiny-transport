@@ -88,12 +88,13 @@ mod tests {
 
     use approx::assert_abs_diff_eq;
 
-    use crate::{station, shape};
+    use crate::shape;
+    use crate::location::fixtures::locations;
 
     #[macro_export]
     macro_rules! route {
         ([$($location:ident),*], $shape:ident, [$(($trip:ident, $direction:ident, $start:expr)),*]) => ({
-            let locations = vec![$(Rc::new($crate::station!($location))),*];
+            let locations = vec![$(Rc::new($crate::location::fixtures::locations::$location())),*];
             #[allow(unused_mut)]
             let mut route = $crate::trip::Route::new(locations, $crate::shape!($shape));
             $(
@@ -102,14 +103,16 @@ mod tests {
             route
         });
         (blue, $trips:tt) => (
-            $crate::route!([main_station, center, market], blue, $trips)
+            $crate::route!([hauptbahnhof, friedrichstr, hackescher_markt], blue, $trips)
         );
     }
 
     #[test]
     fn test_freeze_nodes_exact_shape() {
         let shape = shape!(52.526, 13.369; 52.523, 13.378; 52.520, 13.387; 52.521, 13.394; 52.523, 13.402);
-        let route = Route::new(station![main_station, center, market], shape);
+        let locations = vec![Rc::new(locations::hauptbahnhof()),
+            Rc::new(locations::friedrichstr()), Rc::new(locations::hackescher_markt())];
+        let route = Route::new(locations, shape);
         let mut expected_nodes = [
             LineNode::new(Point2::new(-262.0, -24.0)),
             LineNode::new(Point2::new(-244.0, -12.0)),
@@ -126,7 +129,10 @@ mod tests {
     #[test]
     fn test_freeze_nodes_circle() {
         let shape = shape!(52.549, 13.388; 52.503, 13.469; 52.475, 13.366; 52.501, 13.283; 52.549, 13.388);
-        let route = Route::new(station![north_cross, east_cross, south_cross, west_cross, north_cross], shape);
+        let locations = vec![Rc::new(locations::gesundbrunnen()),
+            Rc::new(locations::ostkreuz()), Rc::new(locations::suedkreuz()),
+            Rc::new(locations::westkreuz()), Rc::new(locations::gesundbrunnen())];
+        let route = Route::new(locations, shape);
         let mut expected_nodes = [
             LineNode::new(Point2::new(-224.0, -116.0)),
             LineNode::new(Point2::new( -62.0,   68.0)),

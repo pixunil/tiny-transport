@@ -34,35 +34,26 @@ impl Location {
 }
 
 #[cfg(test)]
-mod tests {
-    #[macro_export]
-    macro_rules! station {
-        ($id:expr, $name:expr, $lat:expr, $lon:expr) => (
-            $crate::location::Location::new($id.into(), $name.to_string(), ::na::Point2::new($lon, $lat))
-        );
-        (main_station) => (
-            $crate::station!("1", "Main Station", 52.526, 13.369)
-        );
-        (center) => (
-            $crate::station!("2", "Center", 52.520, 13.387)
-        );
-        (market) => (
-            $crate::station!("3", "Market", 52.523, 13.402)
-        );
-        (north_cross) => (
-            $crate::station!("4", "North Cross", 52.549, 13.388)
-        );
-        (east_cross) => (
-            $crate::station!("5", "East Cross", 52.503, 13.469)
-        );
-        (south_cross) => (
-            $crate::station!("6", "South Cross", 52.475, 13.366)
-        );
-        (west_cross) => (
-            $crate::station!("7", "West Cross", 52.501, 13.283)
-        );
-        ($($station:ident),*) => (
-            vec![$(Rc::new($crate::station!($station))),*]
-        );
+pub(crate) mod fixtures {
+    use super::*;
+
+    macro_rules! locations {
+        ($($location:ident: $lat:expr, $lon:expr, $name:expr);* $(;)?) => (
+            $(
+                pub(crate) fn $location() -> Location {
+                    Location::new(stringify!($location).into(), $name.to_string(), Point2::new($lon, $lat))
+                }
+            )*
+         );
+     }
+
+    locations! {
+        hauptbahnhof:                        52.526, 13.369, "Hauptbahnhof";
+        friedrichstr:                        52.520, 13.387, "Friedrichstr.";
+        hackescher_markt:                    52.523, 13.402, "Hackescher Markt";
+        gesundbrunnen:                       52.549, 13.388, "Gesundbrunnen";
+        ostkreuz:                            52.503, 13.469, "Ostkreuz";
+        suedkreuz:                           52.475, 13.366, "Südkreuz";
+        westkreuz:                           52.501, 13.283, "Westkreuz";
     }
 }

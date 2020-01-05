@@ -84,7 +84,8 @@ impl TripBuffer {
 mod tests {
     use super::*;
 
-    use crate::{map, shape, station, trip, route};
+    use crate::{map, shape, trip, route};
+    use crate::location::fixtures::locations;
 
     #[macro_export]
     macro_rules! trip_buffer {
@@ -93,7 +94,7 @@ mod tests {
             #[allow(unused_mut)]
             let mut trip_buffer = TripBuffer::new($line, service, $shape.into(), simulation::Direction::$direction);
             $(
-                let location = Rc::new($crate::station!($station));
+                let location = Rc::new($crate::location::fixtures::locations::$station());
                 trip_buffer.add_stop(location, Duration::minutes($start + $arrival), Duration::minutes($start + $departure));
             )*
             trip_buffer
@@ -103,9 +104,9 @@ mod tests {
         );
         (blue, Upstream, $start:expr) => (
             $crate::trip_buffer!(blue, Upstream, $start, [
-                (main_station, 0, 0),
-                (center, 4, 5),
-                (market, 9, 9),
+                (hauptbahnhof, 0, 0),
+                (friedrichstr, 4, 5),
+                (hackescher_markt, 9, 9),
              ])
         );
         (blue, Downstream, $start:expr, $locations:tt) => (
@@ -113,9 +114,9 @@ mod tests {
         );
         (blue, Downstream, $start:expr) => (
             $crate::trip_buffer!(blue, Downstream, $start, [
-                (market, 0, 0),
-                (center, 4, 5),
-                (main_station, 9, 9),
+                (hackescher_markt, 0, 0),
+                (friedrichstr, 4, 5),
+                (hauptbahnhof, 9, 9),
              ])
         );
     }
@@ -123,10 +124,11 @@ mod tests {
     #[test]
     fn test_add_stop() {
         let mut buffer = trip_buffer!(blue, Upstream, 1, []);
-        buffer.add_stop(Rc::new(station!(main_station)), Duration::minutes(1), Duration::minutes(1));
-        buffer.add_stop(Rc::new(station!(center)), Duration::minutes(5), Duration::minutes(6));
-        buffer.add_stop(Rc::new(station!(market)), Duration::minutes(10), Duration::minutes(10));
-        assert_eq!(buffer.locations, station![main_station, center, market]);
+        buffer.add_stop(Rc::new(locations::hauptbahnhof()), Duration::minutes(1), Duration::minutes(1));
+        buffer.add_stop(Rc::new(locations::friedrichstr()), Duration::minutes(5), Duration::minutes(6));
+        buffer.add_stop(Rc::new(locations::hackescher_markt()), Duration::minutes(10), Duration::minutes(10));
+        assert_eq!(buffer.locations, [Rc::new(locations::hauptbahnhof()),
+            Rc::new(locations::friedrichstr()), Rc::new(locations::hackescher_markt())]);
         assert_eq!(buffer.arrivals, vec![Duration::minutes(1), Duration::minutes(5), Duration::minutes(10)]);
         assert_eq!(buffer.departures, vec![Duration::minutes(1), Duration::minutes(6), Duration::minutes(10)]);
     }
@@ -134,13 +136,13 @@ mod tests {
     #[test]
     fn test_termini_for_upstream() {
         let buffer = trip_buffer!(blue, Upstream, 1);
-        assert_eq!(buffer.termini(), (station!(main_station).id, station!(market).id));
+        assert_eq!(buffer.termini(), (locations::hauptbahnhof().id, locations::hackescher_markt().id));
     }
 
     #[test]
     fn test_termini_for_downstream() {
         let buffer = trip_buffer!(blue, Downstream, 1);
-        assert_eq!(buffer.termini(), (station!(main_station).id, station!(market).id));
+        assert_eq!(buffer.termini(), (locations::hauptbahnhof().id, locations::hackescher_markt().id));
     }
 
     #[test]
@@ -164,7 +166,7 @@ mod tests {
         let buffer = trip_buffer!(blue, Upstream, 1);
         buffer.place_into_routes(&shapes(), &mut routes);
         assert_eq!(routes[0], map! {
-            (station!(main_station).id, station!(market).id) => route!(blue, [(blue, Upstream, 1)]),
+            (locations::hauptbahnhof().id, locations::hackescher_markt().id) => route!(blue, [(blue, Upstream, 1)]),
         });
     }
 
@@ -174,7 +176,7 @@ mod tests {
         let buffer = trip_buffer!(blue, Downstream, 1);
         buffer.place_into_routes(&shapes(), &mut routes);
         assert_eq!(routes[0], map! {
-            (station!(main_station).id, station!(market).id) => route!(blue, [(blue, Downstream, 1)]),
+            (locations::hauptbahnhof().id, locations::hackescher_markt().id) => route!(blue, [(blue, Downstream, 1)]),
         });
     }
 
@@ -188,7 +190,7 @@ mod tests {
         let buffer = trip_buffer!(blue, Upstream, 21);
         buffer.place_into_routes(&shapes(), &mut routes);
         assert_eq!(routes[0], map! {
-            (station!(main_station).id, station!(market).id) => route!(blue, [(blue, Upstream, 1), (blue, Downstream, 1), (blue, Upstream, 21)]),
+            (locations::hauptbahnhof().id, locations::hackescher_markt().id) => route!(blue, [(blue, Upstream, 1), (blue, Downstream, 1), (blue, Upstream, 21)]),
         });
     }
 }

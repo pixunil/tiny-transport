@@ -77,14 +77,15 @@ impl Into<Location> for LocationRecord {
 mod tests {
     use super::*;
 
-    use crate::{map, station};
+    use crate::map;
+    use crate::location::fixtures::locations;
 
     fn main_station_record() -> LocationRecord {
         LocationRecord {
-            stop_id: "1".into(),
+            stop_id: "hauptbahnhof".into(),
             location_kind: LocationKind::Station,
             parent_station: None,
-            stop_name: "Main Station".to_string(),
+            stop_name: "Hauptbahnhof".to_string(),
             stop_lat: 52.526,
             stop_lon: 13.369,
         }
@@ -92,10 +93,10 @@ mod tests {
 
     fn main_station_platform_record() -> LocationRecord {
         LocationRecord {
-            stop_id: "2".into(),
+            stop_id: "hauptbahnhof_1".into(),
             location_kind: LocationKind::Stop,
-            parent_station: Some("1".into()),
-            stop_name: "Main Station Platform 1".to_string(),
+            parent_station: Some("hauptbahnhof".into()),
+            stop_name: "Hauptbahnhof Gleis 1".to_string(),
             stop_lat: 52.526,
             stop_lon: 13.369,
         }
@@ -104,7 +105,7 @@ mod tests {
     #[test]
     fn test_into_location() {
         let location: Location = main_station_record().into();
-        assert_eq!(location, station!(main_station));
+        assert_eq!(location, locations::hauptbahnhof());
     }
 
     #[test]
@@ -112,7 +113,7 @@ mod tests {
         let mut locations = HashMap::new();
         main_station_record().try_import(&mut locations).unwrap();
         assert_eq!(locations, map! {
-            "1" => Rc::new(station!(main_station)),
+            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
         });
     }
 
@@ -127,12 +128,12 @@ mod tests {
     #[test]
     fn test_import_child_with_parent() {
         let mut locations = map! {
-            "1" => Rc::new(station!(main_station)),
+            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
         };
         main_station_platform_record().try_import(&mut locations).unwrap();
         assert_eq!(locations, map! {
-            "1" => Rc::new(station!(main_station)),
-            "2" => Rc::new(station!(main_station)),
+            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
+            "hauptbahnhof_1" => Rc::new(locations::hauptbahnhof()),
         });
     }
 }
