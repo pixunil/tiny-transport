@@ -21,6 +21,10 @@ impl Trip {
         }
     }
 
+    pub(super) fn direction(&self) -> Direction {
+        self.direction
+    }
+
     pub(super) fn freeze(&self) -> serialization::Train {
         let durations = self.durations.iter()
             .map(|duration| duration.num_seconds() as u32)
@@ -34,29 +38,46 @@ impl Trip {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+pub(super) mod fixtures {
+    macro_rules! trips {
+        ($($line:ident: {$($trip:ident => $direction:ident, $service:ident, [$($time:expr),*]);* $(;)?}),* $(,)?) => (
+            $(
+                pub(in crate::trip) mod $line {
+                    use simulation::Direction;
+                    use crate::trip::fixtures::*;
+                    use crate::trip::trip::*;
 
-    #[macro_export]
-    macro_rules! trip {
-        ($direction:ident, $service:ident, [$($duration:expr),*]) => (
-            Trip::new(
-                Direction::$direction,
-                Rc::new($crate::service::fixtures::services::$service()),
-                vec![$(chrono::Duration::minutes($duration)),*],
-            )
-        );
-        (blue, Upstream, $start:expr) => (
-            $crate::trip!(Upstream, mon_fri, [$start, 0, 4, 1, 4, 0])
-        );
-        (blue, Downstream, $start:expr) => (
-            $crate::trip!(Downstream, mon_fri, [$start, 0, 4, 1, 4, 0])
+                    $(
+                        pub(in crate::trip) fn $trip(start: i64) -> Trip {
+                            Trip {
+                                direction: Direction::$direction,
+                                service: Rc::new(services::$service()),
+                                durations: vec![Duration::minutes(start), $(Duration::minutes($time)),*],
+                            }
+                        }
+                    )*
+                }
+            )*
         );
     }
 
+    trips! {
+        tram_12: {
+            oranienburger_tor_am_kupfergraben => Upstream, mon_fri, [0, 2, 0, 2, 0, 1, 0];
+            am_kupfergraben_oranienburger_tor => Downstream, mon_fri, [0, 1, 0, 3, 0, 2, 0];
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::trip::fixtures::*;
+
     #[test]
     fn test_available_at() {
-        let trip = trip!(blue, Upstream, 1);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(542);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(trip.available_at(date));
     }

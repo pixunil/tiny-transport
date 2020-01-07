@@ -39,7 +39,7 @@ mod tests {
     }
 
     #[test]
-    fn test_station_contains_center() {
+    fn test_station_contains_friedrich_street() {
         let station = station!(main_station);
         assert!(station.contains(Point2::new(200.0, 100.0)));
     }

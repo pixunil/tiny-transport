@@ -1,18 +1,17 @@
 use serde_derive::{Serialize, Deserialize};
 
-use simulation::Color;
-use simulation::LineNode;
+use simulation::{Color, Node};
 use super::train::Train;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Line {
     name: String,
-    nodes: Vec<LineNode>,
+    nodes: Vec<Node>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, nodes: Vec<LineNode>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
         Line {
             name,
             nodes,

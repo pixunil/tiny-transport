@@ -16,6 +16,8 @@ path = "src/main.rs"
 
 [dependencies]
 itertools = "0.8"
+ordered-float = "1.0"
+approx = "0.3"
 serde = "1"
 serde_derive = "1"
 csv = "1"
@@ -31,4 +33,3 @@ serialization = { package = "gtfs-sim-serialization", path = "../serialization" 
 
 [dev-dependencies]
 serde_test = "1"
-approx = "0.3"

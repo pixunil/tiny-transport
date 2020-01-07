@@ -45,7 +45,7 @@ pub(crate) mod fixtures {
                 }
             )*
          );
-     }
+    }
 
     locations! {
         hauptbahnhof:                        52.526, 13.369, "Hauptbahnhof";
@@ -55,5 +55,9 @@ pub(crate) mod fixtures {
         ostkreuz:                            52.503, 13.469, "Ostkreuz";
         suedkreuz:                           52.475, 13.366, "Südkreuz";
         westkreuz:                           52.501, 13.283, "Westkreuz";
+        oranienburger_tor:                   52.525, 13.388, "Oranienburger Tor";
+        universitaetsstr:                    52.519, 13.392, "Universitätsstr.";
+        am_kupfergraben:                     52.519, 13.395, "Am Kupfergraben";
+        georgenstr_am_kupfergraben:          52.520, 13.394, "Georgenstr./Am Kupfergraben";
     }
 }

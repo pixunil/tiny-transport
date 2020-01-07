@@ -1,0 +1,38 @@
+pub(crate) use crate::service::fixtures::*;
+pub(crate) use crate::shape::fixtures::*;
+pub(crate) use crate::location::fixtures::*;
+
+pub(super) use super::node::fixtures as nodes;
+pub(super) use super::trip::fixtures as trips;
+pub(super) use super::route_variant::fixtures as route_variants;
+pub(super) use super::route_buffer::fixtures as route_buffers;
+
+macro_rules! stop_locations {
+    ($($line:ident: {$($route:ident => [$($location:ident),* $(,)?]),* $(,)?}),* $(,)?) => (
+        pub(crate) mod stop_locations {
+            $(
+                pub(crate) mod $line {
+                    use std::rc::Rc;
+                    use crate::location::{Location, fixtures::*};
+
+                    $(
+                        pub(crate) fn $route() -> Vec<Rc<Location>> {
+                            vec![$(Rc::new(locations::$location())),*]
+                        }
+                    )*
+                }
+            )*
+        }
+    );
+}
+
+stop_locations! {
+    tram_12: {
+        oranienburger_tor_am_kupfergraben => [
+            oranienburger_tor, friedrichstr, universitaetsstr, am_kupfergraben,
+        ],
+        am_kupfergraben_oranienburger_tor => [
+            am_kupfergraben, georgenstr_am_kupfergraben, friedrichstr, oranienburger_tor,
+        ],
+    },
+}

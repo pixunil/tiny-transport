@@ -11,6 +11,7 @@ license = "MIT"
 default = []
 
 [dependencies]
+itertools = "0.8"
 serde = "1"
 serde_derive = "1"
 approx = "0.3"

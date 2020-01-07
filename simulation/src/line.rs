@@ -1,69 +1,21 @@
-use na::{Point2, Vector2};
+use itertools::Itertools;
+
+use na::Vector2;
 
 use crate::color::Color;
+use crate::direction::Direction;
+use crate::node::Node;
 use crate::train::Train;
-
-use serde_derive::{Serialize, Deserialize};
-
-use approx::AbsDiffEq;
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-enum LineNodeKind {
-    Waypoint,
-    Stop,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct LineNode {
-    position: Point2<f32>,
-    kind: LineNodeKind,
-}
-
-impl LineNode {
-    pub fn new(position: Point2<f32>) -> LineNode {
-        LineNode {
-            position,
-            kind: LineNodeKind::Waypoint,
-        }
-    }
-
-    pub fn promote_to_stop(&mut self) {
-        self.kind = LineNodeKind::Stop;
-    }
-
-    pub fn is_stop(&self) -> bool {
-        self.kind == LineNodeKind::Stop
-    }
-
-    pub fn position(&self) -> Point2<f32> {
-        self.position
-    }
-}
-
-type Epsilon = <Point2<f32> as AbsDiffEq>::Epsilon;
-
-impl AbsDiffEq for LineNode {
-    type Epsilon = Epsilon;
-
-    fn default_epsilon() -> Epsilon {
-        Point2::<f32>::default_epsilon()
-    }
-
-    fn abs_diff_eq(&self, other: &LineNode, epsilon: Epsilon) -> bool {
-        self.kind == other.kind &&
-        Point2::abs_diff_eq(&self.position, &other.position, epsilon)
-    }
-}
 
 #[derive(Debug)]
 pub struct Line {
     name: String,
-    nodes: Vec<LineNode>,
+    nodes: Vec<Node>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, nodes: Vec<LineNode>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
         Line {
             name,
             nodes,
@@ -106,36 +58,56 @@ impl LineGroup {
     }
 
     pub fn track_runs_size(&self) -> usize {
-        self.lines.len()
+        2 * self.lines.len()
     }
 
     pub fn fill_vertice_buffer_sizes(&self, buffer: &mut Vec<usize>) {
         for line in &self.lines {
-            buffer.push(2 * line.nodes.len());
+            buffer.push(Self::vertice_buffer_size_for_direction(&line.nodes, Direction::Upstream));
+            buffer.push(Self::vertice_buffer_size_for_direction(&line.nodes, Direction::Downstream));
         }
+    }
+
+    fn vertice_buffer_size_for_direction(nodes: &[Node], direction: Direction) -> usize {
+        let count = nodes.iter()
+            .filter(|node| node.allows(direction))
+            .count();
+        if count <= 1 { 0 } else { 2 * count }
     }
 
     pub fn fill_vertice_buffer_data(&self, buffer: &mut Vec<f32>) {
         for line in &self.lines {
-            let mut segments = line.nodes.windows(2)
-                .map(|segment| segment[1].position - segment[0].position)
-                .collect::<Vec<_>>();
-            segments.insert(0, segments.first().unwrap().clone());
-            segments.insert(segments.len(), segments.last().unwrap().clone());
+            Self::fill_vertices_for_direction(&line.nodes, Direction::Upstream, buffer);
+            Self::fill_vertices_for_direction(&line.nodes, Direction::Downstream, buffer);
+        }
+    }
 
-            for (waypoint, adjacent) in line.nodes.iter().zip(segments.windows(2)) {
-                let perp = adjacent[0].perp(&adjacent[1]);
-                let miter = if perp == 0.0 {
-                    Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
-                } else {
-                    let preceding = adjacent[0] * adjacent[1].norm();
-                    let following = adjacent[1] * adjacent[0].norm();
-                    (following - preceding) / perp
-                };
+    fn fill_vertices_for_direction(nodes: &[Node], direction: Direction, buffer: &mut Vec<f32>) {
+        let nodes = nodes.iter()
+            .filter(|node| node.allows(direction));
 
-                buffer.extend((waypoint.position + miter).iter());
-                buffer.extend((waypoint.position - miter).iter());
-            }
+        let mut segments = nodes.clone()
+            .tuple_windows()
+            .map(|(before, after)| after.position() - before.position())
+            .collect::<Vec<_>>();
+        if segments.len() == 0 {
+            return;
+        }
+        segments.insert(0, segments.first().unwrap().clone());
+        segments.insert(segments.len(), segments.last().unwrap().clone());
+
+        for (waypoint, adjacent) in nodes.zip(segments.windows(2)) {
+            let perp = adjacent[0].perp(&adjacent[1]);
+            let miter = if perp == 0.0 {
+                Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
+            } else {
+                let preceding = adjacent[0] * adjacent[1].norm();
+                let following = adjacent[1] * adjacent[0].norm();
+                (following - preceding) / perp
+            };
+
+            buffer.extend((waypoint.position() + miter).iter());
+            buffer.extend((waypoint.position() - miter).iter());
         }
     }
 
@@ -162,32 +134,19 @@ impl LineGroup {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use approx::assert_relative_eq;
 
-    #[macro_export]
-    macro_rules! line_nodes {
-        (blue) => ({
-            let mut nodes = vec![
-                LineNode::new(na::Point2::new(200.0, 100.0)),
-                LineNode::new(na::Point2::new(220.0, 100.0)),
-                LineNode::new(na::Point2::new(230.0, 105.0)),
-            ];
-            nodes[0].promote_to_stop();
-            nodes[2].promote_to_stop();
-            nodes
-        });
-    }
+    use crate::node::fixtures as nodes;
 
     #[test]
     fn test_line_vertices() {
         let line = Line {
             name: "Blue Line".to_string(),
-            nodes: line_nodes!(blue),
+            nodes: nodes::blue(),
             trains: Vec::new(),
         };
         let line_group = LineGroup {
@@ -198,6 +157,12 @@ mod tests {
         let mut buffer = Vec::new();
         line_group.fill_vertice_buffer_data(&mut buffer);
         assert_relative_eq!(*buffer, [
+            200.0, 101.0,
+            200.0, 99.0,
+            219.76, 101.0,
+            220.24, 99.0,
+            229.55, 105.89,
+            230.45, 104.11,
             200.0, 101.0,
             200.0, 99.0,
             219.76, 101.0,

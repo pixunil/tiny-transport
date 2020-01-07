@@ -64,7 +64,7 @@ fn filter(agencies: &[Agency]) -> impl Iterator<Item = &'_ Line> + Clone {
 fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dyn Error>> {
     let mut stations = lines.clone()
         .flat_map(|line| &line.routes)
-        .flat_map(|route| &route.locations)
+        .flat_map(|route| route.locations())
         .cloned()
         .collect::<Vec<_>>();
     stations.sort_unstable_by(|a, b| a.station_cmp(b));

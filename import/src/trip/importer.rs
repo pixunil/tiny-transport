@@ -53,24 +53,27 @@ impl<'a> Importer<'a> {
         Ok(())
     }
 
+    fn combine_into_routes(&self, buffers: HashMap<TripId, TripBuffer>) -> Vec<Vec<Route>> {
+        let mut route_buffers = iter::repeat_with(HashMap::new)
+            .take(self.num_lines)
+            .collect();
+
+        for (_, buffer) in buffers {
+            buffer.create_and_place_trip_by_terminus(&self.shapes, &mut route_buffers);
+        }
+
+        route_buffers.into_iter()
+            .map(|route_buffers| {
+                route_buffers.into_iter()
+                    .flat_map(|(_, buffer)| buffer.into_routes())
+                    .collect()
+            })
+            .collect()
+    }
+
     pub(crate) fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
         let mut buffers = self.import_trip_buffers(dataset)?;
         self.add_trip_stops(dataset, &mut buffers)?;
-
-        let mut routes = iter::repeat_with(HashMap::new)
-            .take(self.num_lines)
-            .collect();
-        for (_id, buffer) in buffers {
-            buffer.place_into_routes(&self.shapes, &mut routes);
-        }
-
-        let routes = routes.into_iter()
-            .map(|line_routes| {
-                line_routes.into_iter()
-                    .map(|(_, route)| route)
-                    .collect()
-            })
-            .collect();
-        Ok(routes)
+        Ok(self.combine_into_routes(buffers))
     }
 }
