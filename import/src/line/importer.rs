@@ -74,7 +74,8 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::{map, dataset, line_};
+    use crate::{map, dataset};
+    use crate::line::fixtures::*;
 
     #[test]
     fn test_deduplication() {
@@ -109,7 +110,7 @@ mod tests {
         let importer = Importer::import(&mut dataset).unwrap();
         let lines = importer.finish(vec![Vec::new(), Vec::new()]).unwrap();
         assert_eq!(lines.len(), 1);
-        assert!(lines[&"1".into()].contains(&line_!(blue)));
-        assert!(lines[&"1".into()].contains(&line_!(green)));
+        assert!(lines[&"1".into()].contains(&lines::blue()));
+        assert!(lines[&"1".into()].contains(&lines::green()));
     }
 }

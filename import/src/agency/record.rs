@@ -23,7 +23,8 @@ impl AgencyRecord {
 mod tests {
     use super::*;
 
-    use crate::{map, agency, line_};
+    use crate::map;
+    use crate::agency::fixtures::*;
 
     fn agency_record() -> AgencyRecord {
         AgencyRecord {
@@ -35,15 +36,15 @@ mod tests {
     #[test]
     fn test_import_agency_without_lines() {
         let mut lines = map! {};
-        assert_eq!(agency_record().import(&mut lines), agency!(pubtrans, []));
+        assert_eq!(agency_record().import(&mut lines), agencies::pubtrans(vec![]));
     }
 
     #[test]
     fn test_import_agency_with_line() {
         let mut lines = map! {
-            "1" => vec![line_!(blue)],
+            "1" => vec![lines::blue()],
         };
-        assert_eq!(agency_record().import(&mut lines), agency!(pubtrans, [blue]));
+        assert_eq!(agency_record().import(&mut lines), agencies::pubtrans(vec![lines::blue()]));
         assert!(lines.is_empty());
     }
 }

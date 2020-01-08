@@ -41,23 +41,31 @@ impl IncompleteLine {
 }
 
 #[cfg(test)]
+pub(super) mod fixtures {
+    use super::*;
+
+    macro_rules! incomplete_lines {
+        ($($line:ident: $agency:ident, $name:expr, $kind:ident);* $(;)?) => (
+            $(
+                pub(in crate::line) fn $line() -> IncompleteLine {
+                    IncompleteLine::new(stringify!($agency).into(), $name.to_string(), Kind::$kind)
+                }
+            )*
+        )
+    }
+
+    incomplete_lines! {
+        blue:               pubtransport,   "Blue Line",    SuburbanRailway;
+        blue_replacement:   pubtransport,   "Blue Line",    Bus;
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     use crate::map;
-
-    #[macro_export]
-    macro_rules! incomplete_line {
-        ($name:expr, $kind:ident) => (
-            super::IncompleteLine::new("1".into(), $name.to_string(), Kind::$kind)
-        );
-        (blue) => (
-            incomplete_line!("Blue Line", SuburbanRailway)
-        );
-        (blue-replacement) => (
-            incomplete_line!("Blue Line", Bus)
-        );
-    }
+    use crate::line::fixtures::*;
 
     fn colors() -> HashMap<String, Color> {
         map! {
@@ -67,14 +75,14 @@ mod tests {
 
     #[test]
     fn test_add_color_to_applicable() {
-        let mut line = incomplete_line!(blue);
+        let mut line = incomplete_lines::blue();
         line.add_color_when_applicable(&colors());
         assert_eq!(line.color, Some(Color::new(0, 0, 255)));
     }
 
     #[test]
     fn test_add_color_to_unapplicable() {
-        let mut line = incomplete_line!(blue-replacement);
+        let mut line = incomplete_lines::blue_replacement();
         line.add_color_when_applicable(&colors());
         assert_eq!(line.color, None);
     }

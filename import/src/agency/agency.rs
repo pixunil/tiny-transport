@@ -24,25 +24,25 @@ impl Agency {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod fixtures {
     use super::*;
 
-    use crate::line_;
-
-    #[macro_export]
-    macro_rules! agency {
-        ($name:literal, [$($line:ident),*]) => (
-            Agency::new($name.to_string(), vec![$($crate::line_!($line)),*])
-        );
-        (pubtrans, [$($line:ident),*]) => (
-            agency!("Public Transport", [$($line),*])
-        );
+    pub(crate) fn pubtrans(lines: Vec<Line>) -> Agency {
+        Agency {
+            name: "Public Transport".to_string(),
+            lines,
+        }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::agency::fixtures::*;
 
     #[test]
     fn test_getters() {
-        let agency = agency!(pubtrans, [blue]);
+        let agency = agencies::pubtrans(vec![lines::blue()]);
         assert_eq!(agency.name(), "Public Transport");
-        assert_eq!(agency.lines(), &[line_!(blue)]);
+        assert_eq!(agency.lines(), &[lines::blue()]);
     }
 }

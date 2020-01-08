@@ -52,12 +52,13 @@ impl LineColorRecord {
 mod tests {
     use super::*;
 
-    use crate::{map, incomplete_line};
+    use crate::map;
+    use crate::line::fixtures::*;
 
     fn blue_line_record() -> LineRecord {
         LineRecord {
             line_id: "1".into(),
-            agency_id: "1".into(),
+            agency_id: "pubtransport".into(),
             route_short_name: "Blue Line".to_string(),
             line_kind: Kind::SuburbanRailway,
         }
@@ -71,7 +72,7 @@ mod tests {
         assert_eq!(id_mapping, map! {
             "1" => 0,
         });
-        assert_eq!(incomplete_lines, [incomplete_line!(blue)]);
+        assert_eq!(incomplete_lines, [incomplete_lines::blue()]);
     }
 
     #[test]
@@ -87,6 +88,6 @@ mod tests {
             "1" => 0,
             "2" => 0,
         });
-        assert_eq!(incomplete_lines, [incomplete_line!(blue)]);
+        assert_eq!(incomplete_lines, [incomplete_lines::blue()]);
     }
 }

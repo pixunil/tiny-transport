@@ -37,25 +37,26 @@ impl Line {
 }
 
 #[cfg(test)]
-mod tests {
-    #[macro_export]
-    macro_rules! line_ {
-        ($name:expr, $color:expr, $kind:ident) => (
-            $crate::line::Line::new(
-                $name.to_string(),
-                simulation::Color::new($color.0, $color.1, $color.2),
-                $crate::line::Kind::$kind,
-                Vec::new()
-            )
+pub(crate) mod fixtures {
+    use super::*;
+
+    macro_rules! lines {
+        ($($line:ident: $name:expr, $kind:ident, $color:expr);* $(;)?) => (
+            $(
+                pub(crate) fn $line() -> Line {
+                    Line {
+                        name: $name.to_string(),
+                        color: Color::new($color.0, $color.1, $color.2),
+                        kind: Kind::$kind,
+                        routes: Vec::new(),
+                    }
+                }
+            )*
         );
-        (blue) => (
-            $crate::line_!("Blue Line", (0, 0, 255), SuburbanRailway)
-        );
-        (blue-replacement) => (
-            $crate::line_!("Blue Line", (0, 0, 255), Bus)
-        );
-        (green) => (
-            $crate::line_!("Green Line", (0, 255, 0), SuburbanRailway)
-        );
+    }
+
+    lines! {
+        blue:               "Blue Line",    SuburbanRailway,    (0, 0, 255);
+        green:              "Green Line",   SuburbanRailway,    (0, 255, 0);
     }
 }

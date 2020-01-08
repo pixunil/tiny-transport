@@ -29,7 +29,8 @@ impl Importer {
 mod tests {
     use super::*;
 
-    use crate::{map, agency, line_};
+    use crate::map;
+    use crate::agency::fixtures::*;
 
     #[test]
     fn test_from_csv() {
@@ -40,9 +41,9 @@ mod tests {
         );
 
         let lines = map! {
-            "1" => vec![line_!(blue)],
+            "1" => vec![lines::blue()],
         };
         let agencies = Importer::import(&mut dataset, lines).unwrap();
-        assert_eq!(agencies, vec![agency!(pubtrans, [blue])]);
+        assert_eq!(agencies, vec![agencies::pubtrans(vec![lines::blue()])]);
     }
 }
