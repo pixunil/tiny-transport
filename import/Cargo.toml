@@ -24,6 +24,7 @@ csv = "1"
 bincode = "1"
 zip = { version = "0.5", default-features = false, features = ["bzip2"] }
 chrono = { version = "0.4", features = ["serde"] }
+geomorph = "1.1"
 na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 console = "0.9.1"
 indicatif = "0.13.0"

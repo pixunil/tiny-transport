@@ -202,6 +202,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "geomorph"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "num-complex 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "gtfs-sim-import"
 version = "0.1.0"
 dependencies = [
@@ -210,6 +218,7 @@ dependencies = [
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "console 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "csv 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "geomorph 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtfs-sim-serialization 0.1.0",
  "gtfs-sim-simulation 0.1.0",
  "indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -719,6 +728,7 @@ dependencies = [
 "checksum encode_unicode 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "a357d28ed41a50f9c765dbfe56cbc04a64e53e5fc58ba79fbc34c10ef3df831f"
 "checksum fuchsia-cprng 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a06f77d526c1a601b7c4cdd98f54b5eaabffc14d5f2f0296febdc7f357c6d3ba"
 "checksum generic-array 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c68f0274ae0e023facc3c97b2e00f076be70e254bc851d972503b328db79b2ec"
+"checksum geomorph 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fb95bb695bd8c8b7bdaecbb6080c06f22cd9f3f0c166e56d5f722b9633389b05"
 "checksum indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8572bccfb0665e70b7faf44ee28841b8e0823450cd4ad562a76b5a3c4bf48487"
 "checksum itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f56a2d0bc861f9165be4eb3442afd3c236d8a98afd426f65d92324ae1091a484"
 "checksum itoa 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "501266b7edd0174f8530248f87f99c88fbe60ca4ef3dd486835b8d8d53136f7f"

@@ -54,7 +54,7 @@ impl Importer {
     }
 
     fn remove_spikes(shape: Shape) -> Shape {
-        let spike_angle = (120_f32).to_radians();
+        let spike_angle = 120_f64.to_radians();
         let segments = shape.windows(2)
             .map(|adjacent| adjacent[1] - adjacent[0]);
 
@@ -80,7 +80,7 @@ impl Importer {
     }
 
     fn smooth_zigzags(shape: Shape) -> Shape {
-        let zigzag_angle = (20_f32).to_radians();
+        let zigzag_angle = 20_f64.to_radians();
         let segments = shape.windows(2)
             .map(|adjacent| adjacent[1] - adjacent[0]);
 
@@ -120,8 +120,10 @@ impl Importer {
 mod tests {
     use super::*;
 
+    use na::Vector2;
+
     use crate::{map, dataset, shape};
-    use crate::shape::transform;
+    use crate::coord::project;
 
     #[test]
     fn test_remove_overlapping() {
@@ -133,14 +135,14 @@ mod tests {
     #[test]
     fn test_remove_spike() {
         let mut shape = shape!(blue);
-        shape.insert(3, transform(13.392, 52.508));
+        shape.insert(3, project(13.392, 52.508));
         assert_eq!(Importer::smooth(shape), shape!(blue));
     }
 
     #[test]
     fn test_remove_jump() {
         let mut shape = shape!(blue);
-        shape.insert(3, transform(13.386, 52.521));
+        shape.insert(3, project(13.386, 52.521));
         shape.insert(4, shape[2]);
         assert_eq!(Importer::smooth(shape), shape!(blue));
     }
@@ -149,7 +151,7 @@ mod tests {
     fn test_smooth_zigzag() {
         let mut shape = shape!(blue);
         let original = shape.remove(2);
-        let offset = transform(0.0001, 0.0).coords;
+        let offset = Vector2::new(0.0, 100.0);
         shape.insert(2, original + offset);
         shape.insert(3, original - offset);
         assert_eq!(Importer::smooth(shape), shape!(blue));

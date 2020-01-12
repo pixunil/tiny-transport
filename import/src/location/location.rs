@@ -1,8 +1,7 @@
 use std::cmp::Ordering;
 
-use na::Point2;
-
 use crate::create_id_type;
+use crate::coord::{Point, transform};
 
 create_id_type!(LocationId);
 
@@ -10,18 +9,16 @@ create_id_type!(LocationId);
 pub(crate) struct Location {
     pub id: LocationId,
     pub name: String,
-    position: Point2<f32>,
+    position: Point,
 }
 
 impl Location {
-    pub(crate) fn new(id: LocationId, name: String, position: Point2<f32>) -> Location {
+    pub(crate) fn new(id: LocationId, name: String, position: Point) -> Location {
         Location { id, name, position }
     }
 
-    pub(crate) fn position(&self) -> Point2<f32> {
-        let x = 2000.0 * (self.position.x - 13.5);
-        let y = -4000.0 * (self.position.y - 52.52);
-        Point2::new(x, y)
+    pub(crate) fn position(&self) -> Point {
+        self.position
     }
 
     pub(crate) fn station_cmp(&self, other: &Location) -> Ordering {
@@ -29,19 +26,21 @@ impl Location {
     }
 
     pub(crate) fn freeze(&self) -> serialization::Station {
-        serialization::Station::new(self.position(), self.name.clone())
+        let position = transform(self.position());
+        serialization::Station::new(position, self.name.clone())
     }
 }
 
 #[cfg(test)]
 pub(crate) mod fixtures {
     use super::*;
+    use crate::coord::project;
 
     macro_rules! locations {
         ($($location:ident: $lat:expr, $lon:expr, $name:expr);* $(;)?) => (
             $(
                 pub(crate) fn $location() -> Location {
-                    Location::new(stringify!($location).into(), $name.to_string(), Point2::new($lon, $lat))
+                    Location::new(stringify!($location).into(), $name.to_string(), project($lat, $lon))
                 }
             )*
          );

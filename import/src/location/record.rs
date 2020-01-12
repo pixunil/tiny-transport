@@ -1,10 +1,9 @@
 use std::rc::Rc;
 use std::collections::HashMap;
 
-use na::Point2;
-
 use serde_derive::Deserialize;
 
+use crate::coord::project;
 use super::{Location, LocationId, LocationKind, LocationImportError};
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -14,8 +13,8 @@ pub(super) struct LocationRecord {
     location_kind: LocationKind,
     parent_station: Option<LocationId>,
     stop_name: String,
-    stop_lat: f32,
-    stop_lon: f32,
+    stop_lat: f64,
+    stop_lon: f64,
 }
 
 impl LocationRecord {
@@ -68,7 +67,7 @@ impl LocationRecord {
 
 impl Into<Location> for LocationRecord {
     fn into(self) -> Location {
-        let position = Point2::new(self.stop_lon, self.stop_lat);
+        let position = project(self.stop_lat, self.stop_lon);
         Location::new(self.stop_id, self.stop_name, position)
     }
 }

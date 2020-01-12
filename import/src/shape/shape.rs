@@ -1,14 +1,9 @@
-use na::Point2;
-
 use crate::create_id_type;
+use crate::coord::Point;
 
 create_id_type!(ShapeId);
 
-pub(crate) type Shape = Vec<Point2<f32>>;
-
-pub(crate) fn transform(lat: f32, lon: f32) -> Point2<f32> {
-    Point2::new(lon, 2.0 * lat)
-}
+pub(crate) type Shape = Vec<Point>;
 
 #[cfg(test)]
 pub(crate) mod fixtures {
@@ -19,11 +14,12 @@ pub(crate) mod fixtures {
                     use std::collections::HashMap;
 
                     use crate::map;
-                    use crate::shape::{Shape, ShapeId, transform};
+                    use crate::coord::project;
+                    use crate::shape::{Shape, ShapeId};
 
                     $(
                         pub(crate) fn $shape() -> Shape {
-                            vec![$(transform($lat, $lon)),*]
+                            vec![$(project($lat, $lon)),*]
                         }
                     )*
 
@@ -56,7 +52,7 @@ mod tests {
     #[macro_export]
     macro_rules! shape {
         ($($lat:expr, $lon:expr);*) => (
-            vec![$($crate::shape::transform($lat, $lon)),*]
+            vec![$($crate::coord::project($lat, $lon)),*]
         );
         (blue) => (
             $crate::shape!(52.526, 13.369; 52.523, 13.378; 52.520, 13.387; 52.521, 13.394; 52.523, 13.402)

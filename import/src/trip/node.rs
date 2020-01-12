@@ -4,34 +4,27 @@ use ordered_float::NotNan;
 
 use approx::AbsDiffEq;
 
-use na::Point2;
-
 use simulation::Directions;
+use crate::coord::{Point, transform};
 use crate::location::Location;
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Node {
-    position: Point2<f32>,
+    position: Point,
     kind: Kind,
     in_directions: Directions,
 }
 
 impl Node {
-    fn transform(waypoint: Point2<f32>) -> Point2<f32> {
-        let x = 2000.0 * (waypoint.x - 13.5);
-        let y = -2000.0 * (waypoint.y - 105.04);
-        Point2::new(x, y)
-    }
-
-    pub(super) fn new(waypoint: Point2<f32>, in_directions: Directions) -> Self {
+    pub(super) fn new(position: Point, in_directions: Directions) -> Self {
         Self {
-            position: Self::transform(waypoint),
+            position,
             kind: Kind::Waypoint,
             in_directions,
         }
     }
 
-    pub(super) fn distance_to(&self, location: &Location) -> NotNan<f32> {
+    pub(super) fn distance_to(&self, location: &Location) -> NotNan<f64> {
         let distance = na::distance(&self.position, &location.position());
         NotNan::new(distance).unwrap()
     }
@@ -63,21 +56,22 @@ impl Node {
             Kind::Waypoint => simulation::NodeKind::Waypoint,
             Kind::Stop { .. } => simulation::NodeKind::Stop,
         };
-        simulation::Node::new(self.position, kind, self.in_directions)
+        let position = transform(self.position);
+        simulation::Node::new(position, kind, self.in_directions)
     }
 }
 
-type Epsilon = <Point2<f32> as AbsDiffEq>::Epsilon;
+type Epsilon = <Point as AbsDiffEq>::Epsilon;
 
 impl AbsDiffEq for Node {
     type Epsilon = Epsilon;
 
     fn default_epsilon() -> Epsilon {
-        Point2::<f32>::default_epsilon()
+        Point::default_epsilon()
     }
 
     fn abs_diff_eq(&self, other: &Node, epsilon: Epsilon) -> bool {
-        Point2::abs_diff_eq(&self.position, &other.position, epsilon) &&
+        Point::abs_diff_eq(&self.position, &other.position, epsilon) &&
             self.kind == other.kind &&
             self.in_directions == other.in_directions
 
@@ -95,7 +89,7 @@ pub(crate) enum Kind {
 #[cfg(test)]
 pub(super) mod fixtures {
     use super::*;
-    use crate::shape::transform;
+    use crate::coord::project;
     use crate::location::fixtures::*;
 
     macro_rules! nodes {
@@ -117,18 +111,18 @@ pub(super) mod fixtures {
                 in_directions: Directions::$single_direction,
             })
         );
-        ($($line:ident: $($lon:literal, $lat:literal, $in_directions:ident $(, $location:ident)?);* $(;)?)*) => (
+        ($($line:ident: $($lat:literal, $lon:literal, $in_directions:ident $(, $location:ident)?);* $(;)?)*) => (
             $(
                 pub(in crate::trip) fn $line(directions: Directions) -> Vec<Node> {
                     match directions {
                         Directions::Both => vec![$(
-                            nodes!(node Both, Node::transform(transform($lon, $lat)), nodes!(kind $($location)?), $in_directions)
+                            nodes!(node Both, project($lat, $lon), nodes!(kind $($location)?), $in_directions)
                         ),*],
                         Directions::UpstreamOnly => vec![$(
-                            nodes!(node UpstreamOnly, Node::transform(transform($lon, $lat)), nodes!(kind $($location)?), $in_directions)
+                            nodes!(node UpstreamOnly, project($lat, $lon), nodes!(kind $($location)?), $in_directions)
                         ),*].into_iter().filter_map(|node| node).collect(),
                         Directions::DownstreamOnly => vec![$(
-                            nodes!(node DownstreamOnly, Node::transform(transform($lon, $lat)), nodes!(kind $($location)?), $in_directions)
+                            nodes!(node DownstreamOnly, project($lat, $lon), nodes!(kind $($location)?), $in_directions)
                         ),*].into_iter().filter_map(|node| node).collect(),
                     }
                 }

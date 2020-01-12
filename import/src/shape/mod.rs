@@ -9,5 +9,5 @@ pub(crate) mod fixtures {
 
 use record::ShapeRecord;
 
-pub(crate) use shape::{Shape, ShapeId, transform};
+pub(crate) use shape::{Shape, ShapeId};
 pub(crate) use importer::Importer;
