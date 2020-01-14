@@ -67,20 +67,21 @@ impl Map {
             .collect()
     }
 
-    pub fn track_run_sizes(&self) -> Vec<usize> {
-        let mut buffer = Vec::new();
+    fn line_vertices_with_sizes(&self) -> (Vec<f32>, Vec<usize>) {
+        let mut vertices = Vec::new();
+        let mut sizes = Vec::new();
         for line_group in &self.line_groups {
-            line_group.fill_vertice_buffer_sizes(&mut buffer);
+            line_group.fill_vertices_buffer_with_lengths(&mut vertices, &mut sizes);
         }
-        buffer
+        (vertices, sizes)
+    }
+
+    pub fn track_run_sizes(&self) -> Vec<usize> {
+        self.line_vertices_with_sizes().1
     }
 
     pub fn line_vertices(&self) -> Vec<f32> {
-        let mut buffer = Vec::new();
-        for line_group in &self.line_groups {
-            line_group.fill_vertice_buffer_data(&mut buffer);
-        }
-        buffer
+        self.line_vertices_with_sizes().0
     }
 
     pub fn train_size(&self) -> usize {
