@@ -5,7 +5,7 @@ use itertools::Itertools;
 use serde_derive::Deserialize;
 
 use simulation::Color;
-use crate::utils::deserialize;
+use crate::deserialize;
 use crate::agency::AgencyId;
 use super::{IncompleteLine, LineId, Kind};
 

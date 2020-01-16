@@ -4,7 +4,7 @@ use serde_derive::Deserialize;
 
 use chrono::NaiveDate;
 
-use crate::utils::deserialize;
+use crate::deserialize;
 use super::{Service, ServiceId, ExceptionType};
 
 #[derive(Debug, Deserialize)]

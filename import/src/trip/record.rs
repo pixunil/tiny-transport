@@ -6,7 +6,7 @@ use serde_derive::Deserialize;
 use chrono::Duration;
 
 use simulation::Direction;
-use crate::utils::deserialize;
+use crate::deserialize;
 use crate::service::{Service, ServiceId};
 use crate::shape::ShapeId;
 use crate::location::{Location, LocationId};

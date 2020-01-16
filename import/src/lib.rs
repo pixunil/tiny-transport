@@ -12,6 +12,7 @@ use zip::{CompressionMethod, ZipArchive, ZipWriter};
 use zip::write::FileOptions;
 
 mod coord;
+mod deserialize;
 mod utils;
 mod service;
 mod agency;
