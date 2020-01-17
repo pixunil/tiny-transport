@@ -2,7 +2,7 @@ mod color;
 mod station;
 mod direction;
 mod node;
-mod line;
+pub mod line;
 mod train;
 
 pub use crate::color::Color;

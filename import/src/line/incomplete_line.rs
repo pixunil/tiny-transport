@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use simulation::Color;
+use simulation::line::Kind;
 use crate::agency::AgencyId;
 use crate::trip::Route;
-use super::{Line, Kind};
+use super::Line;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(super) struct IncompleteLine {

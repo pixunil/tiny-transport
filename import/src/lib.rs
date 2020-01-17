@@ -11,6 +11,8 @@ use chrono::prelude::*;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 use zip::write::FileOptions;
 
+use simulation::line::Kind;
+
 mod coord;
 mod deserialize;
 mod utils;
@@ -23,7 +25,7 @@ mod trip;
 
 use utils::Dataset;
 use agency::Agency;
-use line::{Line, Kind as LineKind};
+use line::Line;
 
 pub fn compress() -> Result<(), Box<dyn Error>> {
     let mut zip = ZipWriter::new(File::create("import/data/vbb.bzip")?);
@@ -60,7 +62,7 @@ fn filter(agencies: &[Agency]) -> impl Iterator<Item = &'_ Line> + Clone {
         .unwrap();
 
     agency.lines().iter()
-        .filter(|line| line.kind == LineKind::SuburbanRailway)
+        .filter(|line| line.kind == Kind::SuburbanRailway)
 }
 
 fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dyn Error>> {

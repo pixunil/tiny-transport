@@ -1,9 +1,9 @@
 use chrono::NaiveDate;
 
 use simulation::Color;
+use simulation::line::Kind;
 use crate::create_id_type;
 use crate::trip::Route;
-use super::Kind;
 
 create_id_type!(LineId);
 

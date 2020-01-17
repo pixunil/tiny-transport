@@ -5,9 +5,10 @@ use itertools::Itertools;
 use serde_derive::Deserialize;
 
 use simulation::Color;
+use simulation::line::Kind;
 use crate::deserialize;
 use crate::agency::AgencyId;
-use super::{IncompleteLine, LineId, Kind};
+use super::{IncompleteLine, LineId};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct LineRecord {
@@ -15,7 +16,7 @@ pub(super) struct LineRecord {
     line_id: LineId,
     agency_id: AgencyId,
     route_short_name: String,
-    #[serde(rename = "route_type")]
+    #[serde(rename = "route_type", deserialize_with = "deserialize::line_kind")]
     line_kind: Kind,
 }
 
