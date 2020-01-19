@@ -1,6 +1,8 @@
+use serde_derive::{Serialize, Deserialize};
+
 use crate::color::Color;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Kind {
     Railway,
     SuburbanRailway,

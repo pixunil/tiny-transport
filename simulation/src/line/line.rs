@@ -5,18 +5,21 @@ use na::Vector2;
 use crate::direction::Direction;
 use crate::node::Node;
 use crate::train::Train;
+use super::Kind;
 
 #[derive(Debug)]
 pub struct Line {
     name: String,
+    kind: Kind,
     nodes: Vec<Node>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, kind: Kind, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
         Line {
             name,
+            kind,
             nodes,
             trains,
         }
@@ -79,12 +82,28 @@ impl Line {
 }
 
 #[cfg(test)]
+mod fixtures {
+    use super::*;
+
+    use crate::node::fixtures as nodes;
+
+    pub(super) fn blue() -> Line {
+        Line {
+            name: "Blue Line".to_string(),
+            kind: Kind::SuburbanRailway,
+            nodes: nodes::blue(),
+            trains: Vec::new(),
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
     use approx::assert_relative_eq;
 
-    use crate::node::fixtures as nodes;
+    use super::fixtures as lines;
 
     fn blue_line_vertices() -> Vec<f32> {
         vec![
@@ -99,12 +118,7 @@ mod tests {
 
     #[test]
     fn test_upstream_vertices() {
-        let line = Line {
-            name: "Blue Line".to_string(),
-            nodes: nodes::blue(),
-            trains: Vec::new(),
-        };
-
+        let line = lines::blue();
         let mut vertices = Vec::new();
         line.fill_vertices_buffer_for_direction(Direction::Upstream, &mut vertices);
         assert_relative_eq!(*vertices, blue_line_vertices(), epsilon = 0.01);
@@ -112,12 +126,7 @@ mod tests {
 
     #[test]
     fn test_length_buffer() {
-        let line = Line {
-            name: "Blue Line".to_string(),
-            nodes: nodes::blue(),
-            trains: Vec::new(),
-        };
-
+        let line = lines::blue();
         let mut vertices = Vec::new();
         let mut lengths = Vec::new();
         line.fill_vertices_buffer_with_lengths(&mut vertices, &mut lengths);

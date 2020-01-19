@@ -1,19 +1,22 @@
 use serde_derive::{Serialize, Deserialize};
 
 use simulation::{Color, Node};
+use simulation::line::Kind;
 use super::train::Train;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Line {
     name: String,
+    kind: Kind,
     nodes: Vec<Node>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
+    pub fn new(name: String, kind: Kind, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
         Line {
             name,
+            kind,
             nodes,
             trains,
         }
@@ -25,7 +28,7 @@ impl Line {
             .map(|train| train.unfreeze(&nodes))
             .collect();
 
-        simulation::Line::new(self.name, nodes, trains)
+        simulation::Line::new(self.name, self.kind, nodes, trains)
     }
 }
 

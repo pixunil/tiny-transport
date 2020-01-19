@@ -32,7 +32,7 @@ impl Line {
         let nodes = route.freeze_nodes();
         let trains = route.freeze_trains(date);
         let color = self.color.clone();
-        (color, serialization::Line::new(self.name.clone(), nodes, trains))
+        (color, serialization::Line::new(self.name.clone(), self.kind, nodes, trains))
     }
 }
 
