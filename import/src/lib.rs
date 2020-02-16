@@ -1,15 +1,13 @@
 use std::error::Error;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::io::Write;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::fs::{self, File};
+use std::fs::File;
 
 use chrono::prelude::*;
 
-use zip::{CompressionMethod, ZipArchive, ZipWriter};
-use zip::write::FileOptions;
+use zip::ZipArchive;
 
 use simulation::line::Kind;
 
@@ -26,23 +24,6 @@ mod trip;
 use utils::Dataset;
 use agency::Agency;
 use line::Line;
-
-pub fn compress() -> Result<(), Box<dyn Error>> {
-    let mut zip = ZipWriter::new(File::create("import/data/vbb.bzip")?);
-    let options = FileOptions::default()
-        .compression_method(CompressionMethod::Bzip2);
-
-    for entry in fs::read_dir("import/data/vbb")? {
-        let entry = entry?;
-        zip.start_file_from_path(entry.file_name().as_ref(), options)?;
-
-        let data = fs::read(entry.path())?;
-        zip.write_all(&data)?;
-    }
-
-    zip.finish()?;
-    Ok(())
-}
 
 fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     let services = service::Importer::import(&mut dataset)?;

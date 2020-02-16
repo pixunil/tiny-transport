@@ -1,0 +1,14 @@
+[package]
+name = "gtfs-sim-bin"
+version = "0.1.0"
+authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
+edition = "2018"
+description = "Provides a command line interface"
+repository = "https://github.com/pixunil/gtfs-sim"
+license = "MIT"
+
+[dependencies]
+clap = "~2.33.0"
+zip = { version = "0.5", default-features = false, features = ["bzip2"] }
+
+import = { package = "gtfs-sim-import", path = "../import" }
