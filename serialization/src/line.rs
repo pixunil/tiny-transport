@@ -23,12 +23,13 @@ impl Line {
     }
 
     fn unfreeze(self) -> simulation::Line {
+        let kind = self.kind;
         let nodes = self.nodes;
         let trains = self.trains.into_iter()
-            .map(|train| train.unfreeze(&nodes))
+            .map(|train| train.unfreeze(kind, &nodes))
             .collect();
 
-        simulation::Line::new(self.name, self.kind, nodes, trains)
+        simulation::Line::new(self.name, kind, nodes, trains)
     }
 }
 

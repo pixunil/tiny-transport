@@ -65,7 +65,7 @@ impl Line {
         segments.insert(0, segments.first().unwrap().clone());
         segments.insert(segments.len(), segments.last().unwrap().clone());
 
-        for (waypoint, adjacent) in nodes.zip_eq(segments.windows(2)) {
+        for (node, adjacent) in nodes.zip_eq(segments.windows(2)) {
             let perp = adjacent[0].perp(&adjacent[1]);
             let miter = if perp == 0.0 {
                 Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
@@ -75,9 +75,14 @@ impl Line {
                 (following - preceding) / perp
             };
 
-            vertices.extend((waypoint.position() + miter).iter());
-            vertices.extend((waypoint.position() - miter).iter());
+            self.add_node_vertices_to_buffer(node, miter, vertices);
         }
+    }
+
+    fn add_node_vertices_to_buffer(&self, node: &Node, mut miter: Vector2<f32>, vertices: &mut Vec<f32>) {
+        miter *= self.kind.line_width() * 0.5;
+        vertices.extend((node.position() + miter).iter());
+        vertices.extend((node.position() - miter).iter());
     }
 }
 
@@ -107,12 +112,12 @@ mod tests {
 
     fn blue_line_vertices() -> Vec<f32> {
         vec![
-            200.0, 101.0,
-            200.0, 99.0,
-            219.76, 101.0,
-            220.24, 99.0,
-            229.55, 105.89,
-            230.45, 104.11,
+            200.0, 120.0,
+            200.0, 80.0,
+            215.28, 120.0,
+            224.72, 80.0,
+            221.06, 122.89,
+            238.94, 87.11,
         ]
     }
 

@@ -12,7 +12,6 @@ pub(crate) fn project(lat: f64, lon: f64) -> Point {
 }
 
 pub(crate) fn transform(point: Point) -> Point2<f32> {
-    let mut translated = point.coords - project(52.52, 13.5).coords;
-    translated *= 0.03;
+    let translated = point.coords - project(52.52, 13.5).coords;
     Point2::new(translated.x as f32, -translated.y as f32)
 }

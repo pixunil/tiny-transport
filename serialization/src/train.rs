@@ -5,6 +5,7 @@ use itertools::Itertools;
 use serde_derive::{Serialize, Deserialize};
 
 use simulation::{Direction, Node};
+use simulation::line::Kind;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Train {
@@ -17,9 +18,9 @@ impl Train {
         Train { direction, durations }
     }
 
-    pub fn unfreeze(self, nodes: &[Node]) -> simulation::Train {
+    pub fn unfreeze(self, kind: Kind, nodes: &[Node]) -> simulation::Train {
         let durations = self.interpolate_times(nodes.to_vec());
-        simulation::Train::new(self.direction, durations)
+        simulation::Train::new(kind, self.direction, durations)
     }
 
     fn interpolate_times(&self, mut nodes: Vec<Node>) -> Vec<u32> {

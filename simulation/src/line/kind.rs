@@ -1,5 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
 
+use na::Vector2;
+
 use crate::color::Color;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -13,6 +15,24 @@ pub enum Kind {
 }
 
 impl Kind {
+    pub(crate) fn line_width(self) -> f32 {
+        match self {
+            Kind::Railway => 50.0,
+            Kind::SuburbanRailway | Kind::UrbanRailway => 40.0,
+            | Kind::WaterTransport => 30.0,
+            Kind::Bus | Kind::Tram => 15.0,
+        }
+    }
+
+    pub(crate) fn train_size(self) -> Vector2<f32> {
+        match self {
+            Kind::Railway | Kind::SuburbanRailway | Kind::UrbanRailway => Vector2::new(220.0, 150.0),
+            Kind::WaterTransport => Vector2::new(180.0, 120.0),
+            Kind::Tram => Vector2::new(160.0, 100.0),
+            Kind::Bus => Vector2::new(130.0, 100.0),
+        }
+    }
+
     pub fn color(self) -> Color {
         match self {
             Kind::Railway => Color::new(227, 0, 27),

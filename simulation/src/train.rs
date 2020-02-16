@@ -2,6 +2,7 @@ use na::{Point2, Vector2, Matrix2};
 
 use crate::direction::Direction;
 use crate::node::Node;
+use crate::line::Kind;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TrainState {
@@ -43,6 +44,7 @@ impl TrainState {
 
 #[derive(Debug)]
 pub struct Train {
+    kind: Kind,
     direction: Direction,
     durations: Vec<u32>,
     current: usize,
@@ -51,8 +53,9 @@ pub struct Train {
 }
 
 impl Train {
-    pub fn new(direction: Direction, durations: Vec<u32>) -> Train {
+    pub fn new(kind: Kind, direction: Direction, durations: Vec<u32>) -> Train {
         Train {
+            kind,
             direction,
             durations,
             current: 0,
@@ -105,10 +108,10 @@ impl Train {
 
     fn write_rectangle(&self, buffer: &mut Vec<f32>, position: Point2<f32>, orientation: Vector2<f32>) {
         let bounds = Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
-        let right_front = position + bounds * Vector2::new(4.5, 3.0);
-        let left_front = position + bounds * Vector2::new(4.5, -3.0);
-        let right_back = position + bounds * Vector2::new(-4.5, 3.0);
-        let left_back = position + bounds * Vector2::new(-4.5, -3.0);
+        let right_front = position + bounds * Vector2::new(0.5, 0.5).component_mul(&self.kind.train_size());
+        let left_front = position + bounds * Vector2::new(0.5, -0.5).component_mul(&self.kind.train_size());
+        let right_back = position + bounds * Vector2::new(-0.5, 0.5).component_mul(&self.kind.train_size());
+        let left_back = position + bounds * Vector2::new(-0.5, -0.5).component_mul(&self.kind.train_size());
         buffer.extend(left_back.iter().chain(left_front.iter()).chain(right_back.iter()));
         buffer.extend(right_front.iter().chain(right_back.iter()).chain(left_front.iter()));
     }
@@ -122,10 +125,10 @@ mod tests {
 
     use crate::Directions;
     use crate::node::fixtures as nodes;
-    use crate::node::Kind;
+    use crate::node::Kind as NodeKind;
 
     fn train() -> Train {
-        Train::new(Direction::Upstream, vec![10, 1, 2, 2, 1])
+        Train::new(Kind::SuburbanRailway, Direction::Upstream, vec![10, 1, 2, 2, 1])
     }
 
     #[test]
@@ -163,7 +166,7 @@ mod tests {
     #[test]
     fn test_upstream_ignores_downstream_only() {
         let mut nodes = nodes::blue();
-        nodes.insert(1, Node::new(Point2::new(190.0, 100.0), Kind::Waypoint, Directions::DownstreamOnly));
+        nodes.insert(1, Node::new(Point2::new(190.0, 100.0), NodeKind::Waypoint, Directions::DownstreamOnly));
         let mut train = train();
         train.update(12, &nodes);
         assert_eq!(train.state, TrainState::Driving {from: 0, to: 2 });
@@ -172,7 +175,7 @@ mod tests {
     #[test]
     fn test_downstream_ignores_upstream_only() {
         let mut nodes = nodes::blue();
-        nodes.insert(2, Node::new(Point2::new(220.0, 105.0), Kind::Waypoint, Directions::UpstreamOnly));
+        nodes.insert(2, Node::new(Point2::new(220.0, 105.0), NodeKind::Waypoint, Directions::UpstreamOnly));
         let mut train = train();
         train.direction = Direction::Downstream;
         train.update(12, &nodes);
@@ -190,7 +193,7 @@ mod tests {
     #[test]
     fn test_nodes_before_start() {
         let mut nodes = nodes::blue();
-        nodes.insert(0, Node::new(Point2::new(190.0, 100.0), Kind::Waypoint, Directions::Both));
+        nodes.insert(0, Node::new(Point2::new(190.0, 100.0), NodeKind::Waypoint, Directions::Both));
         let mut train = train();
         train.durations.insert(1, 1);
 
@@ -202,7 +205,7 @@ mod tests {
     #[test]
     fn test_nodes_after_terminus() {
         let mut nodes = nodes::blue();
-        nodes.push(Node::new(Point2::new(240.0, 105.0), Kind::Waypoint, Directions::Both));
+        nodes.push(Node::new(Point2::new(240.0, 105.0), NodeKind::Waypoint, Directions::Both));
         let mut train = train();
         train.durations.push(1);
 
@@ -216,14 +219,14 @@ mod tests {
         let mut train = train();
         train.update(10, &nodes::blue());
         let mut buffer = Vec::new();
-        train.write_rectangle(&mut buffer, Point2::new(200.0, 100.0), Vector2::new(1.0, 0.0));
+        train.write_rectangle(&mut buffer, Point2::new(250.0, 200.0), Vector2::new(1.0, 0.0));
         assert_relative_eq!(*buffer, [
-            195.5, 97.0,
-            204.5, 97.0,
-            195.5, 103.0,
-            204.5, 103.0,
-            195.5, 103.0,
-            204.5, 97.0,
+            140.0, 125.0,
+            360.0, 125.0,
+            140.0, 275.0,
+            360.0, 275.0,
+            140.0, 275.0,
+            360.0, 125.0,
         ]);
     }
 }

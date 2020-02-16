@@ -134,7 +134,7 @@ class StationRenderer extends Renderer {
     run() {
         this.gl.useProgram(this.programInfo.program);
 
-        this.gl.uniform1f(this.uniformLocations.size, 6.0 * this.view.scaling());
+        this.gl.uniform1f(this.uniformLocations.size, 90.0 * this.view.scaling());
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);

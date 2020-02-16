@@ -16,7 +16,7 @@ impl Station {
     }
 
     pub fn contains(&self, position: Point2<f32>) -> bool {
-        na::distance(&self.position, &position) <= 5.0
+        na::distance(&self.position, &position) <= 90.0
     }
 
     pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>) {
@@ -56,9 +56,9 @@ mod tests {
     #[test]
     fn test_station_excludes_outside() {
         let station = station!(main_station);
-        assert!(!station.contains(Point2::new(195.0, 95.0)));
-        assert!(!station.contains(Point2::new(205.0, 105.0)));
-        assert!(!station.contains(Point2::new(206.0, 100.0)));
+        assert!(!station.contains(Point2::new(110.0, 10.0)));
+        assert!(!station.contains(Point2::new(290.0, 190.0)));
+        assert!(!station.contains(Point2::new(290.5, 100.0)));
     }
 
     #[test]
