@@ -11,7 +11,7 @@ create_id_type!(LineId);
 pub(crate) struct Line {
     name: String,
     color: Color,
-    pub(crate) kind: Kind,
+    kind: Kind,
     pub(crate) routes: Vec<Route>,
 }
 
@@ -23,6 +23,14 @@ impl Line {
             kind,
             routes,
         }
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn kind(&self) -> Kind {
+        self.kind
     }
 
     pub(crate) fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {

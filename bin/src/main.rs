@@ -1,7 +1,9 @@
+use std::convert::TryFrom;
 use std::error::Error;
 
 use clap::clap_app;
 
+use import::profile::Profile;
 use import::import;
 
 mod compress;
@@ -17,6 +19,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         (@subcommand import =>
             (@arg DATASET: +required "Path to gtfs dataset")
+            (@arg PROFILE: --profile +takes_value "Profile used for importing")
         )
     ).get_matches();
 
@@ -28,7 +31,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
         ("import", Some(import_matches)) => {
             let dataset = import_matches.value_of_os("DATASET").unwrap();
-            import(dataset)
+            let profile = match import_matches.value_of("PROFILE") {
+                Some(profile_name) => Profile::try_from(profile_name)?,
+                None => Profile::default(),
+            };
+            import(dataset, profile)
         },
         ("", None) => Ok(()),
         _ => unreachable!(),

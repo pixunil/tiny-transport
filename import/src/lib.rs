@@ -9,8 +9,6 @@ use chrono::prelude::*;
 
 use zip::ZipArchive;
 
-use simulation::line::Kind;
-
 mod coord;
 mod deserialize;
 mod utils;
@@ -20,10 +18,12 @@ mod shape;
 mod location;
 mod line;
 mod trip;
+pub mod profile;
 
 use utils::Dataset;
 use agency::Agency;
 use line::Line;
+use profile::Profile;
 
 fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     let services = service::Importer::import(&mut dataset)?;
@@ -37,17 +37,8 @@ fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     Ok(agencies)
 }
 
-fn filter(agencies: &[Agency]) -> impl Iterator<Item = &'_ Line> + Clone {
-    let agency = agencies.iter()
-        .find(|agency| agency.name() == "S-Bahn Berlin GmbH")
-        .unwrap();
-
-    agency.lines().iter()
-        .filter(|line| line.kind == Kind::SuburbanRailway)
-}
-
-fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dyn Error>> {
-    let mut stations = lines.clone()
+fn store(lines: Vec<&Line>) -> Result<(), Box<dyn Error>> {
+    let mut stations = lines.iter()
         .flat_map(|line| &line.routes)
         .flat_map(|route| route.locations())
         .cloned()
@@ -79,7 +70,7 @@ fn store<'a>(lines: impl Iterator<Item = &'a Line> + Clone) -> Result<(), Box<dy
     Ok(())
 }
 
-pub fn import(path: impl AsRef<OsStr>) -> Result<(), Box<dyn Error>> {
+pub fn import(path: impl AsRef<OsStr>, profile: Profile) -> Result<(), Box<dyn Error>> {
     let path = Path::new(&path);
     let agencies = if path.is_dir() {
         let mut path = PathBuf::from(&path);
@@ -89,6 +80,6 @@ pub fn import(path: impl AsRef<OsStr>) -> Result<(), Box<dyn Error>> {
         let archive = ZipArchive::new(File::open(&path)?)?;
         fetch(archive)?
     };
-    let lines = filter(&agencies);
+    let lines = profile.filter(agencies.iter());
     store(lines)
 }
