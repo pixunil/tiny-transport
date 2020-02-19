@@ -53,54 +53,96 @@ impl StopRecord {
 mod tests {
     use super::*;
 
-    use crate::{map, trip_buffer};
-    use crate::service::fixtures::*;
+    use crate::map;
+    use crate::trip::fixtures::*;
 
-    fn blue_trip_record() -> TripRecord {
+    fn u4_trip_record() -> TripRecord {
         TripRecord {
-            trip_id: "1".into(),
-            route_id: "1".into(),
-            service_id: "1".into(),
-            shape_id: "1".into(),
+            trip_id: "u4_0".into(),
+            route_id: "u4".into(),
+            service_id: "mon_fri".into(),
+            shape_id: "u4".into(),
             direction_id: Direction::Upstream,
-        }
-    }
-
-    fn services() -> HashMap<ServiceId, Rc<Service>> {
-        map! {
-            "1" => Rc::new(services::mon_fri()),
         }
     }
 
     #[test]
     fn test_import_trip() {
-        let record = blue_trip_record();
+        let record = u4_trip_record();
         let id_mapping = map! {
-            "1" => 0,
+            "u4" => 0,
         };
         let mut buffers = HashMap::new();
-        record.import(&id_mapping, &services(), &mut buffers);
+        record.import(&id_mapping, &services::by_id(), &mut buffers);
         assert_eq!(buffers, map! {
-            "1" => trip_buffer!(blue, Upstream, 1, []),
+            "u4_0" => trip_buffers::u4::empty(0, 0.0),
         });
     }
 
     #[test]
     fn test_merges_lines() {
-        let first = blue_trip_record();
-        let mut second = blue_trip_record();
-        second.trip_id = "2".into();
-        second.route_id = "2".into();
+        let first = u4_trip_record();
+        let mut second = u4_trip_record();
+        second.trip_id = "u4_duplicate_0".into();
+        second.route_id = "u4_duplicate".into();
         let id_mapping = map! {
-            "1" => 0,
-            "2" => 0,
+            "u4" => 0,
+            "u4_duplicate" => 0,
         };
         let mut buffers = HashMap::new();
-        first.import(&id_mapping, &services(), &mut buffers);
-        second.import(&id_mapping, &services(), &mut buffers);
+        first.import(&id_mapping, &services::by_id(), &mut buffers);
+        second.import(&id_mapping, &services::by_id(), &mut buffers);
         assert_eq!(buffers, map! {
-            "1" => trip_buffer!(blue, Upstream, 1, []),
-            "2" => trip_buffer!(blue, Upstream, 1, []),
+            "u4_0" => trip_buffers::u4::empty(0, 0.0),
+            "u4_duplicate_0" => trip_buffers::u4::empty(0, 0.0),
+        });
+    }
+
+    #[test]
+    fn test_import_stops() {
+        let records = vec![
+            StopRecord {
+                trip_id: "u4_0".into(),
+                stop_id: "nollendorfplatz".into(),
+                arrival_time: Duration::seconds(16560),
+                departure_time: Duration::seconds(16560),
+            },
+            StopRecord {
+                trip_id: "u4_0".into(),
+                stop_id: "viktoria_luise_platz".into(),
+                arrival_time: Duration::seconds(16680),
+                departure_time: Duration::seconds(16680),
+            },
+            StopRecord {
+                trip_id: "u4_0".into(),
+                stop_id: "bayerischer_platz".into(),
+                arrival_time: Duration::seconds(16770),
+                departure_time: Duration::seconds(16770),
+            },
+            StopRecord {
+                trip_id: "u4_0".into(),
+                stop_id: "rathaus_schoeneberg".into(),
+                arrival_time: Duration::seconds(16860),
+                departure_time: Duration::seconds(16860),
+            },
+            StopRecord {
+                trip_id: "u4_0".into(),
+                stop_id: "innsbrucker_platz".into(),
+                arrival_time: Duration::seconds(16920),
+                departure_time: Duration::seconds(16920),
+            },
+        ];
+
+        let mut buffers = map! {
+            "u4_0" => trip_buffers::u4::empty(0, 0.0),
+        };
+
+        for record in records {
+            record.import(&locations::by_id(), &mut buffers);
+        }
+
+        assert_eq!(buffers, map! {
+            "u4_0" => trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0),
         });
     }
 }

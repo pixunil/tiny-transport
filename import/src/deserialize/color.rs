@@ -39,7 +39,7 @@ mod tests {
     use super::*;
 
     use serde::de::IntoDeserializer;
-    use serde::de::value::{StrDeserializer, Error as ValueError};
+    use serde::de::value::{U64Deserializer, StrDeserializer, Error as ValueError};
 
     #[test]
     fn test_six_digit_hex() {
@@ -73,5 +73,12 @@ mod tests {
         let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
         let error = color(deserializer).unwrap_err();
         assert_eq!(error.to_string(), "invalid hex string: , expected 7 instead of 0 characters");
+    }
+
+    #[test]
+    fn test_invalid_type() {
+        let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
+        let error = color(deserializer).unwrap_err();
+        assert_eq!(error.to_string(), "invalid type: integer `0`, expected color hex string");
     }
 }

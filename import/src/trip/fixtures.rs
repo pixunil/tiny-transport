@@ -6,6 +6,7 @@ pub(super) use super::node::fixtures as nodes;
 pub(super) use super::trip::fixtures as trips;
 pub(super) use super::route_variant::fixtures as route_variants;
 pub(super) use super::route_buffer::fixtures as route_buffers;
+pub(super) use super::trip_buffer::fixtures as trip_buffers;
 
 macro_rules! stop_locations {
     ($($line:ident: {$($route:ident => [$($location:ident),* $(,)?]),* $(,)?}),* $(,)?) => (
@@ -27,6 +28,17 @@ macro_rules! stop_locations {
 }
 
 stop_locations! {
+    u4: {
+        empty => [],
+        nollendorfplatz_innsbrucker_platz => [
+            nollendorfplatz, viktoria_luise_platz, bayerischer_platz,
+            rathaus_schoeneberg, innsbrucker_platz,
+        ],
+        innsbrucker_platz_nollendorfplatz => [
+            innsbrucker_platz, rathaus_schoeneberg, bayerischer_platz,
+            viktoria_luise_platz, nollendorfplatz,
+        ],
+    },
     tram_12: {
         oranienburger_tor_am_kupfergraben => [
             oranienburger_tor, friedrichstr, universitaetsstr, am_kupfergraben,

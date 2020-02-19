@@ -34,6 +34,9 @@ impl Location {
 #[cfg(test)]
 pub(crate) mod fixtures {
     use super::*;
+    use std::rc::Rc;
+    use std::collections::HashMap;
+    use crate::map;
     use crate::coord::project;
 
     macro_rules! locations {
@@ -43,6 +46,12 @@ pub(crate) mod fixtures {
                     Location::new(stringify!($location).into(), $name.to_string(), project($lat, $lon))
                 }
             )*
+
+            pub(crate) fn by_id() -> HashMap<LocationId, Rc<Location>> {
+                map! {
+                    $( stringify!($location) => Rc::new($location()) ),*
+                }
+            }
          );
     }
 
@@ -54,6 +63,11 @@ pub(crate) mod fixtures {
         ostkreuz:                            52.503, 13.469, "Ostkreuz";
         suedkreuz:                           52.475, 13.366, "Südkreuz";
         westkreuz:                           52.501, 13.283, "Westkreuz";
+        nollendorfplatz:                     52.500, 13.354, "Nollendorfplatz";
+        viktoria_luise_platz:                52.496, 13.343, "Viktoria-Luise-Platz";
+        bayerischer_platz:                   52.489, 13.340, "Bayerischer Platz";
+        rathaus_schoeneberg:                 52.483, 13.342, "Rathaus Schöneberg";
+        innsbrucker_platz:                   52.478, 13.343, "Innsbrucker Platz";
         oranienburger_tor:                   52.525, 13.388, "Oranienburger Tor";
         universitaetsstr:                    52.519, 13.392, "Universitätsstr.";
         am_kupfergraben:                     52.519, 13.395, "Am Kupfergraben";

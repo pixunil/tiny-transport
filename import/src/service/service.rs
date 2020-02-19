@@ -47,6 +47,9 @@ impl Service {
 #[cfg(test)]
 pub(crate) mod fixtures {
     use super::*;
+    use std::rc::Rc;
+    use std::collections::HashMap;
+    use crate::map;
 
     macro_rules! services {
         ($($service:ident: $start:expr, $end:expr, $weekdays:expr);* $(;)?) => (
@@ -57,6 +60,12 @@ pub(crate) mod fixtures {
                     Service::new(start, end, $weekdays)
                 }
             )*
+
+            pub(crate) fn by_id() -> HashMap<ServiceId, Rc<Service>> {
+                map! {
+                    $( stringify!($service) => Rc::new($service()) ),*
+                }
+            }
         );
     }
 

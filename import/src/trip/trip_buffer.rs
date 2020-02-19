@@ -76,7 +76,7 @@ impl TripBuffer {
 #[cfg(test)]
 pub(super) mod fixtures {
     macro_rules! trip_buffers {
-        ($($line:ident: $line_id:expr, {$($trip:ident => $direction:ident, $service:ident, [$($arrival:expr),*], [$($departure:expr),*]);* $(;)?}),* $(,)?) => (
+        ($($line:ident: $line_id:expr, {$($trip:ident => $direction:ident, $service:ident, $shape:ident, [$($arrival:expr),*], [$($departure:expr),*]);* $(;)?}),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
                     use simulation::Direction;
@@ -84,15 +84,21 @@ pub(super) mod fixtures {
                     use crate::trip::trip_buffer::*;
 
                     $(
-                        pub(in crate::trip) fn $trip(start: i64) -> TripBuffer {
+                        pub(in crate::trip) fn $trip(hour: i64, minute: f64) -> TripBuffer {
+                            #[allow(unused_variable)]
+                            let start = hour * 3600 + (minute * 60.0) as i64;
                             TripBuffer {
                                 line_id: $line_id,
                                 service: Rc::new(services::$service()),
-                                shape_id: stringify!($trip).into(),
+                                shape_id: stringify!($shape).into(),
                                 direction: Direction::$direction,
                                 locations: stop_locations::$line::$trip(),
-                                arrivals: vec![$(Duration::minutes(start + $arrival)),*],
-                                departures: vec![$(Duration::minutes(start + $departure)),*],
+                                arrivals: vec![$(
+                                    Duration::seconds(start + ($arrival as f64 * 60.0) as i64)
+                                ),*],
+                                departures: vec![$(
+                                    Duration::seconds(start + ($arrival as f64 * 60.0) as i64)
+                                ),*],
                             }
                         }
                     )*
@@ -102,9 +108,18 @@ pub(super) mod fixtures {
     }
 
     trip_buffers! {
+        u4: 0, {
+            empty => Upstream, mon_fri, u4, [], [];
+            nollendorfplatz_innsbrucker_platz => Upstream, mon_fri, u4,
+                [0, 2, 3.5, 5, 6], [0, 2, 3.5, 5, 6];
+            innsbrucker_platz_nollendorfplatz => Downstream, mon_fri, u4,
+                [0, 1, 2.5, 4, 6], [0, 1, 2.5, 4, 6];
+        },
         tram_12: 0, {
-            oranienburger_tor_am_kupfergraben => Upstream, mon_fri, [0, 2, 4, 5], [0, 2, 4, 5];
-            am_kupfergraben_oranienburger_tor => Downstream, mon_fri, [0, 1, 4, 6], [0, 1, 4, 6];
+            oranienburger_tor_am_kupfergraben => Upstream, mon_fri, oranienburger_tor_am_kupfergraben,
+                [0, 2, 4, 5], [0, 2, 4, 5];
+            am_kupfergraben_oranienburger_tor => Downstream, mon_fri, am_kupfergraben_oranienburger_tor,
+                [0, 1, 4, 6], [0, 1, 4, 6];
         },
     }
 }
@@ -115,80 +130,42 @@ mod tests {
 
     use crate::map;
     use crate::trip::fixtures::*;
-    use super::fixtures as trip_buffers;
-
-    #[macro_export]
-    macro_rules! trip_buffer {
-        ($line:expr, $service:ident, $shape:expr, $direction:ident, $start:expr, [$(($station:ident, $arrival:expr, $departure:expr)),* $(,)?]) => ({
-            let service = Rc::new($crate::service::fixtures::services::$service());
-            #[allow(unused_mut)]
-            let mut trip_buffer = TripBuffer::new($line, service, $shape.into(), simulation::Direction::$direction);
-            $(
-                let location = Rc::new($crate::location::fixtures::locations::$station());
-                trip_buffer.add_stop(location, Duration::minutes($start + $arrival), Duration::minutes($start + $departure));
-            )*
-            trip_buffer
-        });
-        (blue, Upstream, $start:expr, $locations:tt) => (
-            $crate::trip_buffer!(0, mon_fri, "1", Upstream, $start, $locations)
-        );
-        (blue, Upstream, $start:expr) => (
-            $crate::trip_buffer!(blue, Upstream, $start, [
-                (hauptbahnhof, 0, 0),
-                (friedrichstr, 4, 5),
-                (hackescher_markt, 9, 9),
-             ])
-        );
-        (blue, Downstream, $start:expr, $locations:tt) => (
-            $crate::trip_buffer!(0, mon_fri, "2", Downstream, $start, $locations)
-        );
-        (blue, Downstream, $start:expr) => (
-            $crate::trip_buffer!(blue, Downstream, $start, [
-                (hackescher_markt, 0, 0),
-                (friedrichstr, 4, 5),
-                (hauptbahnhof, 9, 9),
-             ])
-        );
-    }
 
     #[test]
     fn test_add_stop() {
-        let mut buffer = trip_buffer!(blue, Upstream, 1, []);
-        buffer.add_stop(Rc::new(locations::hauptbahnhof()), Duration::minutes(1), Duration::minutes(1));
-        buffer.add_stop(Rc::new(locations::friedrichstr()), Duration::minutes(5), Duration::minutes(6));
-        buffer.add_stop(Rc::new(locations::hackescher_markt()), Duration::minutes(10), Duration::minutes(10));
-        assert_eq!(buffer.locations, [Rc::new(locations::hauptbahnhof()),
-            Rc::new(locations::friedrichstr()), Rc::new(locations::hackescher_markt())]);
-        assert_eq!(buffer.arrivals, vec![Duration::minutes(1), Duration::minutes(5), Duration::minutes(10)]);
-        assert_eq!(buffer.departures, vec![Duration::minutes(1), Duration::minutes(6), Duration::minutes(10)]);
+        let mut buffer = trip_buffers::u4::empty(0, 0.0);
+        buffer.add_stop(Rc::new(locations::innsbrucker_platz()), Duration::seconds(16560), Duration::seconds(16560));
+        assert_eq!(buffer.locations, [Rc::new(locations::innsbrucker_platz())]);
+        assert_eq!(buffer.arrivals, vec![Duration::seconds(16560)]);
+        assert_eq!(buffer.departures, vec![Duration::seconds(16560)]);
     }
 
     #[test]
     fn test_termini_for_upstream() {
-        let buffer = trip_buffer!(blue, Upstream, 1);
-        assert_eq!(buffer.termini(), (locations::hauptbahnhof().id, locations::hackescher_markt().id));
+        let buffer = trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0);
+        assert_eq!(buffer.termini(), (locations::nollendorfplatz().id, locations::innsbrucker_platz().id));
     }
 
     #[test]
     fn test_termini_for_downstream() {
-        let buffer = trip_buffer!(blue, Downstream, 1);
-        assert_eq!(buffer.termini(), (locations::hauptbahnhof().id, locations::hackescher_markt().id));
+        let buffer = trip_buffers::u4::innsbrucker_platz_nollendorfplatz(4, 46.0);
+        assert_eq!(buffer.termini(), (locations::nollendorfplatz().id, locations::innsbrucker_platz().id));
     }
 
     #[test]
     fn test_durations() {
-        let buffer = trip_buffer!(blue, Upstream, 1);
-        let expected_durations = [1, 0, 4, 1, 4, 0].iter().copied().map(Duration::minutes).collect::<Vec<_>>();
+        let buffer = trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0);
+        let expected_durations = [16560, 0, 120, 0, 90, 0, 90, 0, 60, 0].iter().copied().map(Duration::seconds).collect::<Vec<_>>();
         assert_eq!(buffer.durations(), expected_durations);
-        let buffer = trip_buffer!(blue, Upstream, 21);
-        let expected_durations = [21, 0, 4, 1, 4, 0].iter().copied().map(Duration::minutes).collect::<Vec<_>>();
+        let buffer = trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 46.0);
+        let expected_durations = [17160, 0, 120, 0, 90, 0, 90, 0, 60, 0].iter().copied().map(Duration::seconds).collect::<Vec<_>>();
         assert_eq!(buffer.durations(), expected_durations);
     }
 
     #[test]
     fn test_create_route_with_upstream_buffer() {
         let mut route_buffers = vec![HashMap::new()];
-        let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(542);
+        let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
         assert_eq!(route_buffers[0], map! {
             (locations::oranienburger_tor().id, locations::am_kupfergraben().id) => route_buffers::tram_12::with_1_upstream(),
@@ -198,7 +175,7 @@ mod tests {
     #[test]
     fn test_create_route_with_downstream_buffer() {
         let mut route_buffers = vec![HashMap::new()];
-        let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(514);
+        let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
         assert_eq!(route_buffers[0], map! {
             (locations::oranienburger_tor().id, locations::am_kupfergraben().id) => route_buffers::tram_12::with_1_downstream(),
@@ -208,9 +185,9 @@ mod tests {
     #[test]
     fn test_add_trips_to_route() {
         let mut route_buffers = vec![HashMap::new()];
-        let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(542);
+        let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
-        let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(514);
+        let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
         assert_eq!(route_buffers[0], map! {
             (locations::oranienburger_tor().id, locations::am_kupfergraben().id) => route_buffers::tram_12::with_1_upstream_1_downstream(),

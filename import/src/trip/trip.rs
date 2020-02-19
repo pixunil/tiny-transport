@@ -48,11 +48,15 @@ pub(super) mod fixtures {
                     use crate::trip::trip::*;
 
                     $(
-                        pub(in crate::trip) fn $trip(start: i64) -> Trip {
+                        pub(in crate::trip) fn $trip(hour: i64, minute: f64) -> Trip {
+                            let start = hour * 3600 + (minute * 60.0) as i64;
                             Trip {
                                 direction: Direction::$direction,
                                 service: Rc::new(services::$service()),
-                                durations: vec![Duration::minutes(start), $(Duration::minutes($time)),*],
+                                durations: vec![
+                                    Duration::seconds(start),
+                                    $( Duration::seconds(($time as f64 * 60.0) as i64) ),*
+                                ],
                             }
                         }
                     )*
@@ -77,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_available_at() {
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(542);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(trip.available_at(date));
     }

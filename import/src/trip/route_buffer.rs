@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn test_create_first_upstream_variant() {
         let mut buffer = RouteBuffer::new();
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(542);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
         buffer.add_trip(stop_locations::tram_12::oranienburger_tor_am_kupfergraben(), &shapes::tram_12::oranienburger_tor_am_kupfergraben(), trip);
         assert_eq!(buffer, route_buffers::tram_12::with_1_upstream());
     }
@@ -106,7 +106,7 @@ mod tests {
     #[test]
     fn test_create_first_downstream_variant() {
         let mut buffer = RouteBuffer::new();
-        let trip = trips::tram_12::am_kupfergraben_oranienburger_tor(514);
+        let trip = trips::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
         buffer.add_trip(stop_locations::tram_12::am_kupfergraben_oranienburger_tor(), &shapes::tram_12::am_kupfergraben_oranienburger_tor(), trip);
         assert_eq!(buffer, route_buffers::tram_12::with_1_downstream());
     }
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn test_append_to_upstream_variant() {
         let mut buffer = route_buffers::tram_12::with_1_upstream();
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(552);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 12.0);
         buffer.add_trip(stop_locations::tram_12::oranienburger_tor_am_kupfergraben(), &shapes::tram_12::oranienburger_tor_am_kupfergraben(), trip);
         assert_eq!(buffer, route_buffers::tram_12::with_2_upstream());
     }

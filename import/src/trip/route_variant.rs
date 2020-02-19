@@ -90,7 +90,7 @@ impl RouteVariant {
 #[cfg(test)]
 pub(super) mod fixtures {
     macro_rules! route_variants {
-        ($($line:ident: {$($variant:ident: $route:ident, [$($start:expr),* $(,)?]),* $(,)?}),* $(,)?) => (
+        ($($line:ident: {$($variant:ident: $route:ident, [$($hour:expr, $minute:expr);* $(;)?]),* $(,)?}),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
                     use crate::trip::fixtures::*;
@@ -101,7 +101,7 @@ pub(super) mod fixtures {
                             RouteVariant {
                                 locations: stop_locations::$line::$route(),
                                 shape: shapes::$line::$route(),
-                                trips: vec![$( trips::$line::$route($start) ),*],
+                                trips: vec![$( trips::$line::$route($hour, $minute) ),*],
                             }
                         }
                     )*
@@ -112,9 +112,9 @@ pub(super) mod fixtures {
 
     route_variants! {
         tram_12: {
-            upstream_1_trip: oranienburger_tor_am_kupfergraben, [542],
-            downstream_1_trip: am_kupfergraben_oranienburger_tor, [514],
-            upstream_2_trips: oranienburger_tor_am_kupfergraben, [542, 552],
+            upstream_1_trip: oranienburger_tor_am_kupfergraben, [9, 2.0],
+            downstream_1_trip: am_kupfergraben_oranienburger_tor, [8, 34.0],
+            upstream_2_trips: oranienburger_tor_am_kupfergraben, [9, 2.0; 9, 12.0],
         },
     }
 }
