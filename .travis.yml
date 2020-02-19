@@ -1,5 +1,4 @@
 language: rust
-sudo: required
 
 cache:
   directories:
@@ -9,11 +8,6 @@ git:
   lfs_skip_smudge: true
 
 os: linux
-
-addons:
-  apt:
-    packages:
-      - libssl-dev
 
 rust:
   - stable
@@ -26,7 +20,7 @@ script:
 
 after_success: |
   if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin sh -c "cargo tarpaulin --all --ignore-tests --out Xml" &&
+    docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin sh -c "cargo tarpaulin --ignore-tests --out Xml" &&
     bash <(curl -s https://codecov.io/bash)
   fi
 
@@ -34,11 +28,11 @@ jobs:
   include:
     - stage: build
       install:
-        - cargo install --force wasm-pack
+        - cargo install wasm-pack
       before_script:
         - git lfs pull
       script:
-        - cargo run --package gtfs-sim-import --release import import/data/vbb.bzip
+        - cargo run --release import import/data/vbb.bzip
         - wasm-pack build wasm --target web --out-dir www/wasm
       after_success:
         - echo "Skipped coverage reporting"
