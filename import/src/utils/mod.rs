@@ -6,8 +6,6 @@ pub(crate) use dataset::Dataset;
 #[macro_export]
 macro_rules! create_id_type {
     ($name:ident) => (
-        use std::fmt;
-
         use serde_derive::Deserialize;
 
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
@@ -19,8 +17,8 @@ macro_rules! create_id_type {
             }
         }
 
-        impl fmt::Display for $name {
-            fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        impl std::fmt::Display for $name {
+            fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 self.0.fmt(formatter)
             }
         }

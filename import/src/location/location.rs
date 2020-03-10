@@ -1,11 +1,12 @@
 use std::cmp::Ordering;
+use std::fmt;
 
 use crate::create_id_type;
-use crate::coord::{Point, transform};
+use crate::coord::{Point, transform, debug_position};
 
 create_id_type!(LocationId);
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub(crate) struct Location {
     pub id: LocationId,
     pub name: String,
@@ -28,6 +29,17 @@ impl Location {
     pub(crate) fn freeze(&self) -> serialization::Station {
         let position = transform(self.position());
         serialization::Station::new(position, self.name.clone())
+    }
+}
+
+impl fmt::Debug for Location {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let position = debug_position(self.position, formatter.alternate());
+        formatter.debug_struct("Location")
+            .field("id", &self.id)
+            .field("name", &self.name)
+            .field("position", &position)
+            .finish()
     }
 }
 

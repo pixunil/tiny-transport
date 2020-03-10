@@ -1,14 +1,15 @@
 use std::rc::Rc;
+use std::fmt;
 
 use ordered_float::NotNan;
 
 use approx::AbsDiffEq;
 
 use simulation::Directions;
-use crate::coord::{Point, transform};
+use crate::coord::{Point, transform, debug_position};
 use crate::location::Location;
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq)]
 pub(super) struct Node {
     position: Point,
     kind: Kind,
@@ -78,7 +79,28 @@ impl AbsDiffEq for Node {
     }
 }
 
-#[derive(Debug, PartialEq)]
+impl fmt::Debug for Node {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let position = debug_position(self.position, formatter.alternate());
+        match &self.kind {
+            Kind::Waypoint => {
+                formatter.debug_struct("Waypoint")
+                    .field("position", &position)
+                    .field("in_directions", &self.in_directions)
+                    .finish()
+            },
+            Kind::Stop {location} => {
+                formatter.debug_struct("Stop")
+                    .field("position", &position)
+                    .field("location", &location)
+                    .field("in_directions", &self.in_directions)
+                    .finish()
+            },
+        }
+    }
+}
+
+#[derive(PartialEq)]
 pub(crate) enum Kind {
     Waypoint,
     Stop {
