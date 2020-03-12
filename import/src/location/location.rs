@@ -84,5 +84,16 @@ pub(crate) mod fixtures {
         universitaetsstr:                    52.519, 13.392, "Universitätsstr.";
         am_kupfergraben:                     52.519, 13.395, "Am Kupfergraben";
         georgenstr_am_kupfergraben:          52.520, 13.394, "Georgenstr./Am Kupfergraben";
+        wannsee:                             52.421, 13.179, "Wannsee";
+        wannseebruecke:                      52.420, 13.175, "Wannseebrücke";
+        am_kleinen_wannsee:                  52.420, 13.167, "Am Kleinen Wannsee";
+        seglerweg:                           52.424, 13.161, "Seglerweg";
+        koblanckstr:                         52.427, 13.162, "Koblanckstr.";
+        liebermann_villa:                    52.429, 13.164, "Liebermann-Villa";
+        am_grossen_wannsee:                  52.432, 13.165, "Am Großen Wannsee";
+        haus_der_wannsee_konferenz:          52.433, 13.164, "Haus der Wannsee-Konferenz";
+        zum_heckeshorn:                      52.430, 13.161, "Zum Heckeshorn";
+        strasse_zum_loewen:                  52.427, 13.160, "Straße zum Löwen";
+        conradstr:                           52.420, 13.162, "Conradstr.";
     }
 }

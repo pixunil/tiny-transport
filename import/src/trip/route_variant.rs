@@ -1,10 +1,75 @@
 use std::iter;
 use std::rc::Rc;
 
+use ordered_float::NotNan;
+
 use simulation::Direction;
 use crate::shape::Shape;
 use crate::location::Location;
 use super::{Node, Trip, Route};
+
+struct StopCandidate {
+    pos: usize,
+    distance: NotNan<f64>,
+    location: Rc<Location>,
+}
+
+impl StopCandidate {
+    fn find_nearest(nodes: &[Node], lower: usize, upper: usize, location: Rc<Location>) -> Self {
+        let (pos, node) = nodes[lower..upper].iter()
+            .enumerate()
+            .min_by_key(|(_, node)| node.distance_to(&location))
+            .unwrap();
+        Self {
+            pos: pos + lower,
+            distance: node.distance_to(&location),
+            location,
+        }
+    }
+
+    fn distribute_across<'a>(nodes: &[Node], locations: &[Rc<Location>]) -> Vec<Self> {
+        let mut candidates: Vec<Self> = Vec::with_capacity(locations.len());
+        for (i, location) in locations.iter().enumerate() {
+            let upper = nodes.len() + i - locations.len() + 1;
+            let candidate_nearest = Self::find_nearest(&nodes, i, upper, Rc::clone(location));
+
+            if candidates.last().map_or(true, |last| last.pos < candidate_nearest.pos) {
+                candidates.push(candidate_nearest);
+                continue;
+            }
+
+            let (at, lower) = candidates.iter()
+                .enumerate()
+                .map(|(i, candidate)| (i + 1, candidate.pos))
+                .rfind(|&(at, pos)| {
+                    let following = candidates.len() - at;
+                    pos + following < candidate_nearest.pos
+                }).unwrap_or((0, 0));
+            let locations_brought_forward = candidates[at..].iter().map(|position| &position.location).cloned().collect::<Vec<_>>();
+            let mut candidates_brought_forward = Self::distribute_across(&nodes[lower..candidate_nearest.pos], &locations_brought_forward);
+            for position in &mut candidates_brought_forward {
+                position.pos += lower;
+            }
+
+            let candidate_behind = Self::find_nearest(&nodes, candidates.last().map_or(0, |last| last.pos), nodes.len() - 1, Rc::clone(location));
+            if candidate_nearest.total_difference(&candidates_brought_forward) <= candidate_behind.total_difference(&candidates[at..]) {
+                candidates.splice(at.., candidates_brought_forward);
+                candidates.push(candidate_nearest);
+            } else {
+                candidates.push(candidate_behind);
+            }
+        }
+        candidates
+    }
+
+    fn total_difference(&self, candidates: &[Self]) -> f64 {
+        *self.distance + candidates.iter().map(|candidate| *candidate.distance).sum::<f64>()
+    }
+
+    fn accept(self, nodes: &mut [Node]) {
+        nodes[self.pos].make_stop(self.location);
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub(super) struct RouteVariant {
@@ -39,23 +104,11 @@ impl RouteVariant {
             })
             .collect::<Vec<_>>();
 
-        let mut lower = 0;
-        for (i, location) in self.locations.iter().enumerate() {
-            let upper = nodes.len() - (self.locations.len() - i);
-            let pos = Self::find_nearest_node(&mut nodes[lower ..= upper], Rc::clone(location));
-            lower += pos + 1;
+        for candidate in StopCandidate::distribute_across(&nodes, &self.locations) {
+            candidate.accept(&mut nodes);
         }
 
         nodes
-    }
-
-    fn find_nearest_node(nodes: &mut [Node], location: Rc<Location>) -> usize {
-        let (pos, node) = nodes.iter_mut()
-            .enumerate()
-            .min_by_key(|(_, node)| node.distance_to(&location))
-            .unwrap();
-        node.make_stop(location);
-        pos
     }
 
     pub(super) fn single(self, direction: Direction) -> Route {
@@ -158,5 +211,13 @@ mod tests {
                              Rc::new(locations::westkreuz()), Rc::new(locations::gesundbrunnen())];
         let variant = RouteVariant::new(locations, shape);
         assert_abs_diff_eq!(*variant.nodes(Direction::Upstream), nodes::circle(Directions::UpstreamOnly), epsilon = 0.01);
+    }
+
+    #[test]
+    fn test_nodes_lasso() {
+        let shape = shapes::bus_114::wannsee_heckeshorn_wannsee();
+        let locations = stop_locations::bus_114::wannsee_heckeshorn_wannsee();
+        let variant = RouteVariant::new(locations, shape);
+        assert_eq!(variant.nodes(Direction::Upstream), nodes::bus_114(Directions::UpstreamOnly));
     }
 }

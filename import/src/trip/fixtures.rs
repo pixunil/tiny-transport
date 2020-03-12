@@ -47,4 +47,12 @@ stop_locations! {
             am_kupfergraben, georgenstr_am_kupfergraben, friedrichstr, oranienburger_tor,
         ],
     },
+    bus_114: {
+        wannsee_heckeshorn_wannsee => [
+            wannsee, wannseebruecke, am_kleinen_wannsee, seglerweg, koblanckstr,
+            liebermann_villa, am_grossen_wannsee, haus_der_wannsee_konferenz,
+            zum_heckeshorn, strasse_zum_loewen, seglerweg, conradstr, am_kleinen_wannsee,
+            wannseebruecke, wannsee,
+        ],
+    }
 }
