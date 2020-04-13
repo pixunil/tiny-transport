@@ -77,6 +77,7 @@ pub(super) mod fixtures {
 mod tests {
     use super::*;
 
+    use serialization::train as serialization_trains;
     use crate::trip::fixtures::*;
 
     #[test]
@@ -84,5 +85,11 @@ mod tests {
         let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(trip.available_at(date));
+    }
+
+    #[test]
+    fn test_serialize() {
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        assert_eq!(trip.freeze(), serialization_trains::fixtures::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0));
     }
 }

@@ -23,7 +23,7 @@ console = "0.9.1"
 indicatif = "0.13.0"
 
 simulation = { package = "gtfs-sim-simulation", path = "../simulation" }
-serialization = { package = "gtfs-sim-serialization", path = "../serialization" }
+serialization = { package = "gtfs-sim-serialization", path = "../serialization", features = ["fixtures"] }
 
 [dev-dependencies]
 serde_test = "1"

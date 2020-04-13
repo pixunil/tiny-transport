@@ -2,7 +2,7 @@ use serde_derive::{Serialize, Deserialize};
 
 mod station;
 mod line;
-mod train;
+pub mod train;
 
 pub use crate::station::Station;
 pub use crate::line::{Line, LineGroup};

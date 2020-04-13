@@ -7,7 +7,7 @@ use serde_derive::{Serialize, Deserialize};
 use simulation::{Direction, Node};
 use simulation::line::Kind;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Train {
     direction: Direction,
     durations: Vec<u32>,
@@ -75,6 +75,40 @@ impl Train {
     fn fill_after_terminus(&self, nodes: &[Node], durations: &mut Vec<u32>) {
         let count = nodes.iter().rev().position(|node| self.is_node_allowed(node)).unwrap() + 1;
         durations.extend(iter::repeat(0).take(count));
+    }
+}
+
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    macro_rules! trips {
+        ($($line:ident: {$($trip:ident => $direction:ident, [$($time:expr),*]);* $(;)?}),* $(,)?) => (
+            $(
+                pub mod $line {
+                    use simulation::Direction;
+                    use crate::train::*;
+
+                    $(
+                        pub fn $trip(hour: u32, minute: f64) -> Train {
+                            let start = hour * 3600 + (minute * 60.0) as u32;
+                            Train {
+                                direction: Direction::$direction,
+                                durations: vec![
+                                    start,
+                                    $( ($time as f64 * 60.0) as u32 ),*
+                                ],
+                            }
+                        }
+                    )*
+                }
+            )*
+        );
+    }
+
+    trips! {
+        tram_12: {
+            oranienburger_tor_am_kupfergraben => Upstream, [0, 2, 0, 2, 0, 1, 0];
+            am_kupfergraben_oranienburger_tor => Downstream, [0, 1, 0, 3, 0, 2, 0];
+        },
     }
 }
 

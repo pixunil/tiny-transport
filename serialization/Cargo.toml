@@ -7,6 +7,9 @@ description = "Stores simulation data space-efficient"
 repository = "https://github.com/pixunil/gtfs-sim"
 license = "MIT"
 
+[features]
+fixtures = []
+
 [dependencies]
 itertools = "0.8"
 serde = "1"
