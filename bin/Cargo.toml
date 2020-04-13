@@ -10,5 +10,7 @@ license = "MIT"
 [dependencies]
 clap = "~2.33.0"
 zip = { version = "0.5", default-features = false, features = ["bzip2"] }
+bincode = "1"
 
 import = { package = "gtfs-sim-import", path = "../import" }
+serialization = { package = "gtfs-sim-serialization", path = "../serialization" }

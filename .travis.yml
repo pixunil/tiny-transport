@@ -33,6 +33,7 @@ jobs:
         - git lfs pull
       script:
         - cargo run --release import import/data/vbb.bzip
+        - cargo run --release load
         - wasm-pack build wasm --target web --out-dir www/wasm
       after_success:
         - echo "Skipped coverage reporting"

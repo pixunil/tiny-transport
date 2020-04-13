@@ -7,8 +7,10 @@ use import::profile::Profile;
 use import::import;
 
 mod compress;
+mod load;
 
 use compress::compress;
+use load::load;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = clap_app!(gtfs_sim =>
@@ -20,6 +22,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         (@subcommand import =>
             (@arg DATASET: +required "Path to gtfs dataset")
             (@arg PROFILE: --profile +takes_value "Profile used for importing")
+        )
+        (@subcommand load =>
+            (@arg DATA: default_value("wasm/www/data.bin") "Path to imported data")
         )
     ).get_matches();
 
@@ -36,6 +41,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 None => Profile::default(),
             };
             import(dataset, profile)
+        },
+        ("load", Some(load_matches)) => {
+            let data = load_matches.value_of_os("DATA").unwrap();
+            load(data)
         },
         ("", None) => Ok(()),
         _ => unreachable!(),
