@@ -25,11 +25,19 @@ impl Line {
         }
     }
 
-    pub(super) fn nodes(&self) -> &[Node] {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn kind(&self) -> Kind {
+        self.kind
+    }
+
+    pub fn nodes(&self) -> &[Node] {
         &self.nodes
     }
 
-    pub(super) fn active_trains(&self) -> impl Iterator<Item = &Train> {
+    pub fn active_trains(&self) -> impl Iterator<Item = &Train> {
         self.trains.iter()
             .filter(|train| train.is_active())
     }
@@ -40,7 +48,7 @@ impl Line {
         }
     }
 
-    pub(super) fn fill_vertices_buffer_with_lengths(&self, vertices: &mut Vec<f32>, lengths: &mut Vec<usize>) {
+    pub fn fill_vertices_buffer_with_lengths(&self, vertices: &mut Vec<f32>, lengths: &mut Vec<usize>) {
         self.fill_vertices_buffer_with_lengths_for_direction(Direction::Upstream, vertices, lengths);
         self.fill_vertices_buffer_with_lengths_for_direction(Direction::Downstream, vertices, lengths);
     }

@@ -26,29 +26,13 @@ impl LineGroup {
         2 * self.lines.len()
     }
 
-    pub fn fill_vertices_buffer_with_lengths(&self, vertices: &mut Vec<f32>, lengths: &mut Vec<usize>) {
-        for line in &self.lines {
-            line.fill_vertices_buffer_with_lengths(vertices, lengths);
-        }
+    pub fn lines(&self) -> &[Line] {
+        &self.lines
     }
 
-    pub fn train_size(&self) -> usize {
+    pub fn active_train_count(&self) -> usize {
         self.lines.iter()
             .map(|line| line.active_trains().count())
             .sum()
-    }
-
-    pub fn fill_train_vertice_buffer(&self, buffer: &mut Vec<f32>) {
-        for line in &self.lines {
-            for train in line.active_trains() {
-                train.fill_vertice_buffer(buffer, &line.nodes());
-            }
-        }
-    }
-
-    pub fn fill_train_color_buffer(&self, buffer: &mut Vec<f32>) {
-        for _ in 0..6 * self.train_size() {
-            buffer.extend(self.color_buffer_data());
-        }
     }
 }

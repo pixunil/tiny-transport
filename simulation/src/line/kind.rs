@@ -24,7 +24,7 @@ impl Kind {
         }
     }
 
-    pub(crate) fn train_size(self) -> Vector2<f32> {
+    pub fn train_size(self) -> Vector2<f32> {
         match self {
             Kind::Railway | Kind::SuburbanRailway | Kind::UrbanRailway => Vector2::new(220.0, 150.0),
             Kind::WaterTransport => Vector2::new(180.0, 120.0),
