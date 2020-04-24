@@ -1,7 +1,7 @@
-mod service;
 mod exception_type;
-mod record;
 mod importer;
+mod record;
+mod service;
 
 #[cfg(test)]
 pub(crate) mod fixtures {
@@ -9,7 +9,7 @@ pub(crate) mod fixtures {
 }
 
 use exception_type::ExceptionType;
-use record::{ServiceRecord, ServiceExceptionRecord};
+use record::{ServiceExceptionRecord, ServiceRecord};
 
-pub(crate) use service::{Service, ServiceId};
 pub(crate) use importer::Importer;
+pub(crate) use service::{Service, ServiceId};

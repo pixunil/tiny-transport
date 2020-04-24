@@ -1,15 +1,15 @@
-use std::error::Error;
-use std::rc::Rc;
-use std::iter;
 use std::collections::HashMap;
+use std::error::Error;
+use std::iter;
+use std::rc::Rc;
 use std::time::Instant;
 
-use crate::utils::{Dataset, progress::elapsed};
+use super::{Route, StopRecord, TripBuffer, TripId, TripRecord};
+use crate::line::LineId;
+use crate::location::{Location, LocationId};
 use crate::service::{Service, ServiceId};
 use crate::shape::{Shape, ShapeId};
-use crate::location::{Location, LocationId};
-use crate::line::LineId;
-use super::{TripBuffer, TripId, Route, TripRecord, StopRecord};
+use crate::utils::{progress::elapsed, Dataset};
 
 pub(crate) struct Importer<'a> {
     services: &'a HashMap<ServiceId, Rc<Service>>,
@@ -20,14 +20,26 @@ pub(crate) struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    pub(crate) fn new(services: &'a HashMap<ServiceId, Rc<Service>>, locations: &'a HashMap<LocationId, Rc<Location>>,
-                      shapes: &'a HashMap<ShapeId, Shape>, id_mapping: &'a HashMap<LineId, usize>, num_lines: usize)
-                      -> Importer<'a>
-    {
-        Importer { services, locations, shapes, id_mapping, num_lines }
+    pub(crate) fn new(
+        services: &'a HashMap<ServiceId, Rc<Service>>,
+        locations: &'a HashMap<LocationId, Rc<Location>>,
+        shapes: &'a HashMap<ShapeId, Shape>,
+        id_mapping: &'a HashMap<LineId, usize>,
+        num_lines: usize,
+    ) -> Importer<'a> {
+        Importer {
+            services,
+            locations,
+            shapes,
+            id_mapping,
+            num_lines,
+        }
     }
 
-    fn import_trip_buffers(&self, dataset: &mut impl Dataset) -> Result<HashMap<TripId, TripBuffer>, Box<dyn Error>> {
+    fn import_trip_buffers(
+        &self,
+        dataset: &mut impl Dataset,
+    ) -> Result<HashMap<TripId, TripBuffer>, Box<dyn Error>> {
         let mut buffers = HashMap::new();
 
         let records = dataset.read_csv("trips.txt", "Importing trips")?;
@@ -37,11 +49,19 @@ impl<'a> Importer<'a> {
             record.import(self.id_mapping, self.services, &mut buffers);
         }
 
-        eprintln!("Imported {} trips in {:.2}s", buffers.len(), elapsed(started));
+        eprintln!(
+            "Imported {} trips in {:.2}s",
+            buffers.len(),
+            elapsed(started)
+        );
         Ok(buffers)
     }
 
-    fn add_trip_stops(&self, dataset: &mut impl Dataset, buffers: &mut HashMap<TripId, TripBuffer>) -> Result<(), Box<dyn Error>> {
+    fn add_trip_stops(
+        &self,
+        dataset: &mut impl Dataset,
+        buffers: &mut HashMap<TripId, TripBuffer>,
+    ) -> Result<(), Box<dyn Error>> {
         let records = dataset.read_csv("stop_times.txt", "Importing trip stops")?;
         let started = Instant::now();
         for result in records {
@@ -62,16 +82,21 @@ impl<'a> Importer<'a> {
             buffer.create_and_place_trip_by_terminus(&self.shapes, &mut route_buffers);
         }
 
-        route_buffers.into_iter()
+        route_buffers
+            .into_iter()
             .map(|route_buffers| {
-                route_buffers.into_iter()
+                route_buffers
+                    .into_iter()
                     .flat_map(|(_, buffer)| buffer.into_routes())
                     .collect()
             })
             .collect()
     }
 
-    pub(crate) fn import(self, dataset: &mut impl Dataset) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
+    pub(crate) fn import(
+        self,
+        dataset: &mut impl Dataset,
+    ) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
         let mut buffers = self.import_trip_buffers(dataset)?;
         self.add_trip_stops(dataset, &mut buffers)?;
         Ok(self.combine_into_routes(buffers))

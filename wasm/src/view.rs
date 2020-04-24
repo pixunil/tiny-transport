@@ -1,4 +1,4 @@
-use na::{Point2, Vector2, Vector3, Matrix4, Translation2, Similarity2};
+use na::{Matrix4, Point2, Similarity2, Translation2, Vector2, Vector3};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -29,7 +29,9 @@ impl View {
     pub fn view_projection(&self) -> Vec<f32> {
         let scaling = Vector3::new(2.0 / self.viewport.x, -2.0 / self.viewport.y, 0.0);
         let projection = Matrix4::new_nonuniform_scaling(&scaling);
-        let mut view = self.view.to_homogeneous()
+        let mut view = self
+            .view
+            .to_homogeneous()
             .insert_row(2, 0.0)
             .insert_column(2, 0.0);
         view[(2, 2)] = 1.0;
@@ -54,11 +56,11 @@ impl View {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use std::f32::EPSILON;
     use approx::assert_relative_eq;
     use na::{Point2, Transform2};
+    use std::f32::EPSILON;
+
+    use super::*;
 
     fn transform_from_view(view: &View) -> Transform2<f32> {
         let matrix = Matrix4::from_vec(view.view_projection())
@@ -95,11 +97,26 @@ mod tests {
         let mut view = View::new(300.0, 200.0);
         view.scroll(-300.0, 200.0);
         let transform = transform_from_view(&view);
-        assert_relative_eq!(transform * Point2::new(300.0, -200.0), Point2::new(0.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(450.0, -200.0), Point2::new(1.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(300.0, -100.0), Point2::new(0.0, -1.0));
-        assert_relative_eq!(transform * Point2::new(150.0, -200.0), Point2::new(-1.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(300.0, -300.0), Point2::new(0.0, 1.0));
+        assert_relative_eq!(
+            transform * Point2::new(300.0, -200.0),
+            Point2::new(0.0, 0.0)
+        );
+        assert_relative_eq!(
+            transform * Point2::new(450.0, -200.0),
+            Point2::new(1.0, 0.0)
+        );
+        assert_relative_eq!(
+            transform * Point2::new(300.0, -100.0),
+            Point2::new(0.0, -1.0)
+        );
+        assert_relative_eq!(
+            transform * Point2::new(150.0, -200.0),
+            Point2::new(-1.0, 0.0)
+        );
+        assert_relative_eq!(
+            transform * Point2::new(300.0, -300.0),
+            Point2::new(0.0, 1.0)
+        );
     }
 
     #[test]
@@ -123,12 +140,25 @@ mod tests {
         view.scroll(-300.0, 200.0);
         let transform = transform_from_view(&view);
         assert_relative_eq!(view.scaling(), 2.0);
-        assert_relative_eq!(transform * Point2::new(210.0, -80.0), Point2::new(0.4, -0.2), epsilon = 2.0 * EPSILON);
+        assert_relative_eq!(
+            transform * Point2::new(210.0, -80.0),
+            Point2::new(0.4, -0.2),
+            epsilon = 2.0 * EPSILON
+        );
         assert_relative_eq!(transform * Point2::new(180.0, -90.0), Point2::new(0.0, 0.0));
         assert_relative_eq!(transform * Point2::new(255.0, -90.0), Point2::new(1.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(180.0, -40.0), Point2::new(0.0, -1.0));
-        assert_relative_eq!(transform * Point2::new(105.0, -90.0), Point2::new(-1.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(180.0, -140.0), Point2::new(0.0, 1.0));
+        assert_relative_eq!(
+            transform * Point2::new(180.0, -40.0),
+            Point2::new(0.0, -1.0)
+        );
+        assert_relative_eq!(
+            transform * Point2::new(105.0, -90.0),
+            Point2::new(-1.0, 0.0)
+        );
+        assert_relative_eq!(
+            transform * Point2::new(180.0, -140.0),
+            Point2::new(0.0, 1.0)
+        );
     }
 
     #[test]
@@ -138,27 +168,52 @@ mod tests {
         view.zoom(3.0, 150.0, 100.0);
         let transform = transform_from_view(&view);
         assert_relative_eq!(view.scaling(), 6.0);
-        assert_relative_eq!(transform * Point2::new(60.0, 20.0), Point2::new(1.2, -0.6), epsilon = 2.0 * EPSILON);
+        assert_relative_eq!(
+            transform * Point2::new(60.0, 20.0),
+            Point2::new(1.2, -0.6),
+            epsilon = 2.0 * EPSILON
+        );
         assert_relative_eq!(transform * Point2::new(30.0, 10.0), Point2::new(0.0, 0.0));
         assert_relative_eq!(transform * Point2::new(55.0, 10.0), Point2::new(1.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(30.0, 80.0 / 3.0), Point2::new(0.0, -1.0));
+        assert_relative_eq!(
+            transform * Point2::new(30.0, 80.0 / 3.0),
+            Point2::new(0.0, -1.0)
+        );
         assert_relative_eq!(transform * Point2::new(5.0, 10.0), Point2::new(-1.0, 0.0));
-        assert_relative_eq!(transform * Point2::new(30.0, -20.0 / 3.0), Point2::new(0.0, 1.0));
+        assert_relative_eq!(
+            transform * Point2::new(30.0, -20.0 / 3.0),
+            Point2::new(0.0, 1.0)
+        );
     }
 
     #[test]
     fn test_unproject() {
         let view = View::new(300.0, 200.0);
-        assert_relative_eq!(view.unproject(Point2::new(150.0, 100.0)), Point2::new(0.0, 0.0));
-        assert_relative_eq!(view.unproject(Point2::new(210.0, 120.0)), Point2::new(60.0, 20.0));
+        assert_relative_eq!(
+            view.unproject(Point2::new(150.0, 100.0)),
+            Point2::new(0.0, 0.0)
+        );
+        assert_relative_eq!(
+            view.unproject(Point2::new(210.0, 120.0)),
+            Point2::new(60.0, 20.0)
+        );
     }
 
     #[test]
     fn test_unproject_after_zoom() {
         let mut view = View::new(300.0, 200.0);
         view.zoom(2.0, 210.0, 120.0);
-        assert_relative_eq!(view.unproject(Point2::new(150.0, 100.0)), Point2::new(30.0, 10.0));
-        assert_relative_eq!(view.unproject(Point2::new(210.0, 120.0)), Point2::new(60.0, 20.0));
-        assert_relative_eq!(view.unproject(Point2::new(90.0, 80.0)), Point2::new(0.0, 0.0));
+        assert_relative_eq!(
+            view.unproject(Point2::new(150.0, 100.0)),
+            Point2::new(30.0, 10.0)
+        );
+        assert_relative_eq!(
+            view.unproject(Point2::new(210.0, 120.0)),
+            Point2::new(60.0, 20.0)
+        );
+        assert_relative_eq!(
+            view.unproject(Point2::new(90.0, 80.0)),
+            Point2::new(0.0, 0.0)
+        );
     }
 }

@@ -1,13 +1,13 @@
-use std::rc::Rc;
 use std::fmt;
+use std::rc::Rc;
 
 use ordered_float::NotNan;
 
 use approx::AbsDiffEq;
 
-use simulation::Directions;
-use crate::coord::{Point, transform, debug_position};
+use crate::coord::{debug_position, transform, Point};
 use crate::location::Location;
+use simulation::Directions;
 
 #[derive(PartialEq)]
 pub(super) struct Node {
@@ -42,9 +42,10 @@ impl Node {
     }
 
     pub(super) fn can_be_merged(&self, other: &Self) -> bool {
-        self.position == other.position && self.kind == other.kind &&
-            self.in_directions == Directions::UpstreamOnly &&
-            other.in_directions == Directions::DownstreamOnly
+        self.position == other.position
+            && self.kind == other.kind
+            && self.in_directions == Directions::UpstreamOnly
+            && other.in_directions == Directions::DownstreamOnly
     }
 
     pub(super) fn merge(&mut self, other: Self) {
@@ -72,10 +73,9 @@ impl AbsDiffEq for Node {
     }
 
     fn abs_diff_eq(&self, other: &Node, epsilon: Epsilon) -> bool {
-        Point::abs_diff_eq(&self.position, &other.position, epsilon) &&
-            self.kind == other.kind &&
-            self.in_directions == other.in_directions
-
+        Point::abs_diff_eq(&self.position, &other.position, epsilon)
+            && self.kind == other.kind
+            && self.in_directions == other.in_directions
     }
 }
 
@@ -83,19 +83,17 @@ impl fmt::Debug for Node {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let position = debug_position(self.position, formatter.alternate());
         match &self.kind {
-            Kind::Waypoint => {
-                formatter.debug_struct("Waypoint")
-                    .field("position", &position)
-                    .field("in_directions", &self.in_directions)
-                    .finish()
-            },
-            Kind::Stop {location} => {
-                formatter.debug_struct("Stop")
-                    .field("position", &position)
-                    .field("location", &location)
-                    .field("in_directions", &self.in_directions)
-                    .finish()
-            },
+            Kind::Waypoint => formatter
+                .debug_struct("Waypoint")
+                .field("position", &position)
+                .field("in_directions", &self.in_directions)
+                .finish(),
+            Kind::Stop { location } => formatter
+                .debug_struct("Stop")
+                .field("position", &position)
+                .field("location", &location)
+                .field("in_directions", &self.in_directions)
+                .finish(),
         }
     }
 }
@@ -103,9 +101,7 @@ impl fmt::Debug for Node {
 #[derive(PartialEq)]
 pub(crate) enum Kind {
     Waypoint,
-    Stop {
-        location: Rc<Location>,
-    },
+    Stop { location: Rc<Location> },
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
 use na::Point2;
 
@@ -45,8 +45,7 @@ impl AbsDiffEq for Node {
     }
 
     fn abs_diff_eq(&self, other: &Node, epsilon: Epsilon) -> bool {
-        self.kind == other.kind &&
-            Point2::abs_diff_eq(&self.position, &other.position, epsilon)
+        self.kind == other.kind && Point2::abs_diff_eq(&self.position, &other.position, epsilon)
     }
 }
 

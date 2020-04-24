@@ -1,14 +1,14 @@
-use std::rc::Rc;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use chrono::Duration;
 
-use simulation::Direction;
+use super::{RouteBuffer, Trip};
 use crate::create_id_type;
+use crate::location::{Location, LocationId};
 use crate::service::Service;
 use crate::shape::{Shape, ShapeId};
-use crate::location::{Location, LocationId};
-use super::{Trip, RouteBuffer};
+use simulation::Direction;
 
 create_id_type!(TripId);
 
@@ -24,7 +24,12 @@ pub(super) struct TripBuffer {
 }
 
 impl TripBuffer {
-    pub(super) fn new(line_id: usize, service: Rc<Service>, shape_id: ShapeId, direction: Direction) -> TripBuffer {
+    pub(super) fn new(
+        line_id: usize,
+        service: Rc<Service>,
+        shape_id: ShapeId,
+        direction: Direction,
+    ) -> TripBuffer {
         TripBuffer {
             line_id,
             service,
@@ -36,7 +41,12 @@ impl TripBuffer {
         }
     }
 
-    pub(super) fn add_stop(&mut self, location: Rc<Location>, arrival: Duration, departure: Duration) {
+    pub(super) fn add_stop(
+        &mut self,
+        location: Rc<Location>,
+        arrival: Duration,
+        departure: Duration,
+    ) {
         self.locations.push(location);
         self.arrivals.push(arrival);
         self.departures.push(departure);
@@ -64,8 +74,13 @@ impl TripBuffer {
         durations
     }
 
-    pub(super) fn create_and_place_trip_by_terminus(self, shapes: &HashMap<ShapeId, Shape>, route_buffers: &mut Vec<HashMap<(LocationId, LocationId), RouteBuffer>>) {
-        let route_buffer = route_buffers[self.line_id].entry(self.termini())
+    pub(super) fn create_and_place_trip_by_terminus(
+        self,
+        shapes: &HashMap<ShapeId, Shape>,
+        route_buffers: &mut Vec<HashMap<(LocationId, LocationId), RouteBuffer>>,
+    ) {
+        let route_buffer = route_buffers[self.line_id]
+            .entry(self.termini())
             .or_insert_with(RouteBuffer::new);
         let durations = self.durations();
         let trip = Trip::new(self.direction, self.service, durations);
@@ -127,14 +142,17 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::map;
     use crate::trip::fixtures::*;
 
     #[test]
     fn test_add_stop() {
         let mut buffer = trip_buffers::u4::empty(0, 0.0);
-        buffer.add_stop(Rc::new(locations::innsbrucker_platz()), Duration::seconds(16560), Duration::seconds(16560));
+        buffer.add_stop(
+            Rc::new(locations::innsbrucker_platz()),
+            Duration::seconds(16560),
+            Duration::seconds(16560),
+        );
         assert_eq!(buffer.locations, [Rc::new(locations::innsbrucker_platz())]);
         assert_eq!(buffer.arrivals, vec![Duration::seconds(16560)]);
         assert_eq!(buffer.departures, vec![Duration::seconds(16560)]);
@@ -143,22 +161,42 @@ mod tests {
     #[test]
     fn test_termini_for_upstream() {
         let buffer = trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0);
-        assert_eq!(buffer.termini(), (locations::nollendorfplatz().id, locations::innsbrucker_platz().id));
+        assert_eq!(
+            buffer.termini(),
+            (
+                locations::nollendorfplatz().id,
+                locations::innsbrucker_platz().id
+            )
+        );
     }
 
     #[test]
     fn test_termini_for_downstream() {
         let buffer = trip_buffers::u4::innsbrucker_platz_nollendorfplatz(4, 46.0);
-        assert_eq!(buffer.termini(), (locations::nollendorfplatz().id, locations::innsbrucker_platz().id));
+        assert_eq!(
+            buffer.termini(),
+            (
+                locations::nollendorfplatz().id,
+                locations::innsbrucker_platz().id
+            )
+        );
     }
 
     #[test]
     fn test_durations() {
         let buffer = trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0);
-        let expected_durations = [16560, 0, 120, 0, 90, 0, 90, 0, 60, 0].iter().copied().map(Duration::seconds).collect::<Vec<_>>();
+        let expected_durations = [16560, 0, 120, 0, 90, 0, 90, 0, 60, 0]
+            .iter()
+            .copied()
+            .map(Duration::seconds)
+            .collect::<Vec<_>>();
         assert_eq!(buffer.durations(), expected_durations);
         let buffer = trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 46.0);
-        let expected_durations = [17160, 0, 120, 0, 90, 0, 90, 0, 60, 0].iter().copied().map(Duration::seconds).collect::<Vec<_>>();
+        let expected_durations = [17160, 0, 120, 0, 90, 0, 90, 0, 60, 0]
+            .iter()
+            .copied()
+            .map(Duration::seconds)
+            .collect::<Vec<_>>();
         assert_eq!(buffer.durations(), expected_durations);
     }
 
@@ -167,9 +205,13 @@ mod tests {
         let mut route_buffers = vec![HashMap::new()];
         let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
-        assert_eq!(route_buffers[0], map! {
-            (locations::oranienburger_tor().id, locations::am_kupfergraben().id) => route_buffers::tram_12::with_1_upstream(),
-        });
+        assert_eq!(
+            route_buffers[0],
+            map! {
+                (locations::oranienburger_tor().id, locations::am_kupfergraben().id)
+                    => route_buffers::tram_12::with_1_upstream(),
+            }
+        );
     }
 
     #[test]
@@ -177,9 +219,13 @@ mod tests {
         let mut route_buffers = vec![HashMap::new()];
         let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
-        assert_eq!(route_buffers[0], map! {
-            (locations::oranienburger_tor().id, locations::am_kupfergraben().id) => route_buffers::tram_12::with_1_downstream(),
-        });
+        assert_eq!(
+            route_buffers[0],
+            map! {
+                (locations::oranienburger_tor().id, locations::am_kupfergraben().id)
+                    => route_buffers::tram_12::with_1_downstream(),
+            }
+        );
     }
 
     #[test]
@@ -189,8 +235,12 @@ mod tests {
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
         let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
         buffer.create_and_place_trip_by_terminus(&shapes::tram_12::by_id(), &mut route_buffers);
-        assert_eq!(route_buffers[0], map! {
-            (locations::oranienburger_tor().id, locations::am_kupfergraben().id) => route_buffers::tram_12::with_1_upstream_1_downstream(),
-        });
+        assert_eq!(
+            route_buffers[0],
+            map! {
+                (locations::oranienburger_tor().id, locations::am_kupfergraben().id)
+                    => route_buffers::tram_12::with_1_upstream_1_downstream(),
+            }
+        );
     }
 }

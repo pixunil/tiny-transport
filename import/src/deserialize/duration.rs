@@ -1,7 +1,7 @@
 use std::fmt;
 
+use serde::de::{Error as DeserializeError, Visitor};
 use serde::Deserializer;
-use serde::de::{Visitor, Error as DeserializeError};
 
 use chrono::Duration;
 
@@ -15,12 +15,18 @@ impl<'de> Visitor<'de> for DurationVisitor {
     }
 
     fn visit_str<E>(self, value: &str) -> Result<Duration, E>
-        where E: DeserializeError
+    where
+        E: DeserializeError,
     {
-        let seconds = value.splitn(3, ':')
+        let seconds = value
+            .splitn(3, ':')
             .map(|chunk| {
-                str::parse::<i64>(chunk)
-                    .map_err(|_| {E::custom(format_args!("invalid time string: {}, invalid digit in {}", value, chunk))})
+                str::parse::<i64>(chunk).map_err(|_| {
+                    E::custom(format_args!(
+                        "invalid time string: {}, invalid digit in {}",
+                        value, chunk
+                    ))
+                })
             })
             .try_fold(0, |acc, time| Ok(60 * acc + time?));
 
@@ -34,10 +40,10 @@ pub(crate) fn duration<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Dur
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use serde::de::value::{Error as ValueError, StrDeserializer, U64Deserializer};
     use serde::de::IntoDeserializer;
-    use serde::de::value::{U64Deserializer, StrDeserializer, Error as ValueError};
+
+    use super::*;
 
     fn from_hms(hours: i64, minutes: i64, seconds: i64) -> Duration {
         Duration::seconds((hours * 60 + minutes) * 60 + seconds)
@@ -64,14 +70,18 @@ mod tests {
     #[test]
     fn test_invalid_digit() {
         let deserializer: StrDeserializer<ValueError> = "12:IV:56".into_deserializer();
-        let error = duration(deserializer).unwrap_err();
-        assert_eq!(error.to_string(), "invalid time string: 12:IV:56, invalid digit in IV");
+        assert_eq!(
+            duration(deserializer).unwrap_err().to_string(),
+            "invalid time string: 12:IV:56, invalid digit in IV"
+        );
     }
 
     #[test]
     fn test_invalid_type() {
         let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
-        let error = duration(deserializer).unwrap_err();
-        assert_eq!(error.to_string(), "invalid type: integer `0`, expected time string");
+        assert_eq!(
+            duration(deserializer).unwrap_err().to_string(),
+            "invalid type: integer `0`, expected time string"
+        );
     }
 }

@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 use std::fmt;
 
+use crate::coord::{debug_position, transform, Point};
 use crate::create_id_type;
-use crate::coord::{Point, transform, debug_position};
 
 create_id_type!(LocationId);
 
@@ -35,7 +35,8 @@ impl Location {
 impl fmt::Debug for Location {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let position = debug_position(self.position, formatter.alternate());
-        formatter.debug_struct("Location")
+        formatter
+            .debug_struct("Location")
             .field("id", &self.id)
             .field("name", &self.name)
             .field("position", &position)
@@ -46,10 +47,10 @@ impl fmt::Debug for Location {
 #[cfg(test)]
 pub(crate) mod fixtures {
     use super::*;
-    use std::rc::Rc;
-    use std::collections::HashMap;
-    use crate::map;
     use crate::coord::project;
+    use crate::map;
+    use std::collections::HashMap;
+    use std::rc::Rc;
 
     macro_rules! locations {
         ($($location:ident: $lat:expr, $lon:expr, $name:expr);* $(;)?) => (

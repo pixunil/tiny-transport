@@ -1,9 +1,9 @@
 use chrono::NaiveDate;
 
-use simulation::Color;
-use simulation::line::Kind;
 use crate::create_id_type;
 use crate::trip::Route;
+use simulation::line::Kind;
+use simulation::Color;
 
 create_id_type!(LineId);
 
@@ -34,13 +34,18 @@ impl Line {
     }
 
     pub(crate) fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {
-        let route = self.routes.iter()
+        let route = self
+            .routes
+            .iter()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
         let nodes = route.freeze_nodes();
         let trains = route.freeze_trains(date);
         let color = self.color.clone();
-        (color, serialization::Line::new(self.name.clone(), self.kind, nodes, trains))
+        (
+            color,
+            serialization::Line::new(self.name.clone(), self.kind, nodes, trains),
+        )
     }
 }
 

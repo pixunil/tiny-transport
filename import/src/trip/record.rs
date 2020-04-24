@@ -1,17 +1,17 @@
-use std::rc::Rc;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use serde_derive::Deserialize;
 
 use chrono::Duration;
 
-use simulation::Direction;
+use super::{TripBuffer, TripId};
 use crate::deserialize;
+use crate::line::LineId;
+use crate::location::{Location, LocationId};
 use crate::service::{Service, ServiceId};
 use crate::shape::ShapeId;
-use crate::location::{Location, LocationId};
-use crate::line::LineId;
-use super::{TripBuffer, TripId};
+use simulation::Direction;
 
 #[derive(Debug, Deserialize)]
 pub(super) struct TripRecord {
@@ -24,7 +24,12 @@ pub(super) struct TripRecord {
 }
 
 impl TripRecord {
-    pub(super) fn import(self, id_mapping: &HashMap<LineId, usize>, services: &HashMap<ServiceId, Rc<Service>>, buffers: &mut HashMap<TripId, TripBuffer>) {
+    pub(super) fn import(
+        self,
+        id_mapping: &HashMap<LineId, usize>,
+        services: &HashMap<ServiceId, Rc<Service>>,
+        buffers: &mut HashMap<TripId, TripBuffer>,
+    ) {
         let line_id = id_mapping[&self.route_id];
         let service = Rc::clone(&services[&self.service_id]);
         let buffer = TripBuffer::new(line_id, service, self.shape_id, self.direction_id);
@@ -43,16 +48,22 @@ pub(super) struct StopRecord {
 }
 
 impl StopRecord {
-    pub(super) fn import(self, locations: &HashMap<LocationId, Rc<Location>>, buffers: &mut HashMap<TripId, TripBuffer>) {
-        buffers.get_mut(&self.trip_id).unwrap()
-            .add_stop(Rc::clone(&locations[&self.stop_id]), self.arrival_time, self.departure_time);
+    pub(super) fn import(
+        self,
+        locations: &HashMap<LocationId, Rc<Location>>,
+        buffers: &mut HashMap<TripId, TripBuffer>,
+    ) {
+        buffers.get_mut(&self.trip_id).unwrap().add_stop(
+            Rc::clone(&locations[&self.stop_id]),
+            self.arrival_time,
+            self.departure_time,
+        );
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::map;
     use crate::trip::fixtures::*;
 
@@ -74,9 +85,12 @@ mod tests {
         };
         let mut buffers = HashMap::new();
         record.import(&id_mapping, &services::by_id(), &mut buffers);
-        assert_eq!(buffers, map! {
-            "u4_0" => trip_buffers::u4::empty(0, 0.0),
-        });
+        assert_eq!(
+            buffers,
+            map! {
+                "u4_0" => trip_buffers::u4::empty(0, 0.0),
+            }
+        );
     }
 
     #[test]
@@ -92,10 +106,13 @@ mod tests {
         let mut buffers = HashMap::new();
         first.import(&id_mapping, &services::by_id(), &mut buffers);
         second.import(&id_mapping, &services::by_id(), &mut buffers);
-        assert_eq!(buffers, map! {
-            "u4_0" => trip_buffers::u4::empty(0, 0.0),
-            "u4_duplicate_0" => trip_buffers::u4::empty(0, 0.0),
-        });
+        assert_eq!(
+            buffers,
+            map! {
+                "u4_0" => trip_buffers::u4::empty(0, 0.0),
+                "u4_duplicate_0" => trip_buffers::u4::empty(0, 0.0),
+            }
+        );
     }
 
     #[test]
@@ -141,8 +158,11 @@ mod tests {
             record.import(&locations::by_id(), &mut buffers);
         }
 
-        assert_eq!(buffers, map! {
-            "u4_0" => trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0),
-        });
+        assert_eq!(
+            buffers,
+            map! {
+                "u4_0" => trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0),
+            }
+        );
     }
 }

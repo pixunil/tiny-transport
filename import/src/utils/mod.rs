@@ -1,11 +1,11 @@
-pub(crate) mod progress;
 mod dataset;
+pub(crate) mod progress;
 
 pub(crate) use dataset::Dataset;
 
 #[macro_export]
 macro_rules! create_id_type {
-    ($name:ident) => (
+    ($name:ident) => {
         use serde_derive::Deserialize;
 
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
@@ -22,7 +22,7 @@ macro_rules! create_id_type {
                 self.0.fmt(formatter)
             }
         }
-    );
+    };
 }
 
 #[cfg(test)]

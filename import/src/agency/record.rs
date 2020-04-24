@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use serde_derive::Deserialize;
 
-use crate::Line;
 use super::{Agency, AgencyId};
+use crate::Line;
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AgencyRecord {
@@ -13,8 +13,7 @@ pub(super) struct AgencyRecord {
 
 impl AgencyRecord {
     pub(super) fn import(self, lines: &mut HashMap<AgencyId, Vec<Line>>) -> Agency {
-        let lines = lines.remove(&self.agency_id)
-            .unwrap_or_else(Vec::new);
+        let lines = lines.remove(&self.agency_id).unwrap_or_else(Vec::new);
         Agency::new(self.agency_name, lines)
     }
 }
@@ -22,9 +21,8 @@ impl AgencyRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::map;
     use crate::agency::fixtures::*;
+    use crate::map;
 
     fn agency_record() -> AgencyRecord {
         AgencyRecord {
@@ -36,7 +34,10 @@ mod tests {
     #[test]
     fn test_import_agency_without_lines() {
         let mut lines = map! {};
-        assert_eq!(agency_record().import(&mut lines), agencies::pubtrans(vec![]));
+        assert_eq!(
+            agency_record().import(&mut lines),
+            agencies::pubtrans(vec![])
+        );
     }
 
     #[test]
@@ -44,7 +45,10 @@ mod tests {
         let mut lines = map! {
             "1" => vec![lines::blue()],
         };
-        assert_eq!(agency_record().import(&mut lines), agencies::pubtrans(vec![lines::blue()]));
+        assert_eq!(
+            agency_record().import(&mut lines),
+            agencies::pubtrans(vec![lines::blue()])
+        );
         assert!(lines.is_empty());
     }
 }

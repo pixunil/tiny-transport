@@ -1,10 +1,10 @@
-use std::rc::Rc;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use serde_derive::Deserialize;
 
+use super::{Location, LocationId, LocationImportError, LocationKind};
 use crate::coord::project;
-use super::{Location, LocationId, LocationKind, LocationImportError};
 
 #[derive(Debug, PartialEq, Deserialize)]
 pub(super) struct LocationRecord {
@@ -26,39 +26,42 @@ impl LocationRecord {
         self.parent_station.as_ref()
     }
 
-    pub(super) fn try_import(self, locations: &mut HashMap<LocationId, Rc<Location>>) -> Result<(), Self> {
+    pub(super) fn try_import(
+        self,
+        locations: &mut HashMap<LocationId, Rc<Location>>,
+    ) -> Result<(), Self> {
         match self.parent_station {
-            Some(ref parent_id) => {
-                match locations.get(parent_id).cloned() {
-                    Some(parent) => {
-                        locations.insert(self.stop_id, parent);
-                        Ok(())
-                    },
-                    None => {
-                        Err(self)
-                    },
+            Some(ref parent_id) => match locations.get(parent_id).cloned() {
+                Some(parent) => {
+                    locations.insert(self.stop_id, parent);
+                    Ok(())
                 }
+                None => Err(self),
             },
             None => {
                 let id = self.stop_id.clone();
                 locations.insert(id, Rc::new(self.into()));
                 Ok(())
-            },
+            }
         }
     }
 
-    pub(super) fn import_or_enqueue(self, locations: &mut HashMap<LocationId, Rc<Location>>, queues: &mut (Vec<Self>, Vec<Self>)) -> Result<(), LocationImportError> {
+    pub(super) fn import_or_enqueue(
+        self,
+        locations: &mut HashMap<LocationId, Rc<Location>>,
+        queues: &mut (Vec<Self>, Vec<Self>),
+    ) -> Result<(), LocationImportError> {
         if let Err(record) = self.try_import(locations) {
             match record.location_kind {
                 LocationKind::Station => {
                     return Err(LocationImportError::StationHasParent(record));
-                },
+                }
                 LocationKind::Stop | LocationKind::Entrance | LocationKind::GenericNode => {
                     queues.0.push(record);
-                },
+                }
                 LocationKind::BoardingArea => {
                     queues.1.push(record);
-                },
+                }
             }
         }
         Ok(())
@@ -75,9 +78,8 @@ impl Into<Location> for LocationRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::map;
     use crate::location::fixtures::locations;
+    use crate::map;
 
     fn main_station_record() -> LocationRecord {
         LocationRecord {
@@ -111,15 +113,20 @@ mod tests {
     fn test_import_parent() {
         let mut locations = HashMap::new();
         main_station_record().try_import(&mut locations).unwrap();
-        assert_eq!(locations, map! {
-            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
-        });
+        assert_eq!(
+            locations,
+            map! {
+                "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
+            }
+        );
     }
 
     #[test]
     fn test_import_child_without_parent() {
         let mut locations = HashMap::new();
-        let record = main_station_platform_record().try_import(&mut locations).unwrap_err();
+        let record = main_station_platform_record()
+            .try_import(&mut locations)
+            .unwrap_err();
         assert_eq!(record, main_station_platform_record());
         assert!(locations.is_empty());
     }
@@ -129,10 +136,15 @@ mod tests {
         let mut locations = map! {
             "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
         };
-        main_station_platform_record().try_import(&mut locations).unwrap();
-        assert_eq!(locations, map! {
-            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
-            "hauptbahnhof_1" => Rc::new(locations::hauptbahnhof()),
-        });
+        main_station_platform_record()
+            .try_import(&mut locations)
+            .unwrap();
+        assert_eq!(
+            locations,
+            map! {
+                "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
+                "hauptbahnhof_1" => Rc::new(locations::hauptbahnhof()),
+            }
+        );
     }
 }

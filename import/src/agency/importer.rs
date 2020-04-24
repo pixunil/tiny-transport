@@ -1,15 +1,18 @@
-use std::error::Error;
 use std::collections::HashMap;
+use std::error::Error;
 use std::time::Instant;
 
-use crate::utils::{Dataset, progress::elapsed};
-use crate::Line;
 use super::{Agency, AgencyId, AgencyRecord};
+use crate::utils::{progress::elapsed, Dataset};
+use crate::Line;
 
 pub(crate) struct Importer;
 
 impl Importer {
-    pub(crate) fn import(dataset: &mut impl Dataset, mut lines: HashMap<AgencyId, Vec<Line>>) -> Result<Vec<Agency>, Box<dyn Error>> {
+    pub(crate) fn import(
+        dataset: &mut impl Dataset,
+        mut lines: HashMap<AgencyId, Vec<Line>>,
+    ) -> Result<Vec<Agency>, Box<dyn Error>> {
         let mut agencies = Vec::new();
 
         let records = dataset.read_csv("agency.txt", "Importing agencies")?;
@@ -20,7 +23,11 @@ impl Importer {
             agencies.push(agency);
         }
 
-        eprintln!("Imported {} agencies in {:.2}s", agencies.len(), elapsed(started));
+        eprintln!(
+            "Imported {} agencies in {:.2}s",
+            agencies.len(),
+            elapsed(started)
+        );
         Ok(agencies)
     }
 }
@@ -28,9 +35,8 @@ impl Importer {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::map;
     use crate::agency::fixtures::*;
+    use crate::map;
 
     #[test]
     fn test_from_csv() {

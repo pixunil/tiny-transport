@@ -1,21 +1,24 @@
-use std::error::Error;
 use std::collections::HashMap;
+use std::error::Error;
 use std::iter::once;
 use std::time::Instant;
 
-use itertools::{Itertools, EitherOrBoth::*};
+use itertools::{EitherOrBoth::*, Itertools};
 
 use console::Term;
 
 use indicatif::ProgressIterator;
 
-use crate::utils::{Dataset, progress::{elapsed, percent_bar}};
 use super::{Shape, ShapeId, ShapeRecord};
+use crate::utils::progress::{elapsed, percent_bar};
+use crate::utils::Dataset;
 
 pub(crate) struct Importer;
 
 impl Importer {
-    pub(crate) fn import(dataset: &mut impl Dataset) -> Result<HashMap<ShapeId, Shape>, Box<dyn Error>> {
+    pub(crate) fn import(
+        dataset: &mut impl Dataset,
+    ) -> Result<HashMap<ShapeId, Shape>, Box<dyn Error>> {
         let mut shapes = HashMap::new();
 
         let records = dataset.read_csv("shapes.txt", "Importing shapes")?;
@@ -25,19 +28,25 @@ impl Importer {
             record.import(&mut shapes);
         }
 
-        eprintln!("Imported {} shapes in {:.2}s", shapes.len(), elapsed(started));
+        eprintln!(
+            "Imported {} shapes in {:.2}s",
+            shapes.len(),
+            elapsed(started)
+        );
 
         let started = Instant::now();
         let progress_bar = percent_bar(shapes.len() as u64, "Smoothing shapes");
-        let shapes = shapes.into_iter()
+        let shapes = shapes
+            .into_iter()
             .progress_with(progress_bar)
-            .map(|(id, shape)| {
-                (id, Self::smooth(shape))
-            })
+            .map(|(id, shape)| (id, Self::smooth(shape)))
             .collect();
 
         Term::stderr().clear_last_lines(1).unwrap();
-        eprintln!("Smoothed shapes in {:.2}s", started.elapsed().as_millis() as f64 / 1000.0);
+        eprintln!(
+            "Smoothed shapes in {:.2}s",
+            started.elapsed().as_millis() as f64 / 1000.0
+        );
         Ok(shapes)
     }
 
@@ -55,24 +64,22 @@ impl Importer {
 
     fn remove_spikes(shape: Shape) -> Shape {
         let spike_angle = 120_f64.to_radians();
-        let segments = shape.windows(2)
-            .map(|adjacent| adjacent[1] - adjacent[0]);
+        let segments = shape.windows(2).map(|adjacent| adjacent[1] - adjacent[0]);
 
-        let cleaned = shape.iter()
+        let cleaned = shape
+            .iter()
             .skip(1)
             .zip_longest(segments.tuple_windows())
-            .filter_map(|element| {
-                match element {
-                    Both(&waypoint, (before, after)) => {
-                        if before.angle(&after) > spike_angle {
-                            None
-                        } else {
-                            Some(waypoint)
-                        }
-                    },
-                    Left(&waypoint) => Some(waypoint),
-                    Right(_) => unreachable!(),
+            .filter_map(|element| match element {
+                Both(&waypoint, (before, after)) => {
+                    if before.angle(&after) > spike_angle {
+                        None
+                    } else {
+                        Some(waypoint)
+                    }
                 }
+                Left(&waypoint) => Some(waypoint),
+                Right(_) => unreachable!(),
             })
             .dedup();
 
@@ -81,35 +88,33 @@ impl Importer {
 
     fn smooth_zigzags(shape: Shape) -> Shape {
         let zigzag_angle = 20_f64.to_radians();
-        let segments = shape.windows(2)
-            .map(|adjacent| adjacent[1] - adjacent[0]);
+        let segments = shape.windows(2).map(|adjacent| adjacent[1] - adjacent[0]);
 
         let mut was_merged = false;
-        let smoothed = shape.iter()
+        let smoothed = shape
+            .iter()
             .skip(1)
             .zip_longest(segments.tuple_windows())
-            .filter_map(|element| {
-                match element {
-                    Both(&waypoint, (before, between, after)) => {
-                        let angles = [
-                            before.angle(&between),
-                            between.angle(&after),
-                            before.angle(&after),
-                        ];
+            .filter_map(|element| match element {
+                Both(&waypoint, (before, between, after)) => {
+                    let angles = [
+                        before.angle(&between),
+                        between.angle(&after),
+                        before.angle(&after),
+                    ];
 
-                        if was_merged {
-                            was_merged = false;
-                            None
-                        } else if (angles[0] + angles[1] - angles[2]).abs() > zigzag_angle {
-                            was_merged = true;
-                            Some(waypoint + between * 0.5)
-                        } else {
-                            Some(waypoint)
-                        }
-                    },
-                    Left(&waypoint) => Some(waypoint),
-                    Right(_) => unreachable!(),
+                    if was_merged {
+                        was_merged = false;
+                        None
+                    } else if (angles[0] + angles[1] - angles[2]).abs() > zigzag_angle {
+                        was_merged = true;
+                        Some(waypoint + between * 0.5)
+                    } else {
+                        Some(waypoint)
+                    }
                 }
+                Left(&waypoint) => Some(waypoint),
+                Right(_) => unreachable!(),
             });
 
         once(shape[0]).chain(smoothed).collect()
@@ -118,12 +123,11 @@ impl Importer {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use na::Vector2;
 
-    use crate::{map, dataset, shape};
+    use super::*;
     use crate::coord::project;
+    use crate::{dataset, map, shape};
 
     #[test]
     fn test_remove_overlapping() {
@@ -171,10 +175,12 @@ mod tests {
                 2,        52.523,       13.402
         );
 
-        let shapes = Importer::import(&mut dataset).unwrap();
-        assert_eq!(shapes, map! {
-            "1" => shape!(52.51, 13.37; 52.52, 13.37),
-            "2" => shape!(blue),
-        });
+        assert_eq!(
+            Importer::import(&mut dataset).unwrap(),
+            map! {
+                "1" => shape!(52.51, 13.37; 52.52, 13.37),
+                "2" => shape!(blue),
+            }
+        );
     }
 }

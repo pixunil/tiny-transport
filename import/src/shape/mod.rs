@@ -1,6 +1,6 @@
-mod shape;
-mod record;
 mod importer;
+mod record;
+mod shape;
 
 #[cfg(test)]
 pub(crate) mod fixtures {
@@ -9,5 +9,5 @@ pub(crate) mod fixtures {
 
 use record::ShapeRecord;
 
-pub(crate) use shape::{Shape, ShapeId};
 pub(crate) use importer::Importer;
+pub(crate) use shape::{Shape, ShapeId};

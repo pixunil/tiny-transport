@@ -4,11 +4,11 @@ use itertools::Itertools;
 
 use serde_derive::Deserialize;
 
-use simulation::Color;
-use simulation::line::Kind;
-use crate::deserialize;
-use crate::agency::AgencyId;
 use super::{IncompleteLine, LineId};
+use crate::agency::AgencyId;
+use crate::deserialize;
+use simulation::line::Kind;
+use simulation::Color;
 
 #[derive(Debug, Deserialize)]
 pub(super) struct LineRecord {
@@ -21,9 +21,15 @@ pub(super) struct LineRecord {
 }
 
 impl LineRecord {
-    pub(super) fn deduplicate(self, id_mapping: &mut HashMap<LineId, usize>, incomplete_lines: &mut Vec<IncompleteLine>) {
-        let incomplete_line = IncompleteLine::new(self.agency_id, self.route_short_name, self.line_kind);
-        let position = match incomplete_lines.iter()
+    pub(super) fn deduplicate(
+        self,
+        id_mapping: &mut HashMap<LineId, usize>,
+        incomplete_lines: &mut Vec<IncompleteLine>,
+    ) {
+        let incomplete_line =
+            IncompleteLine::new(self.agency_id, self.route_short_name, self.line_kind);
+        let position = match incomplete_lines
+            .iter()
             .find_position(|other| &&incomplete_line == other)
         {
             Some((position, _)) => position,
@@ -52,9 +58,8 @@ impl LineColorRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::map;
     use crate::line::fixtures::*;
+    use crate::map;
 
     fn blue_line_record() -> LineRecord {
         LineRecord {
@@ -70,9 +75,12 @@ mod tests {
         let mut id_mapping = HashMap::new();
         let mut incomplete_lines = Vec::new();
         blue_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
-        assert_eq!(id_mapping, map! {
-            "1" => 0,
-        });
+        assert_eq!(
+            id_mapping,
+            map! {
+                "1" => 0,
+            }
+        );
         assert_eq!(incomplete_lines, [incomplete_lines::blue()]);
     }
 
@@ -85,10 +93,13 @@ mod tests {
         duplicated.line_id = "2".into();
         blue_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
         duplicated.deduplicate(&mut id_mapping, &mut incomplete_lines);
-        assert_eq!(id_mapping, map! {
-            "1" => 0,
-            "2" => 0,
-        });
+        assert_eq!(
+            id_mapping,
+            map! {
+                "1" => 0,
+                "2" => 0,
+            }
+        );
         assert_eq!(incomplete_lines, [incomplete_lines::blue()]);
     }
 }

@@ -1,7 +1,7 @@
 use std::error::Error;
+use std::fs::File;
 use std::io::{self, Read, Seek};
 use std::path::PathBuf;
-use std::fs::File;
 
 use serde::de::DeserializeOwned;
 
@@ -11,7 +11,8 @@ use indicatif::ProgressBarRead;
 
 use super::progress::percent_bar;
 
-type DatasetRecordsIter<'a, D> = csv::DeserializeRecordsIntoIter<ProgressBarRead<Box<dyn Read + 'a>>, D>;
+type DatasetRecordsIter<'a, D> =
+    csv::DeserializeRecordsIntoIter<ProgressBarRead<Box<dyn Read + 'a>>, D>;
 
 pub(crate) struct Table<'r> {
     size: u64,
@@ -32,7 +33,11 @@ pub(crate) trait Dataset {
 
     fn open_csv(&mut self, name: &str) -> Result<Table, Self::Error>;
 
-    fn read_csv<D: DeserializeOwned>(&mut self, name: &str, message: &str) -> Result<DatasetRecordsIter<D>, Self::Error> {
+    fn read_csv<D: DeserializeOwned>(
+        &mut self,
+        name: &str,
+        message: &str,
+    ) -> Result<DatasetRecordsIter<D>, Self::Error> {
         let table = self.open_csv(name)?;
         let progress_bar = percent_bar(table.size, message);
         let reader = csv::Reader::from_reader(progress_bar.wrap_read(table.reader));
@@ -61,16 +66,18 @@ impl<R: Read + Seek> Dataset for ZipArchive<R> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use std::io;
     use std::collections::HashMap;
+    use std::io;
+
+    use super::*;
 
     impl Dataset for HashMap<String, String> {
         type Error = io::Error;
 
         fn open_csv(&mut self, name: &str) -> Result<Table, Self::Error> {
-            let data = self.get(name).ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
+            let data = self
+                .get(name)
+                .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
             Ok(Table::new(data.len() as u64, data.as_bytes()))
         }
     }

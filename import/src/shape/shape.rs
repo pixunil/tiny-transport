@@ -1,5 +1,5 @@
-use crate::create_id_type;
 use crate::coord::Point;
+use crate::create_id_type;
 
 create_id_type!(ShapeId);
 

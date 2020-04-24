@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use chrono::{Duration, NaiveDate};
 
-use simulation::Direction;
 use crate::service::Service;
+use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
 pub(super) struct Trip {
@@ -13,7 +13,11 @@ pub(super) struct Trip {
 }
 
 impl Trip {
-    pub(super) fn new(direction: Direction, service: Rc<Service>, durations: Vec<Duration>) -> Self {
+    pub(super) fn new(
+        direction: Direction,
+        service: Rc<Service>,
+        durations: Vec<Duration>,
+    ) -> Self {
         Self {
             direction,
             service,
@@ -26,7 +30,9 @@ impl Trip {
     }
 
     pub(super) fn freeze(&self) -> serialization::Train {
-        let durations = self.durations.iter()
+        let durations = self
+            .durations
+            .iter()
             .map(|duration| duration.num_seconds() as u32)
             .collect();
         serialization::Train::new(self.direction, durations)
@@ -76,9 +82,8 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use serialization::train as serialization_trains;
     use crate::trip::fixtures::*;
+    use serialization::train::fixtures as serialization_fixtures;
 
     #[test]
     fn test_available_at() {
@@ -89,7 +94,9 @@ mod tests {
 
     #[test]
     fn test_serialize() {
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
-        assert_eq!(trip.freeze(), serialization_trains::fixtures::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0));
+        assert_eq!(
+            trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0).freeze(),
+            serialization_fixtures::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0)
+        );
     }
 }

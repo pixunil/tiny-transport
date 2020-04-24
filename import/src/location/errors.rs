@@ -12,12 +12,18 @@ pub(super) enum LocationImportError {
 impl fmt::Display for LocationImportError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LocationImportError::StationHasParent(record) => {
-                write!(formatter, "forbidden parent {} for station {}", record.parent_station().unwrap(), record.stop_id())
-            },
-            LocationImportError::ParentNotFound(record) => {
-                write!(formatter, "parent {} for location {} not found", record.parent_station().unwrap(), record.stop_id())
-            }
+            LocationImportError::StationHasParent(record) => write!(
+                formatter,
+                "forbidden parent {} for station {}",
+                record.parent_station().unwrap(),
+                record.stop_id()
+            ),
+            LocationImportError::ParentNotFound(record) => write!(
+                formatter,
+                "parent {} for location {} not found",
+                record.parent_station().unwrap(),
+                record.stop_id()
+            ),
         }
     }
 }

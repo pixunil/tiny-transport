@@ -1,5 +1,5 @@
-use crate::color::Color;
 use super::Line;
+use crate::color::Color;
 
 #[derive(Debug)]
 pub struct LineGroup {
@@ -18,7 +18,7 @@ impl LineGroup {
         }
     }
 
-    pub fn color_buffer_data(&self) -> impl Iterator<Item=f32> + '_ {
+    pub fn color_buffer_data(&self) -> impl Iterator<Item = f32> + '_ {
         self.color.iter().map(|component| component as f32 / 255.0)
     }
 
@@ -31,7 +31,8 @@ impl LineGroup {
     }
 
     pub fn active_train_count(&self) -> usize {
-        self.lines.iter()
+        self.lines
+            .iter()
             .map(|line| line.active_trains().count())
             .sum()
     }

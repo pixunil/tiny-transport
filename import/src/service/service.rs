@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use chrono::{NaiveDate, Datelike};
+use chrono::{Datelike, NaiveDate};
 
 use crate::create_id_type;
 
@@ -35,7 +35,8 @@ impl Service {
     }
 
     pub(crate) fn available_at(&self, date: NaiveDate) -> bool {
-        self.added.contains(&date) || (!self.removed.contains(&date) && self.regularly_available_at(date))
+        (self.regularly_available_at(date) && !self.removed.contains(&date))
+            || self.added.contains(&date)
     }
 
     fn regularly_available_at(&self, date: NaiveDate) -> bool {
@@ -47,9 +48,9 @@ impl Service {
 #[cfg(test)]
 pub(crate) mod fixtures {
     use super::*;
-    use std::rc::Rc;
-    use std::collections::HashMap;
     use crate::map;
+    use std::collections::HashMap;
+    use std::rc::Rc;
 
     macro_rules! services {
         ($($service:ident: $start:expr, $end:expr, $weekdays:expr);* $(;)?) => (
@@ -77,7 +78,6 @@ pub(crate) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::service::fixtures::*;
 
     #[test]

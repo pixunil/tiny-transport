@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::de::{Deserialize, Deserializer, Visitor, Error as DeserializeError};
+use serde::de::{Deserialize, Deserializer, Error as DeserializeError, Visitor};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(super) enum LocationKind {
@@ -13,7 +13,8 @@ pub(super) enum LocationKind {
 
 impl<'de> Deserialize<'de> for LocationKind {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
+    where
+        D: Deserializer<'de>,
     {
         struct LineKindVisitor;
 
@@ -25,7 +26,8 @@ impl<'de> Deserialize<'de> for LocationKind {
             }
 
             fn visit_u64<E>(self, value: u64) -> Result<LocationKind, E>
-                where E: DeserializeError
+            where
+                E: DeserializeError,
             {
                 match value {
                     0 => Ok(LocationKind::Stop),
@@ -33,7 +35,10 @@ impl<'de> Deserialize<'de> for LocationKind {
                     2 => Ok(LocationKind::Entrance),
                     3 => Ok(LocationKind::GenericNode),
                     4 => Ok(LocationKind::BoardingArea),
-                    _ => Err(E::custom(format!("unknown location type of value: {}", value))),
+                    _ => Err(E::custom(format!(
+                        "unknown location type of value: {}",
+                        value
+                    ))),
                 }
             }
         }
@@ -44,9 +49,9 @@ impl<'de> Deserialize<'de> for LocationKind {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use serde_test::{assert_de_tokens, assert_de_tokens_error, Token};
 
-    use serde_test::{Token, assert_de_tokens, assert_de_tokens_error};
+    use super::*;
 
     #[test]
     fn test_deserialize_location_kind() {
@@ -55,9 +60,13 @@ mod tests {
         assert_de_tokens(&LocationKind::Entrance, &[Token::U16(2)]);
         assert_de_tokens(&LocationKind::GenericNode, &[Token::U16(3)]);
         assert_de_tokens(&LocationKind::BoardingArea, &[Token::U16(4)]);
-        assert_de_tokens_error::<LocationKind>(&[Token::U16(5)],
-                                               "unknown location type of value: 5");
-        assert_de_tokens_error::<LocationKind>(&[Token::Str("")],
-                                               "invalid type: string \"\", expected integer");
+        assert_de_tokens_error::<LocationKind>(
+            &[Token::U16(5)],
+            "unknown location type of value: 5",
+        );
+        assert_de_tokens_error::<LocationKind>(
+            &[Token::Str("")],
+            "invalid type: string \"\", expected integer",
+        );
     }
 }

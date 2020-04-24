@@ -4,8 +4,8 @@ use serde_derive::Deserialize;
 
 use chrono::NaiveDate;
 
+use super::{ExceptionType, Service, ServiceId};
 use crate::deserialize;
-use super::{Service, ServiceId, ExceptionType};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct ServiceRecord {
@@ -39,11 +39,18 @@ impl ServiceRecord {
 
 impl Into<Service> for ServiceRecord {
     fn into(self) -> Service {
-        let weekdays = [self.monday, self.tuesday, self.wednesday, self.thursday, self.friday, self.saturday, self.sunday];
+        let weekdays = [
+            self.monday,
+            self.tuesday,
+            self.wednesday,
+            self.thursday,
+            self.friday,
+            self.saturday,
+            self.sunday,
+        ];
         Service::new(self.start_date, self.end_date, weekdays)
     }
 }
-
 
 #[derive(Debug, Deserialize)]
 pub(super) struct ServiceExceptionRecord {
@@ -66,7 +73,6 @@ impl ServiceExceptionRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::map;
     use crate::service::fixtures::*;
 

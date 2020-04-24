@@ -1,36 +1,42 @@
-use std::error::Error;
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::error::Error;
 use std::ffi::OsStr;
-use std::path::{Path, PathBuf};
 use std::fs::File;
+use std::path::{Path, PathBuf};
 
 use chrono::prelude::*;
 
 use zip::ZipArchive;
 
+mod agency;
 mod coord;
 mod deserialize;
-mod utils;
-mod service;
-mod agency;
-mod shape;
-mod location;
 mod line;
-mod trip;
+mod location;
 pub mod profile;
+mod service;
+mod shape;
+mod trip;
+mod utils;
 
-use utils::Dataset;
 use agency::Agency;
 use line::Line;
 use profile::Profile;
+use utils::Dataset;
 
 fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
     let services = service::Importer::import(&mut dataset)?;
     let locations = location::Importer::import(&mut dataset)?;
     let shapes = shape::Importer::import(&mut dataset)?;
     let line_importer = line::Importer::import(&mut dataset)?;
-    let trip_importer = trip::Importer::new(&services, &locations, &shapes, line_importer.id_mapping(), line_importer.num_lines());
+    let trip_importer = trip::Importer::new(
+        &services,
+        &locations,
+        &shapes,
+        line_importer.id_mapping(),
+        line_importer.num_lines(),
+    );
     let routes = trip_importer.import(&mut dataset)?;
     let lines = line_importer.finish(routes)?;
     let agencies = agency::Importer::import(&mut dataset, lines)?;
@@ -38,7 +44,8 @@ fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
 }
 
 fn store(lines: Vec<&Line>) -> Result<(), Box<dyn Error>> {
-    let mut stations = lines.iter()
+    let mut stations = lines
+        .iter()
         .flat_map(|line| &line.routes)
         .flat_map(|route| route.locations())
         .cloned()
@@ -51,16 +58,19 @@ fn store(lines: Vec<&Line>) -> Result<(), Box<dyn Error>> {
     let mut line_groups = HashMap::new();
     for line in lines {
         let (color, line) = line.freeze(date);
-        line_groups.entry(color.clone())
+        line_groups
+            .entry(color.clone())
             .or_insert_with(Vec::new)
             .push(line);
     }
 
-    let stations = stations.into_iter()
+    let stations = stations
+        .into_iter()
         .map(|station| station.freeze())
         .collect();
 
-    let line_groups = line_groups.into_iter()
+    let line_groups = line_groups
+        .into_iter()
         .map(|(color, line_group)| serialization::LineGroup::new(color, line_group))
         .collect();
 

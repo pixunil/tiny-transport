@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
-use itertools::{Itertools, EitherOrBoth::*};
+use itertools::{EitherOrBoth::*, Itertools};
 
-use simulation::Direction;
-use crate::shape::Shape;
+use super::{Route, RouteVariant, Trip};
 use crate::location::Location;
-use super::{RouteVariant, Route, Trip};
+use crate::shape::Shape;
+use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
 pub(super) struct RouteBuffer {
@@ -26,13 +26,14 @@ impl RouteBuffer {
             Direction::Upstream => &mut self.upstream,
             Direction::Downstream => &mut self.downstream,
         };
-        let variant = variants.iter_mut()
+        let variant = variants
+            .iter_mut()
             .find(|variant| variant.matches(&locations, shape));
 
         match variant {
             Some(variant) => {
                 variant.add_trip(trip);
-            },
+            }
             None => {
                 let mut variant = RouteVariant::new(locations, shape.clone());
                 variant.add_trip(trip);
@@ -45,13 +46,13 @@ impl RouteBuffer {
         self.upstream.sort_by_key(|variant| variant.trips.len());
         self.downstream.sort_by_key(|variant| variant.trips.len());
 
-        self.upstream.into_iter().zip_longest(self.downstream)
-            .map(|variants| {
-                match variants {
-                    Both(upstream, downstream) => upstream.merge(downstream),
-                    Left(upstream) => upstream.single(Direction::Upstream),
-                    Right(downstream) => downstream.single(Direction::Downstream),
-                }
+        self.upstream
+            .into_iter()
+            .zip_longest(self.downstream)
+            .map(|variants| match variants {
+                Both(upstream, downstream) => upstream.merge(downstream),
+                Left(upstream) => upstream.single(Direction::Upstream),
+                Right(downstream) => downstream.single(Direction::Downstream),
             })
     }
 }
@@ -88,18 +89,20 @@ pub(super) mod fixtures {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::trip::fixtures::*;
 
     #[test]
     fn test_create_first_upstream_variant() {
         let mut buffer = RouteBuffer::new();
         let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
-        buffer.add_trip(stop_locations::tram_12::oranienburger_tor_am_kupfergraben(), &shapes::tram_12::oranienburger_tor_am_kupfergraben(), trip);
+        buffer.add_trip(
+            stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
+            &shapes::tram_12::oranienburger_tor_am_kupfergraben(),
+            trip,
+        );
         assert_eq!(buffer, route_buffers::tram_12::with_1_upstream());
     }
 
@@ -107,7 +110,11 @@ mod tests {
     fn test_create_first_downstream_variant() {
         let mut buffer = RouteBuffer::new();
         let trip = trips::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
-        buffer.add_trip(stop_locations::tram_12::am_kupfergraben_oranienburger_tor(), &shapes::tram_12::am_kupfergraben_oranienburger_tor(), trip);
+        buffer.add_trip(
+            stop_locations::tram_12::am_kupfergraben_oranienburger_tor(),
+            &shapes::tram_12::am_kupfergraben_oranienburger_tor(),
+            trip,
+        );
         assert_eq!(buffer, route_buffers::tram_12::with_1_downstream());
     }
 
@@ -115,7 +122,11 @@ mod tests {
     fn test_append_to_upstream_variant() {
         let mut buffer = route_buffers::tram_12::with_1_upstream();
         let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 12.0);
-        buffer.add_trip(stop_locations::tram_12::oranienburger_tor_am_kupfergraben(), &shapes::tram_12::oranienburger_tor_am_kupfergraben(), trip);
+        buffer.add_trip(
+            stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
+            &shapes::tram_12::oranienburger_tor_am_kupfergraben(),
+            trip,
+        );
         assert_eq!(buffer, route_buffers::tram_12::with_2_upstream());
     }
 }

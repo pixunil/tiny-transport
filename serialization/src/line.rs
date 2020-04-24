@@ -1,8 +1,8 @@
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
-use simulation::{Color, Node};
-use simulation::line::Kind;
 use super::train::Train;
+use simulation::line::Kind;
+use simulation::{Color, Node};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Line {
@@ -25,7 +25,9 @@ impl Line {
     fn unfreeze(self) -> simulation::Line {
         let kind = self.kind;
         let nodes = self.nodes;
-        let trains = self.trains.into_iter()
+        let trains = self
+            .trains
+            .into_iter()
             .map(|train| train.unfreeze(kind, &nodes))
             .collect();
 
@@ -45,9 +47,7 @@ impl LineGroup {
     }
 
     pub fn unfreeze(self) -> simulation::LineGroup {
-        let lines = self.lines.into_iter()
-            .map(|line| line.unfreeze())
-            .collect();
+        let lines = self.lines.into_iter().map(|line| line.unfreeze()).collect();
         simulation::LineGroup::new(self.color, lines)
     }
 }

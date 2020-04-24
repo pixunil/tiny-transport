@@ -1,11 +1,11 @@
+pub(crate) use crate::location::fixtures::*;
 pub(crate) use crate::service::fixtures::*;
 pub(crate) use crate::shape::fixtures::*;
-pub(crate) use crate::location::fixtures::*;
 
 pub(super) use super::node::fixtures as nodes;
-pub(super) use super::trip::fixtures as trips;
-pub(super) use super::route_variant::fixtures as route_variants;
 pub(super) use super::route_buffer::fixtures as route_buffers;
+pub(super) use super::route_variant::fixtures as route_variants;
+pub(super) use super::trip::fixtures as trips;
 pub(super) use super::trip_buffer::fixtures as trip_buffers;
 
 macro_rules! stop_locations {

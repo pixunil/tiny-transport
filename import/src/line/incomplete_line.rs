@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use simulation::Color;
-use simulation::line::Kind;
+use super::Line;
 use crate::agency::AgencyId;
 use crate::trip::Route;
-use super::Line;
+use simulation::line::Kind;
+use simulation::Color;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(super) struct IncompleteLine {
@@ -28,14 +28,20 @@ impl IncompleteLine {
         match self.kind {
             Kind::Railway | Kind::SuburbanRailway | Kind::UrbanRailway => {
                 self.color = colors.get(&self.name).cloned();
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
     pub(super) fn finish(self, routes: Vec<Route>, lines: &mut HashMap<AgencyId, Vec<Line>>) {
-        let line = Line::new(self.name, self.color.unwrap_or(self.kind.color()), self.kind, routes);
-        lines.entry(self.agency_id)
+        let line = Line::new(
+            self.name,
+            self.color.unwrap_or(self.kind.color()),
+            self.kind,
+            routes,
+        );
+        lines
+            .entry(self.agency_id)
             .or_insert_with(Vec::new)
             .push(line);
     }
@@ -64,9 +70,8 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::map;
     use crate::line::fixtures::*;
+    use crate::map;
 
     fn colors() -> HashMap<String, Color> {
         map! {

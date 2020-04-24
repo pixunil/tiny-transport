@@ -4,8 +4,8 @@ use std::iter;
 use na::Point2;
 use wasm_bindgen::prelude::*;
 
-use simulation::{Station, LineGroup, Line};
 use serialization::Dataset;
+use simulation::{Line, LineGroup, Station};
 
 use crate::view::View;
 
@@ -39,7 +39,8 @@ impl Map {
 
     pub fn find_station(&self, view: &View, x: f32, y: f32) -> Option<String> {
         let position = view.unproject(Point2::new(x, y));
-        self.stations.iter()
+        self.stations
+            .iter()
             .find(|station| station.contains(position))
             .map(|station| station.name().to_string())
     }
@@ -57,20 +58,21 @@ impl Map {
     }
 
     pub fn line_colors(&self) -> Vec<f32> {
-        self.line_groups.iter()
+        self.line_groups
+            .iter()
             .flat_map(|line_group| line_group.color_buffer_data())
             .collect()
     }
 
     pub fn line_sizes(&self) -> Vec<usize> {
-        self.line_groups.iter()
+        self.line_groups
+            .iter()
             .map(|line_group| line_group.track_runs_size())
             .collect()
     }
 
     fn lines(&self) -> impl Iterator<Item = &Line> {
-        self.line_groups.iter()
-            .flat_map(LineGroup::lines)
+        self.line_groups.iter().flat_map(LineGroup::lines)
     }
 
     fn line_vertices_with_sizes(&self) -> (Vec<f32>, Vec<usize>) {
@@ -91,14 +93,12 @@ impl Map {
     }
 
     pub fn line_names(&self) -> String {
-        self.lines()
-            .map(Line::name)
-            .collect::<Vec<_>>()
-            .join("\n")
+        self.lines().map(Line::name).collect::<Vec<_>>().join("\n")
     }
 
     pub fn train_size(&self) -> usize {
-        self.line_groups.iter()
+        self.line_groups
+            .iter()
             .map(LineGroup::active_train_count)
             .sum()
     }
@@ -126,8 +126,7 @@ impl Map {
     pub fn train_line_numbers(&self) -> Vec<u16> {
         let mut buffer = Vec::new();
         for (line_number, line) in self.lines().enumerate() {
-            buffer.extend(iter::repeat(line_number as u16)
-                .take(6 * line.active_trains().count()));
+            buffer.extend(iter::repeat(line_number as u16).take(6 * line.active_trains().count()));
         }
         buffer
     }
@@ -136,14 +135,7 @@ impl Map {
         let mut buffer = Vec::new();
         for line_group in &self.line_groups {
             for _ in 0..line_group.active_train_count() {
-                buffer.extend_from_slice(&[
-                    0, 1,
-                    0, 0,
-                    1, 1,
-                    1, 0,
-                    1, 1,
-                    0, 0,
-                ]);
+                buffer.extend_from_slice(&[0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0]);
             }
         }
         buffer
@@ -164,11 +156,15 @@ impl Map {
 
 impl From<Dataset> for Map {
     fn from(dataset: Dataset) -> Map {
-        let stations = dataset.stations.into_iter()
+        let stations = dataset
+            .stations
+            .into_iter()
             .map(serialization::Station::unfreeze)
             .collect::<Vec<_>>();
 
-        let line_groups = dataset.line_groups.into_iter()
+        let line_groups = dataset
+            .line_groups
+            .into_iter()
             .map(|line_group| line_group.unfreeze())
             .collect();
 

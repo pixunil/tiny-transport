@@ -24,18 +24,17 @@ impl Station {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use approx::assert_relative_eq;
+
+    use super::*;
 
     #[macro_export]
     macro_rules! station {
-        (main_station) => (
+        (main_station) => {
             Station::new(Point2::new(200.0, 100.0), "Main Station".to_string())
-        );
+        };
     }
 
     #[test]

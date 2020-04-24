@@ -1,7 +1,7 @@
 use std::fmt;
 
+use serde::de::{Error as DeserializeError, Visitor};
 use serde::Deserializer;
-use serde::de::{Visitor, Error as DeserializeError};
 
 use simulation::line::Kind as LineKind;
 
@@ -15,7 +15,8 @@ impl<'de> Visitor<'de> for LineKindVisitor {
     }
 
     fn visit_u64<E>(self, value: u64) -> Result<LineKind, E>
-        where E: DeserializeError
+    where
+        E: DeserializeError,
     {
         match value {
             100 => Ok(LineKind::Railway),
@@ -35,10 +36,10 @@ pub(crate) fn line_kind<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Li
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use serde::de::value::{Error as ValueError, StrDeserializer, U64Deserializer};
     use serde::de::IntoDeserializer;
-    use serde::de::value::{U64Deserializer, StrDeserializer, Error as ValueError};
+
+    use super::*;
 
     #[test]
     fn test_deserialize() {
@@ -59,18 +60,22 @@ mod tests {
         let deserializer: U64Deserializer<ValueError> = 1000u64.into_deserializer();
         assert_eq!(line_kind(deserializer), Ok(LineKind::WaterTransport));
     }
-    
+
     #[test]
     fn test_unknown_line_kind() {
         let deserializer: U64Deserializer<ValueError> = 0u64.into_deserializer();
-        let error = line_kind(deserializer).unwrap_err();
-        assert_eq!(error.to_string(), "unknown line kind of value: 0");
+        assert_eq!(
+            line_kind(deserializer).unwrap_err().to_string(),
+            "unknown line kind of value: 0"
+        );
     }
-    
+
     #[test]
     fn test_empty() {
         let deserializer: StrDeserializer<ValueError> = "".into_deserializer();
-        let error = line_kind(deserializer).unwrap_err();
-        assert_eq!(error.to_string(), "invalid type: string \"\", expected positive integer");
+        assert_eq!(
+            line_kind(deserializer).unwrap_err().to_string(),
+            "invalid type: string \"\", expected positive integer"
+        );
     }
 }

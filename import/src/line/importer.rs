@@ -1,11 +1,11 @@
-use std::error::Error;
 use std::collections::HashMap;
+use std::error::Error;
 use std::time::Instant;
 
-use crate::utils::{Dataset, progress::elapsed};
+use super::{IncompleteLine, Line, LineColorRecord, LineId, LineRecord};
 use crate::agency::AgencyId;
 use crate::trip::Route;
-use super::{Line, LineId, IncompleteLine, LineRecord, LineColorRecord};
+use crate::utils::{progress::elapsed, Dataset};
 
 pub(crate) struct Importer {
     id_mapping: HashMap<LineId, usize>,
@@ -30,8 +30,15 @@ impl Importer {
             record.deduplicate(&mut id_mapping, &mut incomplete_lines);
         }
 
-        eprintln!("Imported {} lines in {:.2}s", incomplete_lines.len(), elapsed(started));
-        Ok(Self { id_mapping, incomplete_lines })
+        eprintln!(
+            "Imported {} lines in {:.2}s",
+            incomplete_lines.len(),
+            elapsed(started)
+        );
+        Ok(Self {
+            id_mapping,
+            incomplete_lines,
+        })
     }
 
     fn import_colors(&mut self, dataset: &mut impl Dataset) -> Result<(), Box<dyn Error>> {
@@ -60,7 +67,10 @@ impl Importer {
         self.incomplete_lines.len()
     }
 
-    pub(crate) fn finish(self, mut routes: Vec<Vec<Route>>) -> Result<HashMap<AgencyId, Vec<Line>>, Box<dyn Error>> {
+    pub(crate) fn finish(
+        self,
+        mut routes: Vec<Vec<Route>>,
+    ) -> Result<HashMap<AgencyId, Vec<Line>>, Box<dyn Error>> {
         let mut lines = HashMap::new();
         for incomplete_line in self.incomplete_lines.into_iter().rev() {
             incomplete_line.finish(routes.pop().unwrap(), &mut lines);
@@ -73,9 +83,8 @@ impl Importer {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::{map, dataset};
     use crate::line::fixtures::*;
+    use crate::{dataset, map};
 
     #[test]
     fn test_deduplication() {
@@ -87,11 +96,13 @@ mod tests {
         );
 
         let importer = Importer::import_lines(&mut dataset).unwrap();
-        let id_mapping = importer.id_mapping;
-        assert_eq!(id_mapping, map! {
-            "1" => 0,
-            "2" => 0,
-        });
+        assert_eq!(
+            importer.id_mapping,
+            map! {
+                "1" => 0,
+                "2" => 0,
+            }
+        );
     }
 
     #[test]

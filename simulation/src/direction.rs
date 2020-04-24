@@ -1,4 +1,4 @@
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
 use crate::Node;
 
@@ -18,25 +18,21 @@ impl Direction {
 
     pub(crate) fn find_next(self, current: usize, nodes: &[Node]) -> Option<usize> {
         match self {
-            Self::Upstream => {
-                nodes[current + 1 ..].iter().position(|node| node.allows(self))
-                    .map(|position| position + current + 1)
-            },
-            Self::Downstream => {
-                nodes[.. current].iter().rposition(|node| node.allows(self))
-            },
+            Self::Upstream => nodes[current + 1..]
+                .iter()
+                .position(|node| node.allows(self))
+                .map(|position| position + current + 1),
+            Self::Downstream => nodes[..current].iter().rposition(|node| node.allows(self)),
         }
     }
 
     pub(crate) fn find_previous(self, current: usize, nodes: &[Node]) -> Option<usize> {
         match self {
-            Self::Upstream => {
-                nodes[.. current].iter().rposition(|node| node.allows(self))
-            },
-            Self::Downstream => {
-                nodes[current + 1 ..].iter().position(|node| node.allows(self))
-                    .map(|position| position + current + 1)
-            },
+            Self::Upstream => nodes[..current].iter().rposition(|node| node.allows(self)),
+            Self::Downstream => nodes[current + 1..]
+                .iter()
+                .position(|node| node.allows(self))
+                .map(|position| position + current + 1),
         }
     }
 }

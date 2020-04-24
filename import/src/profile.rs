@@ -1,11 +1,11 @@
-use std::fmt;
 use std::convert::TryFrom;
 use std::error::Error;
+use std::fmt;
 
 use simulation::line::Kind;
 
-use crate::line::Line;
 use crate::agency::Agency;
+use crate::line::Line;
 use serde::export::Formatter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,11 +22,12 @@ pub enum Profile {
 
 impl Profile {
     pub(crate) fn filter<'a>(self, agencies: impl Iterator<Item = &'a Agency>) -> Vec<&'a Line> {
-        let matching_agencies = agencies.filter(|agency| {
-            self.matches_agency(agency)
-        }).collect::<Vec<_>>();
+        let matching_agencies = agencies
+            .filter(|agency| self.matches_agency(agency))
+            .collect::<Vec<_>>();
 
-        matching_agencies.into_iter()
+        matching_agencies
+            .into_iter()
             .flat_map(|agency| agency.lines())
             .filter(|line| self.matches_line(line))
             .collect()
@@ -34,16 +35,15 @@ impl Profile {
 
     fn matches_agency(self, agency: &Agency) -> bool {
         match self {
-            Self::BerlinSuburbanRailway |
-            Self::BerlinUrbanRailway |
-            Self::BerlinRapidTransit |
-            Self::BerlinMetro |
-            Self::BerlinWithoutRailway |
-            Self::Berlin => {
+            Self::BerlinSuburbanRailway
+            | Self::BerlinUrbanRailway
+            | Self::BerlinRapidTransit
+            | Self::BerlinMetro
+            | Self::BerlinWithoutRailway
+            | Self::Berlin => {
                 ["Berliner Verkehrsbetriebe", "S-Bahn Berlin GmbH"].contains(&agency.name())
-            },
-            Self::BerlinBrandenburgWithoutRailway |
-            Self::BerlinBrandenburg => true,
+            }
+            Self::BerlinBrandenburgWithoutRailway | Self::BerlinBrandenburg => true,
         }
     }
 
@@ -54,10 +54,10 @@ impl Profile {
             Self::BerlinUrbanRailway => line.kind() == Kind::UrbanRailway,
             Self::BerlinRapidTransit => is_rapid,
             Self::BerlinMetro => is_rapid || line.name().starts_with('M'),
-            Self::BerlinWithoutRailway |
-            Self::BerlinBrandenburgWithoutRailway => line.kind() != Kind::Railway,
-            Self::Berlin |
-            Self::BerlinBrandenburg => true,
+            Self::BerlinWithoutRailway | Self::BerlinBrandenburgWithoutRailway => {
+                line.kind() != Kind::Railway
+            }
+            Self::Berlin | Self::BerlinBrandenburg => true,
         }
     }
 }

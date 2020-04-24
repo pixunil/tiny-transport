@@ -1,15 +1,17 @@
-use std::rc::Rc;
-use std::error::Error;
 use std::collections::HashMap;
+use std::error::Error;
+use std::rc::Rc;
 use std::time::Instant;
 
-use crate::utils::{Dataset, progress::elapsed};
-use super::{Location, LocationId, LocationRecord, LocationImportError};
+use super::{Location, LocationId, LocationImportError, LocationRecord};
+use crate::utils::{progress::elapsed, Dataset};
 
 pub(crate) struct Importer;
 
 impl Importer {
-    pub(crate) fn import(dataset: &mut impl Dataset) -> Result<HashMap<LocationId, Rc<Location>>, Box<dyn Error>> {
+    pub(crate) fn import(
+        dataset: &mut impl Dataset,
+    ) -> Result<HashMap<LocationId, Rc<Location>>, Box<dyn Error>> {
         let mut queues = (Vec::new(), Vec::new());
         let mut locations = HashMap::new();
 
@@ -26,18 +28,20 @@ impl Importer {
             }
         }
 
-        eprintln!("Imported {} locations in {:.2}s", locations.len(), elapsed(started));
+        eprintln!(
+            "Imported {} locations in {:.2}s",
+            locations.len(),
+            elapsed(started)
+        );
         Ok(locations)
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use crate::{map, dataset};
     use crate::location::location::fixtures as locations;
+    use crate::{dataset, map};
 
     #[test]
     fn test_station_with_parent() {
@@ -47,8 +51,10 @@ mod tests {
                 "hauptbahnhof", "Hauptbahnhof", 52.526,   13.369,   1,             "bahnhof"
         );
 
-        let error = Importer::import(&mut dataset).unwrap_err();
-        assert_eq!(format!("{}", error), "forbidden parent bahnhof for station hauptbahnhof");
+        assert_eq!(
+            Importer::import(&mut dataset).unwrap_err().to_string(),
+            "forbidden parent bahnhof for station hauptbahnhof"
+        );
     }
 
     #[test]
@@ -59,8 +65,10 @@ mod tests {
                 "hauptbahnhof_1", "Hauptbahnhof Gleis 1", 52.526,   13.369,   0,             "hauptbahnhof"
         );
 
-        let error = Importer::import(&mut dataset).unwrap_err();
-        assert_eq!(format!("{}", error), "parent hauptbahnhof for location hauptbahnhof_1 not found");
+        assert_eq!(
+            Importer::import(&mut dataset).unwrap_err().to_string(),
+            "parent hauptbahnhof for location hauptbahnhof_1 not found"
+        );
     }
 
     #[test]
@@ -72,10 +80,12 @@ mod tests {
                 "friedrichstr",  "Friedrichstr.", 52.520,   13.387,   1,             ""
         );
 
-        let locations = Importer::import(&mut dataset).unwrap();
-        assert_eq!(locations, map! {
-            "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
-            "friedrichstr" => Rc::new(locations::friedrichstr()),
-        });
+        assert_eq!(
+            Importer::import(&mut dataset).unwrap(),
+            map! {
+                "hauptbahnhof" => Rc::new(locations::hauptbahnhof()),
+                "friedrichstr" => Rc::new(locations::friedrichstr()),
+            }
+        );
     }
 }

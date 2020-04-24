@@ -1,34 +1,23 @@
-use na::{Point2, Vector2, Matrix2};
+use na::{Matrix2, Point2, Vector2};
 
 use crate::direction::Direction;
-use crate::node::Node;
 use crate::line::Kind;
+use crate::node::Node;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TrainState {
     WaitingForDispatch,
-    Stopped {
-        at: usize,
-    },
-    Driving {
-        from: usize,
-        to: usize,
-    },
+    Stopped { at: usize },
+    Driving { from: usize, to: usize },
     Finished,
 }
 
 impl TrainState {
     fn next(self, direction: Direction, nodes: &[Node]) -> TrainState {
         let (at, already_stopped) = match self {
-            TrainState::WaitingForDispatch => {
-                (direction.start(nodes.len()), false)
-            },
-            TrainState::Driving { from: _, to } => {
-                (to, false)
-            },
-            TrainState::Stopped { at } => {
-                (at, true)
-            },
+            TrainState::WaitingForDispatch => (direction.start(nodes.len()), false),
+            TrainState::Driving { from: _, to } => (to, false),
+            TrainState::Stopped { at } => (at, true),
             TrainState::Finished => return TrainState::Finished,
         };
 
@@ -67,7 +56,9 @@ impl Train {
     pub fn update(&mut self, time_passed: u32, nodes: &[Node]) {
         self.current_passed += time_passed;
 
-        while self.current < self.durations.len() && self.current_passed > self.durations[self.current] {
+        while self.current < self.durations.len()
+            && self.current_passed > self.durations[self.current]
+        {
             self.current_passed -= self.durations[self.current];
             self.current += 1;
             self.state = self.state.next(self.direction, nodes);
@@ -94,41 +85,64 @@ impl Train {
                 let next = self.direction.find_next(at, nodes).unwrap_or(at);
                 let orientation = nodes[next].position() - nodes[previous].position();
                 (current, orientation.normalize())
-            },
+            }
             TrainState::Driving { from, to } => {
                 let travelled = self.current_passed as f32 / self.durations[self.current] as f32;
                 let from = nodes[from].position();
                 let to = nodes[to].position();
                 let segment = to - from;
                 (from + segment * travelled, segment.normalize())
-            },
+            }
             TrainState::WaitingForDispatch | TrainState::Finished => unreachable!(),
         }
     }
 
-    fn write_rectangle(&self, buffer: &mut Vec<f32>, position: Point2<f32>, orientation: Vector2<f32>) {
-        let bounds = Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
-        let right_front = position + bounds * Vector2::new(0.5, 0.5).component_mul(&self.kind.train_size());
-        let left_front = position + bounds * Vector2::new(0.5, -0.5).component_mul(&self.kind.train_size());
-        let right_back = position + bounds * Vector2::new(-0.5, 0.5).component_mul(&self.kind.train_size());
-        let left_back = position + bounds * Vector2::new(-0.5, -0.5).component_mul(&self.kind.train_size());
-        buffer.extend(left_back.iter().chain(left_front.iter()).chain(right_back.iter()));
-        buffer.extend(right_front.iter().chain(right_back.iter()).chain(left_front.iter()));
+    fn write_rectangle(
+        &self,
+        buffer: &mut Vec<f32>,
+        position: Point2<f32>,
+        orientation: Vector2<f32>,
+    ) {
+        let bounds =
+            Matrix2::from_columns(&[orientation, Vector2::new(-orientation.y, orientation.x)]);
+        let right_front =
+            position + bounds * Vector2::new(0.5, 0.5).component_mul(&self.kind.train_size());
+        let left_front =
+            position + bounds * Vector2::new(0.5, -0.5).component_mul(&self.kind.train_size());
+        let right_back =
+            position + bounds * Vector2::new(-0.5, 0.5).component_mul(&self.kind.train_size());
+        let left_back =
+            position + bounds * Vector2::new(-0.5, -0.5).component_mul(&self.kind.train_size());
+        buffer.extend(
+            left_back
+                .iter()
+                .chain(left_front.iter())
+                .chain(right_back.iter()),
+        );
+        buffer.extend(
+            right_front
+                .iter()
+                .chain(right_back.iter())
+                .chain(left_front.iter()),
+        );
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use approx::assert_relative_eq;
 
-    use crate::Directions;
+    use super::*;
     use crate::node::fixtures as nodes;
     use crate::node::Kind as NodeKind;
+    use crate::Directions;
 
     fn train() -> Train {
-        Train::new(Kind::SuburbanRailway, Direction::Upstream, vec![10, 1, 2, 2, 1])
+        Train::new(
+            Kind::SuburbanRailway,
+            Direction::Upstream,
+            vec![10, 1, 2, 2, 1],
+        )
     }
 
     #[test]
@@ -166,20 +180,34 @@ mod tests {
     #[test]
     fn test_upstream_ignores_downstream_only() {
         let mut nodes = nodes::blue();
-        nodes.insert(1, Node::new(Point2::new(190.0, 100.0), NodeKind::Waypoint, Directions::DownstreamOnly));
+        nodes.insert(
+            1,
+            Node::new(
+                Point2::new(190.0, 100.0),
+                NodeKind::Waypoint,
+                Directions::DownstreamOnly,
+            ),
+        );
         let mut train = train();
         train.update(12, &nodes);
-        assert_eq!(train.state, TrainState::Driving {from: 0, to: 2 });
+        assert_eq!(train.state, TrainState::Driving { from: 0, to: 2 });
     }
 
     #[test]
     fn test_downstream_ignores_upstream_only() {
         let mut nodes = nodes::blue();
-        nodes.insert(2, Node::new(Point2::new(220.0, 105.0), NodeKind::Waypoint, Directions::UpstreamOnly));
+        nodes.insert(
+            2,
+            Node::new(
+                Point2::new(220.0, 105.0),
+                NodeKind::Waypoint,
+                Directions::UpstreamOnly,
+            ),
+        );
         let mut train = train();
         train.direction = Direction::Downstream;
         train.update(12, &nodes);
-        assert_eq!(train.state, TrainState::Driving {from: 3, to: 1 });
+        assert_eq!(train.state, TrainState::Driving { from: 3, to: 1 });
     }
 
     #[test]
@@ -193,7 +221,14 @@ mod tests {
     #[test]
     fn test_nodes_before_start() {
         let mut nodes = nodes::blue();
-        nodes.insert(0, Node::new(Point2::new(190.0, 100.0), NodeKind::Waypoint, Directions::Both));
+        nodes.insert(
+            0,
+            Node::new(
+                Point2::new(190.0, 100.0),
+                NodeKind::Waypoint,
+                Directions::Both,
+            ),
+        );
         let mut train = train();
         train.durations.insert(1, 1);
 
@@ -205,7 +240,11 @@ mod tests {
     #[test]
     fn test_nodes_after_terminus() {
         let mut nodes = nodes::blue();
-        nodes.push(Node::new(Point2::new(240.0, 105.0), NodeKind::Waypoint, Directions::Both));
+        nodes.push(Node::new(
+            Point2::new(240.0, 105.0),
+            NodeKind::Waypoint,
+            Directions::Both,
+        ));
         let mut train = train();
         train.durations.push(1);
 
@@ -219,14 +258,14 @@ mod tests {
         let mut train = train();
         train.update(10, &nodes::blue());
         let mut buffer = Vec::new();
-        train.write_rectangle(&mut buffer, Point2::new(250.0, 200.0), Vector2::new(1.0, 0.0));
-        assert_relative_eq!(*buffer, [
-            140.0, 125.0,
-            360.0, 125.0,
-            140.0, 275.0,
-            360.0, 275.0,
-            140.0, 275.0,
-            360.0, 125.0,
-        ]);
+        train.write_rectangle(
+            &mut buffer,
+            Point2::new(250.0, 200.0),
+            Vector2::new(1.0, 0.0),
+        );
+        assert_relative_eq!(
+            *buffer,
+            [140.0, 125.0, 360.0, 125.0, 140.0, 275.0, 360.0, 275.0, 140.0, 275.0, 360.0, 125.0,]
+        );
     }
 }

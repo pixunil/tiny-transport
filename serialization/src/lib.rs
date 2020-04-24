@@ -1,11 +1,11 @@
-use serde_derive::{Serialize, Deserialize};
+use serde_derive::{Deserialize, Serialize};
 
-mod station;
 mod line;
+mod station;
 pub mod train;
 
-pub use crate::station::Station;
 pub use crate::line::{Line, LineGroup};
+pub use crate::station::Station;
 pub use crate::train::Train;
 
 #[derive(Debug, Serialize, Deserialize)]
