@@ -1,10 +1,12 @@
 use std::convert::TryFrom;
 use std::error::Error;
+use std::fs::File;
 
+use chrono::NaiveDate;
 use clap::clap_app;
 
-use import::import;
 use import::profile::Profile;
+use import::ImportedDataset;
 
 mod compress;
 mod load;
@@ -22,6 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         (@subcommand import =>
             (@arg DATASET: +required "Path to gtfs dataset")
             (@arg PROFILE: --profile +takes_value "Profile used for importing")
+            (@arg DATE: --date "Date in the format yyyy-mm-dd")
         )
         (@subcommand load =>
             (@arg DATA: default_value("wasm/www/data.bin") "Path to imported data")
@@ -41,7 +44,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 Some(profile_name) => Profile::try_from(profile_name)?,
                 None => Profile::default(),
             };
-            import(dataset, profile)
+            let date = match import_matches.value_of("DATE") {
+                Some(date) => NaiveDate::parse_from_str(date, "%F")?,
+                None => NaiveDate::from_ymd(2019, 8, 26),
+            };
+            let imported = ImportedDataset::import(dataset)?;
+            let file = File::create("wasm/www/data.bin")?;
+            imported.serialize(file, profile, date)
         }
         ("load", Some(load_matches)) => {
             let data = load_matches.value_of_os("DATA").unwrap();

@@ -4,7 +4,7 @@ use crate::Line;
 create_id_type!(AgencyId);
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Agency {
+pub struct Agency {
     name: String,
     lines: Vec<Line>,
 }
