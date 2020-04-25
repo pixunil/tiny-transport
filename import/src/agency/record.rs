@@ -43,11 +43,11 @@ mod tests {
     #[test]
     fn test_import_agency_with_line() {
         let mut lines = map! {
-            "1" => vec![lines::blue()],
+            "1" => vec![lines::u4()],
         };
         assert_eq!(
             agency_record().import(&mut lines),
-            agencies::pubtrans(vec![lines::blue()])
+            agencies::pubtrans(vec![lines::u4()])
         );
         assert!(lines.is_empty());
     }

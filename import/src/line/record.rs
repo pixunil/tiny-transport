@@ -61,12 +61,12 @@ mod tests {
     use crate::line::fixtures::*;
     use crate::map;
 
-    fn blue_line_record() -> LineRecord {
+    fn u4_line_record() -> LineRecord {
         LineRecord {
             line_id: "1".into(),
             agency_id: "pubtransport".into(),
-            route_short_name: "Blue Line".to_string(),
-            line_kind: Kind::SuburbanRailway,
+            route_short_name: "U4".to_string(),
+            line_kind: Kind::UrbanRailway,
         }
     }
 
@@ -74,14 +74,14 @@ mod tests {
     fn test_import() {
         let mut id_mapping = HashMap::new();
         let mut incomplete_lines = Vec::new();
-        blue_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
+        u4_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
         assert_eq!(
             id_mapping,
             map! {
                 "1" => 0,
             }
         );
-        assert_eq!(incomplete_lines, [incomplete_lines::blue()]);
+        assert_eq!(incomplete_lines, [incomplete_lines::u4()]);
     }
 
     #[test]
@@ -89,9 +89,9 @@ mod tests {
         let mut id_mapping = HashMap::new();
         let mut incomplete_lines = Vec::new();
 
-        let mut duplicated = blue_line_record();
+        let mut duplicated = u4_line_record();
         duplicated.line_id = "2".into();
-        blue_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
+        u4_line_record().deduplicate(&mut id_mapping, &mut incomplete_lines);
         duplicated.deduplicate(&mut id_mapping, &mut incomplete_lines);
         assert_eq!(
             id_mapping,
@@ -100,6 +100,6 @@ mod tests {
                 "2" => 0,
             }
         );
-        assert_eq!(incomplete_lines, [incomplete_lines::blue()]);
+        assert_eq!(incomplete_lines, [incomplete_lines::u4()]);
     }
 }

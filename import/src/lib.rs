@@ -46,7 +46,7 @@ fn fetch(mut dataset: impl Dataset) -> Result<Vec<Agency>, Box<dyn Error>> {
 fn store(lines: Vec<&Line>) -> Result<(), Box<dyn Error>> {
     let mut stations = lines
         .iter()
-        .flat_map(|line| &line.routes)
+        .flat_map(|line| line.routes())
         .flat_map(|route| route.locations())
         .cloned()
         .collect::<Vec<_>>();

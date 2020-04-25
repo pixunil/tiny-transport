@@ -43,8 +43,8 @@ impl RouteBuffer {
     }
 
     pub(super) fn into_routes(mut self) -> impl Iterator<Item = Route> {
-        self.upstream.sort_by_key(|variant| variant.trips.len());
-        self.downstream.sort_by_key(|variant| variant.trips.len());
+        self.upstream.sort_by_key(RouteVariant::order);
+        self.downstream.sort_by_key(RouteVariant::order);
 
         self.upstream
             .into_iter()

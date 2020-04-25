@@ -62,8 +62,8 @@ pub(super) mod fixtures {
     }
 
     incomplete_lines! {
-        blue:               pubtransport,   "Blue Line",    SuburbanRailway;
-        blue_replacement:   pubtransport,   "Blue Line",    Bus;
+        u4:                 pubtransport,   "U4",           UrbanRailway;
+        u4_replacement:     pubtransport,   "U4",           Bus;
     }
 }
 
@@ -75,20 +75,20 @@ mod tests {
 
     fn colors() -> HashMap<String, Color> {
         map! {
-            "Blue Line" => Color::new(0, 0, 255),
+            "U4" => Color::new(255, 217, 0),
         }
     }
 
     #[test]
     fn test_add_color_to_applicable() {
-        let mut line = incomplete_lines::blue();
+        let mut line = incomplete_lines::u4();
         line.add_color_when_applicable(&colors());
-        assert_eq!(line.color, Some(Color::new(0, 0, 255)));
+        assert_eq!(line.color, Some(Color::new(255, 217, 0)));
     }
 
     #[test]
     fn test_add_color_to_unapplicable() {
-        let mut line = incomplete_lines::blue_replacement();
+        let mut line = incomplete_lines::u4_replacement();
         line.add_color_when_applicable(&colors());
         assert_eq!(line.color, None);
     }

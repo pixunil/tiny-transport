@@ -12,7 +12,7 @@ pub(crate) struct Line {
     name: String,
     color: Color,
     kind: Kind,
-    pub(crate) routes: Vec<Route>,
+    routes: Vec<Route>,
 }
 
 impl Line {
@@ -33,10 +33,13 @@ impl Line {
         self.kind
     }
 
+    pub(crate) fn routes(&self) -> impl Iterator<Item = &Route> {
+        self.routes.iter()
+    }
+
     pub(crate) fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {
         let route = self
-            .routes
-            .iter()
+            .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
         let nodes = route.freeze_nodes();
@@ -69,7 +72,21 @@ pub(crate) mod fixtures {
     }
 
     lines! {
-        blue:               "Blue Line",    SuburbanRailway,    (0, 0, 255);
-        green:              "Green Line",   SuburbanRailway,    (0, 255, 0);
+        s42:                "S42",          SuburbanRailway,    (204, 97, 18);
+        u4:                 "U4",           UrbanRailway,       (255, 217, 0);
+        tram_12:            "12",           Tram,               (136, 112, 171);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::line::fixtures::*;
+
+    #[test]
+    fn test_getters() {
+        let line = lines::u4();
+        assert_eq!(line.name(), "U4");
+        assert_eq!(line.kind(), Kind::UrbanRailway);
     }
 }

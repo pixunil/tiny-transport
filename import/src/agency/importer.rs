@@ -47,9 +47,9 @@ mod tests {
         );
 
         let lines = map! {
-            "1" => vec![lines::blue()],
+            "1" => vec![lines::u4()],
         };
         let agencies = Importer::import(&mut dataset, lines).unwrap();
-        assert_eq!(agencies, vec![agencies::pubtrans(vec![lines::blue()])]);
+        assert_eq!(agencies, vec![agencies::pubtrans(vec![lines::u4()])]);
     }
 }

@@ -97,9 +97,9 @@ impl StopCandidate {
 
 #[derive(Debug, PartialEq)]
 pub(super) struct RouteVariant {
-    pub(super) locations: Vec<Rc<Location>>,
-    pub(super) shape: Shape,
-    pub(super) trips: Vec<Trip>,
+    locations: Vec<Rc<Location>>,
+    shape: Shape,
+    trips: Vec<Trip>,
 }
 
 impl RouteVariant {
@@ -113,6 +113,10 @@ impl RouteVariant {
 
     pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &Shape) -> bool {
         self.locations == locations && &self.shape == shape
+    }
+
+    pub(super) fn order(&self) -> impl Ord {
+        self.trips.len()
     }
 
     pub(super) fn add_trip(&mut self, trip: Trip) {

@@ -8,14 +8,18 @@ create_id_type!(LocationId);
 
 #[derive(PartialEq)]
 pub(crate) struct Location {
-    pub id: LocationId,
-    pub name: String,
+    id: LocationId,
+    name: String,
     position: Point,
 }
 
 impl Location {
     pub(crate) fn new(id: LocationId, name: String, position: Point) -> Location {
         Location { id, name, position }
+    }
+
+    pub(crate) fn id(&self) -> LocationId {
+        self.id.clone()
     }
 
     pub(crate) fn position(&self) -> Point {
@@ -96,5 +100,18 @@ pub(crate) mod fixtures {
         zum_heckeshorn:                      52.430, 13.161, "Zum Heckeshorn";
         strasse_zum_loewen:                  52.427, 13.160, "Straße zum Löwen";
         conradstr:                           52.420, 13.162, "Conradstr.";
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::coord::project;
+    use crate::location::fixtures::*;
+
+    #[test]
+    fn test_getters() {
+        let location = locations::hauptbahnhof();
+        assert_eq!(location.id(), "hauptbahnhof".into());
+        assert_eq!(location.position(), project(52.526, 13.369));
     }
 }

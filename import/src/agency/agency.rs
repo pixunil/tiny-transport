@@ -41,8 +41,8 @@ mod tests {
 
     #[test]
     fn test_getters() {
-        let agency = agencies::pubtrans(vec![lines::blue()]);
+        let agency = agencies::pubtrans(vec![lines::u4()]);
         assert_eq!(agency.name(), "Public Transport");
-        assert_eq!(agency.lines(), &[lines::blue()]);
+        assert_eq!(agency.lines(), &[lines::u4()]);
     }
 }

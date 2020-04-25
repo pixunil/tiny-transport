@@ -53,8 +53,8 @@ impl TripBuffer {
     }
 
     fn termini(&self) -> (LocationId, LocationId) {
-        let first = self.locations.first().unwrap().id.clone();
-        let last = self.locations.last().unwrap().id.clone();
+        let first = self.locations.first().unwrap().id();
+        let last = self.locations.last().unwrap().id();
         match self.direction {
             Direction::Upstream => (first, last),
             Direction::Downstream => (last, first),
@@ -164,8 +164,8 @@ mod tests {
         assert_eq!(
             buffer.termini(),
             (
-                locations::nollendorfplatz().id,
-                locations::innsbrucker_platz().id
+                locations::nollendorfplatz().id(),
+                locations::innsbrucker_platz().id()
             )
         );
     }
@@ -176,8 +176,8 @@ mod tests {
         assert_eq!(
             buffer.termini(),
             (
-                locations::nollendorfplatz().id,
-                locations::innsbrucker_platz().id
+                locations::nollendorfplatz().id(),
+                locations::innsbrucker_platz().id()
             )
         );
     }
@@ -208,7 +208,7 @@ mod tests {
         assert_eq!(
             route_buffers[0],
             map! {
-                (locations::oranienburger_tor().id, locations::am_kupfergraben().id)
+                (locations::oranienburger_tor().id(), locations::am_kupfergraben().id())
                     => route_buffers::tram_12::with_1_upstream(),
             }
         );
@@ -222,7 +222,7 @@ mod tests {
         assert_eq!(
             route_buffers[0],
             map! {
-                (locations::oranienburger_tor().id, locations::am_kupfergraben().id)
+                (locations::oranienburger_tor().id(), locations::am_kupfergraben().id())
                     => route_buffers::tram_12::with_1_downstream(),
             }
         );
@@ -238,7 +238,7 @@ mod tests {
         assert_eq!(
             route_buffers[0],
             map! {
-                (locations::oranienburger_tor().id, locations::am_kupfergraben().id)
+                (locations::oranienburger_tor().id(), locations::am_kupfergraben().id())
                     => route_buffers::tram_12::with_1_upstream_1_downstream(),
             }
         );

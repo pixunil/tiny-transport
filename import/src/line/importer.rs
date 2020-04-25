@@ -110,18 +110,18 @@ mod tests {
         let mut dataset = dataset!(
             routes:
                 route_id, agency_id, route_short_name, route_type;
-                1,        1,         "Blue Line",      109;
-                2,        1,         "Green Line",     109
+                1,        1,         "S42",            109;
+                2,        1,         "U4",             400
             colors:
                 line,         color;
-                "Blue Line",  "#0000ff";
-                "Green Line", "#00ff00"
+                "S42",        "#cc6112";
+                "U4",         "#ffd900"
         );
 
         let importer = Importer::import(&mut dataset).unwrap();
         let lines = importer.finish(vec![Vec::new(), Vec::new()]).unwrap();
         assert_eq!(lines.len(), 1);
-        assert!(lines[&"1".into()].contains(&lines::blue()));
-        assert!(lines[&"1".into()].contains(&lines::green()));
+        assert!(lines[&"1".into()].contains(&lines::s42()));
+        assert!(lines[&"1".into()].contains(&lines::u4()));
     }
 }
