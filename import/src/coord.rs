@@ -11,7 +11,7 @@ pub(crate) fn project(lat: f64, lon: f64) -> Point {
     Point::new(utm.easting, utm.northing)
 }
 
-fn project_back(position: Point) -> (f64, f64) {
+pub fn project_back(position: Point) -> (f64, f64) {
     let utm = Utm::new(position.x, position.y, true, 33, 'U', false);
     let coord = Coord::from(utm);
     (coord.lat, coord.lon)

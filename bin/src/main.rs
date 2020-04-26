@@ -9,9 +9,11 @@ use import::profile::Profile;
 use import::ImportedDataset;
 
 mod compress;
+mod inspect;
 mod load;
 
 use compress::compress;
+use inspect::inspect;
 use load::load;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -28,6 +30,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         )
         (@subcommand load =>
             (@arg DATA: default_value("wasm/www/data.bin") "Path to imported data")
+        )
+        (@subcommand inspect =>
+            (@arg DATASET: +required "Path to gtfs dataset")
+            (@arg LINE: "Line name to inspect")
         )
     )
     .get_matches();
@@ -55,6 +61,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         ("load", Some(load_matches)) => {
             let data = load_matches.value_of_os("DATA").unwrap();
             load(data)
+        }
+        ("inspect", Some(inspect_matches)) => {
+            let dataset = inspect_matches.value_of_os("DATASET").unwrap();
+            let line_name = inspect_matches.value_of("LINE").unwrap();
+            inspect(dataset, line_name)
         }
         ("", None) => Ok(()),
         _ => unreachable!(),

@@ -11,7 +11,7 @@ use chrono::prelude::*;
 use zip::ZipArchive;
 
 mod agency;
-mod coord;
+pub mod coord;
 mod deserialize;
 mod line;
 mod location;

@@ -8,7 +8,7 @@ use simulation::Color;
 create_id_type!(LineId);
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Line {
+pub struct Line {
     name: String,
     color: Color,
     kind: Kind,
@@ -25,7 +25,7 @@ impl Line {
         }
     }
 
-    pub(crate) fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         &self.name
     }
 
@@ -33,7 +33,7 @@ impl Line {
         self.kind
     }
 
-    pub(crate) fn routes(&self) -> impl Iterator<Item = &Route> {
+    pub fn routes(&self) -> impl Iterator<Item = &Route> {
         self.routes.iter()
     }
 

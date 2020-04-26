@@ -10,7 +10,7 @@ use crate::location::Location;
 use simulation::Directions;
 
 #[derive(PartialEq)]
-pub(super) struct Node {
+pub struct Node {
     position: Point,
     kind: Kind,
     in_directions: Directions,
@@ -25,16 +25,24 @@ impl Node {
         }
     }
 
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
     pub(super) fn distance_to(&self, location: &Location) -> NotNan<f64> {
         let distance = na::distance(&self.position, &location.position());
         NotNan::new(distance).unwrap()
     }
 
-    pub(super) fn location(&self) -> Option<&Rc<Location>> {
+    pub fn location(&self) -> Option<&Rc<Location>> {
         match &self.kind {
             Kind::Waypoint => None,
             Kind::Stop { location } => Some(&location),
         }
+    }
+
+    pub fn in_directions(&self) -> Directions {
+        self.in_directions
     }
 
     pub(super) fn make_stop(&mut self, location: Rc<Location>) {

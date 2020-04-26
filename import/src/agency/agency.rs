@@ -18,7 +18,7 @@ impl Agency {
         &self.name
     }
 
-    pub(crate) fn lines(&self) -> &[Line] {
+    pub fn lines(&self) -> &[Line] {
         &self.lines
     }
 }

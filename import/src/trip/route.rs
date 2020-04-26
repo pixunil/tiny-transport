@@ -6,7 +6,7 @@ use super::{Node, Trip};
 use crate::location::Location;
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Route {
+pub struct Route {
     nodes: Vec<Node>,
     trips: Vec<Trip>,
 }
@@ -14,6 +14,10 @@ pub(crate) struct Route {
 impl Route {
     pub(super) fn new(nodes: Vec<Node>, trips: Vec<Trip>) -> Route {
         Route { nodes, trips }
+    }
+
+    pub fn nodes(&self) -> impl Iterator<Item = &Node> {
+        self.nodes.iter()
     }
 
     pub(crate) fn num_trips_at(&self, date: NaiveDate) -> usize {

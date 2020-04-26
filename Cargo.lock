@@ -240,6 +240,8 @@ dependencies = [
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtfs-sim-import 0.1.0",
  "gtfs-sim-serialization 0.1.0",
+ "gtfs-sim-simulation 0.1.0",
+ "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

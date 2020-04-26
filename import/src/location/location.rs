@@ -7,7 +7,7 @@ use crate::create_id_type;
 create_id_type!(LocationId);
 
 #[derive(PartialEq)]
-pub(crate) struct Location {
+pub struct Location {
     id: LocationId,
     name: String,
     position: Point,
@@ -22,7 +22,11 @@ impl Location {
         self.id.clone()
     }
 
-    pub(crate) fn position(&self) -> Point {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn position(&self) -> Point {
         self.position
     }
 
