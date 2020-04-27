@@ -45,7 +45,7 @@ pub enum Directions {
 }
 
 impl Directions {
-    pub(crate) fn allows(self, direction: Direction) -> bool {
+    pub fn allows(self, direction: Direction) -> bool {
         match self {
             Self::Both => true,
             Self::UpstreamOnly => direction == Direction::Upstream,

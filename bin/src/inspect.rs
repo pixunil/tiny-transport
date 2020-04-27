@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use import::coord::project_back;
 use import::ImportedDataset;
-use simulation::Directions;
+use simulation::{Direction, Directions};
 
 fn normalize_name(mut name: &str) -> &str {
     const REMOVE_FROM_START: &[&str] = &["Berlin,", "S+U", "S", "U"];
@@ -32,6 +32,29 @@ fn make_identifier(name: &str) -> String {
         .replace("__", "_")
         .trim_matches('_')
         .to_string()
+}
+
+struct DirectionVec<T> {
+    upstream: Vec<T>,
+    downstream: Vec<T>,
+}
+
+impl<T: Clone> DirectionVec<T> {
+    fn new() -> Self {
+        Self {
+            upstream: Vec::new(),
+            downstream: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, directions: Directions, value: T) {
+        if directions.allows(Direction::Upstream) {
+            self.upstream.push(value.clone());
+        }
+        if directions.allows(Direction::Downstream) {
+            self.downstream.push(value);
+        }
+    }
 }
 
 struct Node {
@@ -76,6 +99,31 @@ impl fmt::Display for Location {
     }
 }
 
+fn print_route_info(stop_locations: Vec<String>, shapes: Vec<(f64, f64)>) {
+    if stop_locations.len() > 0 {
+        let termini = (
+            stop_locations.first().unwrap(),
+            stop_locations.last().unwrap(),
+        );
+        println!("{}_{}", termini.0, termini.1);
+    } else {
+        println!("‹no stop locations›");
+    }
+    println!(
+        "[{}]",
+        stop_locations
+            .iter()
+            .format_with(" ", |location, f| f(&format_args!("{},", location)))
+    );
+    println!(
+        "[{}]",
+        shapes.iter().format_with(" ", |point, f| f(&format_args!(
+            "{:.3}, {:.3};",
+            point.0, point.1
+        )))
+    );
+}
+
 pub(crate) fn inspect(dataset: impl AsRef<OsStr>, line_name: &str) -> Result<(), Box<dyn Error>> {
     let imported = ImportedDataset::import(dataset)?;
 
@@ -89,6 +137,8 @@ pub(crate) fn inspect(dataset: impl AsRef<OsStr>, line_name: &str) -> Result<(),
     let mut location_identifiers = HashSet::new();
 
     for route in line.routes() {
+        let mut stop_locations = DirectionVec::new();
+        let mut shapes = DirectionVec::new();
         let mut nodes = Vec::new();
 
         for node in route.nodes() {
@@ -105,6 +155,7 @@ pub(crate) fn inspect(dataset: impl AsRef<OsStr>, line_name: &str) -> Result<(),
                         identifier: identifier.clone(),
                     });
                 }
+                stop_locations.push(node.in_directions(), identifier.clone());
                 location_identifier = Some(identifier);
             }
 
@@ -113,7 +164,13 @@ pub(crate) fn inspect(dataset: impl AsRef<OsStr>, line_name: &str) -> Result<(),
                 in_directions: node.in_directions(),
                 location_identifier,
             });
+            shapes.push(node.in_directions(), project_back(node.position()));
         }
+
+        print_route_info(stop_locations.upstream, shapes.upstream);
+        stop_locations.downstream.reverse();
+        shapes.downstream.reverse();
+        print_route_info(stop_locations.downstream, shapes.downstream);
 
         nodes
             .iter()
