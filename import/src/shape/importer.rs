@@ -1,16 +1,11 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::iter::once;
-use std::time::Instant;
 
 use itertools::{EitherOrBoth::*, Itertools};
 
-use console::Term;
-
-use indicatif::ProgressIterator;
-
 use super::{Shape, ShapeId, ShapeRecord};
-use crate::utils::progress::{elapsed, percent_bar};
+use crate::utils::Action;
 use crate::utils::Dataset;
 
 pub(crate) struct Importer;
@@ -21,32 +16,19 @@ impl Importer {
     ) -> Result<HashMap<ShapeId, Shape>, Box<dyn Error>> {
         let mut shapes = HashMap::new();
 
-        let records = dataset.read_csv("shapes.txt", "Importing shapes")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing shapes");
+        for result in action.read_csv(dataset, "shapes.txt")? {
             let record: ShapeRecord = result?;
             record.import(&mut shapes);
         }
+        action.complete(&format!("Imported {} shapes", shapes.len()));
 
-        eprintln!(
-            "Imported {} shapes in {:.2}s",
-            shapes.len(),
-            elapsed(started)
-        );
-
-        let started = Instant::now();
-        let progress_bar = percent_bar(shapes.len() as u64, "Smoothing shapes");
-        let shapes = shapes
-            .into_iter()
-            .progress_with(progress_bar)
+        let mut action = Action::start("Smoothing shapes");
+        let shapes = action
+            .wrap_iter(shapes)
             .map(|(id, shape)| (id, Self::smooth(shape)))
             .collect();
-
-        Term::stderr().clear_last_lines(1).unwrap();
-        eprintln!(
-            "Smoothed shapes in {:.2}s",
-            started.elapsed().as_millis() as f64 / 1000.0
-        );
+        action.complete("Smoothed shapes");
         Ok(shapes)
     }
 

@@ -2,14 +2,13 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::iter;
 use std::rc::Rc;
-use std::time::Instant;
 
 use super::{Route, StopRecord, TripBuffer, TripId, TripRecord};
 use crate::line::LineId;
 use crate::location::{Location, LocationId};
 use crate::service::{Service, ServiceId};
 use crate::shape::{Shape, ShapeId};
-use crate::utils::{progress::elapsed, Dataset};
+use crate::utils::{Action, Dataset};
 
 pub(crate) struct Importer<'a> {
     services: &'a HashMap<ServiceId, Rc<Service>>,
@@ -42,18 +41,12 @@ impl<'a> Importer<'a> {
     ) -> Result<HashMap<TripId, TripBuffer>, Box<dyn Error>> {
         let mut buffers = HashMap::new();
 
-        let records = dataset.read_csv("trips.txt", "Importing trips")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing trips");
+        for result in action.read_csv(dataset, "trips.txt")? {
             let record: TripRecord = result?;
             record.import(self.id_mapping, self.services, &mut buffers);
         }
-
-        eprintln!(
-            "Imported {} trips in {:.2}s",
-            buffers.len(),
-            elapsed(started)
-        );
+        action.complete(&format!("Imported {} trips", buffers.len()));
         Ok(buffers)
     }
 
@@ -62,35 +55,38 @@ impl<'a> Importer<'a> {
         dataset: &mut impl Dataset,
         buffers: &mut HashMap<TripId, TripBuffer>,
     ) -> Result<(), Box<dyn Error>> {
-        let records = dataset.read_csv("stop_times.txt", "Importing trip stops")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing trip stops");
+        for result in action.read_csv(dataset, "stop_times.txt")? {
             let record: StopRecord = result?;
             record.import(self.locations, buffers);
         }
-
-        eprintln!("Imported trip stops in {:.2}s", elapsed(started));
+        action.complete("Imported trip stops");
         Ok(())
     }
 
     fn combine_into_routes(&self, buffers: HashMap<TripId, TripBuffer>) -> Vec<Vec<Route>> {
+        let mut action = Action::start("Sorting trips after terminus");
         let mut route_buffers = iter::repeat_with(HashMap::new)
             .take(self.num_lines)
             .collect();
 
-        for (_, buffer) in buffers {
+        for (_, buffer) in action.wrap_iter(buffers) {
             buffer.create_and_place_trip_by_terminus(&self.shapes, &mut route_buffers);
         }
+        action.complete("Sorted trips after terminus");
 
-        route_buffers
-            .into_iter()
+        let mut action = Action::start("Merging trips into routes");
+        let routes = action
+            .wrap_iter(route_buffers)
             .map(|route_buffers| {
                 route_buffers
                     .into_iter()
                     .flat_map(|(_, buffer)| buffer.into_routes())
                     .collect()
             })
-            .collect()
+            .collect();
+        action.complete("Merged trips into routes");
+        routes
     }
 
     pub(crate) fn import(

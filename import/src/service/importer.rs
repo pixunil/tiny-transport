@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::rc::Rc;
-use std::time::Instant;
 
 use super::{Service, ServiceExceptionRecord, ServiceId, ServiceRecord};
-use crate::utils::{progress::elapsed, Dataset};
+use crate::utils::{Action, Dataset};
 
 pub(crate) struct Importer;
 
@@ -28,18 +27,12 @@ impl Importer {
     ) -> Result<HashMap<ServiceId, Service>, Box<dyn Error>> {
         let mut services = HashMap::new();
 
-        let records = dataset.read_csv("calendar.txt", "Importing services")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing services");
+        for result in action.read_csv(dataset, "calendar.txt")? {
             let record: ServiceRecord = result?;
             record.import(&mut services);
         }
-
-        eprintln!(
-            "Imported {} services in {:.2}s",
-            services.len(),
-            elapsed(started)
-        );
+        action.complete(&format!("Imported {} services", services.len()));
         Ok(services)
     }
 
@@ -47,14 +40,12 @@ impl Importer {
         dataset: &mut impl Dataset,
         services: &mut HashMap<ServiceId, Service>,
     ) -> Result<(), Box<dyn Error>> {
-        let records = dataset.read_csv("calendar_dates.txt", "Importing service exceptions")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing service exceptions");
+        for result in action.read_csv(dataset, "calendar_dates.txt")? {
             let record: ServiceExceptionRecord = result?;
             record.apply_to(services);
         }
-
-        eprintln!("Imported service exceptions in {:.2}s", elapsed(started));
+        action.complete("Imported service exceptions");
         Ok(())
     }
 }

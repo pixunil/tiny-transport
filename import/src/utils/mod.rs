@@ -1,6 +1,7 @@
+mod action;
 mod dataset;
-pub(crate) mod progress;
 
+pub(crate) use action::Action;
 pub(crate) use dataset::Dataset;
 
 #[macro_export]

@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::time::Instant;
 
 use super::{IncompleteLine, Line, LineColorRecord, LineId, LineRecord};
 use crate::agency::AgencyId;
 use crate::trip::Route;
-use crate::utils::{progress::elapsed, Dataset};
+use crate::utils::{Action, Dataset};
 
 pub(crate) struct Importer {
     id_mapping: HashMap<LineId, usize>,
@@ -23,18 +22,12 @@ impl Importer {
         let mut id_mapping = HashMap::new();
         let mut incomplete_lines = Vec::new();
 
-        let records = dataset.read_csv("routes.txt", "Importing lines")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing lines");
+        for result in action.read_csv(dataset, "routes.txt")? {
             let record: LineRecord = result?;
             record.deduplicate(&mut id_mapping, &mut incomplete_lines);
         }
-
-        eprintln!(
-            "Imported {} lines in {:.2}s",
-            incomplete_lines.len(),
-            elapsed(started)
-        );
+        action.complete(&format!("Imported {} lines", incomplete_lines.len()));
         Ok(Self {
             id_mapping,
             incomplete_lines,
@@ -44,9 +37,8 @@ impl Importer {
     fn import_colors(&mut self, dataset: &mut impl Dataset) -> Result<(), Box<dyn Error>> {
         let mut colors = HashMap::new();
 
-        let records = dataset.read_csv("colors.txt", "Importing colors")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing colors");
+        for result in action.read_csv(dataset, "colors.txt")? {
             let record: LineColorRecord = result?;
             record.import(&mut colors);
         }
@@ -55,7 +47,7 @@ impl Importer {
             incomplete_line.add_color_when_applicable(&mut colors);
         }
 
-        eprintln!("Imported line colors in {:.2}s", elapsed(started));
+        action.complete("Imported line colors");
         Ok(())
     }
 
@@ -72,9 +64,12 @@ impl Importer {
         mut routes: Vec<Vec<Route>>,
     ) -> Result<HashMap<AgencyId, Vec<Line>>, Box<dyn Error>> {
         let mut lines = HashMap::new();
-        for incomplete_line in self.incomplete_lines.into_iter().rev() {
+        let mut action = Action::start("Adding routes to lines");
+        let incomplete_lines = self.incomplete_lines.into_iter().rev();
+        for incomplete_line in action.wrap_iter(incomplete_lines) {
             incomplete_line.finish(routes.pop().unwrap(), &mut lines);
         }
+        action.complete("Added routes to lines");
 
         Ok(lines)
     }

@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::time::Instant;
 
 use super::{Agency, AgencyId, AgencyRecord};
-use crate::utils::{progress::elapsed, Dataset};
+use crate::utils::{Action, Dataset};
 use crate::Line;
 
 pub(crate) struct Importer;
@@ -15,19 +14,13 @@ impl Importer {
     ) -> Result<Vec<Agency>, Box<dyn Error>> {
         let mut agencies = Vec::new();
 
-        let records = dataset.read_csv("agency.txt", "Importing agencies")?;
-        let started = Instant::now();
-        for result in records {
+        let action = Action::start("Importing agencies");
+        for result in action.read_csv(dataset, "agency.txt")? {
             let record: AgencyRecord = result?;
             let agency = record.import(&mut lines);
             agencies.push(agency);
         }
-
-        eprintln!(
-            "Imported {} agencies in {:.2}s",
-            agencies.len(),
-            elapsed(started)
-        );
+        action.complete(&format!("Imported {} agencies", agencies.len()));
         Ok(agencies)
     }
 }

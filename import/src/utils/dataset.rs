@@ -3,20 +3,11 @@ use std::fs::File;
 use std::io::{self, Read, Seek};
 use std::path::PathBuf;
 
-use serde::de::DeserializeOwned;
-
 use zip::read::ZipArchive;
 
-use indicatif::ProgressBarRead;
-
-use super::progress::percent_bar;
-
-type DatasetRecordsIter<'a, D> =
-    csv::DeserializeRecordsIntoIter<ProgressBarRead<Box<dyn Read + 'a>>, D>;
-
 pub(crate) struct Table<'r> {
-    size: u64,
-    reader: Box<dyn Read + 'r>,
+    pub(super) size: u64,
+    pub(super) reader: Box<dyn Read + 'r>,
 }
 
 impl<'r> Table<'r> {
@@ -32,17 +23,6 @@ pub(crate) trait Dataset {
     type Error: Error + 'static;
 
     fn open_csv(&mut self, name: &str) -> Result<Table, Self::Error>;
-
-    fn read_csv<D: DeserializeOwned>(
-        &mut self,
-        name: &str,
-        message: &str,
-    ) -> Result<DatasetRecordsIter<D>, Self::Error> {
-        let table = self.open_csv(name)?;
-        let progress_bar = percent_bar(table.size, message);
-        let reader = csv::Reader::from_reader(progress_bar.wrap_read(table.reader));
-        Ok(reader.into_deserialize())
-    }
 }
 
 impl Dataset for PathBuf {
