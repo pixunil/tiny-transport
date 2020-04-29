@@ -14,6 +14,6 @@ clap = "~2.33.0"
 itertools = "0.8"
 zip = { version = "0.5", default-features = false, features = ["bzip2"] }
 
-import = { package = "gtfs-sim-import", path = "../import" }
+import = { package = "gtfs-sim-import", path = "../import", features = ["progress"] }
 serialization = { package = "gtfs-sim-serialization", path = "../serialization" }
 simulation = { package = "gtfs-sim-simulation", path = "../simulation" }

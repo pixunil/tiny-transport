@@ -18,8 +18,8 @@ before_script:
   - rustup component add rustfmt
 
 script:
-  - cargo build --all
-  - cargo test --all
+  - cargo build --workspace
+  - cargo test --workspace --exclude gtfs-sim-bin
   - cargo fmt --all -- --check
 
 after_success: |

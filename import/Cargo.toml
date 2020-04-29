@@ -7,6 +7,11 @@ description = "Imports Gtfs data for the simulation"
 repository = "https://github.com/pixunil/gtfs-sim"
 license = "MIT"
 
+[features]
+default = []
+
+progress = ["console", "indicatif"]
+
 [dependencies]
 itertools = "0.8"
 ordered-float = "1.0"
@@ -19,8 +24,8 @@ zip = { version = "0.5", default-features = false, features = ["bzip2"] }
 chrono = { version = "0.4", features = ["serde"] }
 geomorph = "1.1"
 na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
-console = "0.9.1"
-indicatif = "0.13.0"
+console = { version = "0.9.1", optional = true }
+indicatif = { version = "0.13.0", optional = true }
 
 simulation = { package = "gtfs-sim-simulation", path = "../simulation" }
 serialization = { package = "gtfs-sim-serialization", path = "../serialization", features = ["fixtures"] }

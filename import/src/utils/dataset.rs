@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use zip::read::ZipArchive;
 
 pub(crate) struct Table<'r> {
+    #[cfg_attr(not(feature = "progress"), allow(dead_code))]
     pub(super) size: u64,
     pub(super) reader: Box<dyn Read + 'r>,
 }
