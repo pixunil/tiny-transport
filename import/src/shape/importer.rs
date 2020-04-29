@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 use std::error::Error;
-use std::iter::once;
-
-use itertools::{EitherOrBoth::*, Itertools};
 
 use super::{Shape, ShapeId, ShapeRecord};
+use crate::coord::Point;
 use crate::utils::Action;
 use crate::utils::Dataset;
 
@@ -32,74 +30,81 @@ impl Importer {
         Ok(shapes)
     }
 
-    fn smooth(mut shape: Shape) -> Shape {
-        shape.dedup();
-        loop {
-            let len = shape.len();
-            shape = Self::remove_spikes(shape);
-            shape = Self::smooth_zigzags(shape);
-            if shape.len() == len {
-                return shape;
+    fn smooth(shape: Shape) -> Shape {
+        let mut smoother = PointSmoother::new();
+        for point in shape {
+            smoother.add(point);
+        }
+        smoother.points
+    }
+}
+
+struct PointSmoother {
+    points: Vec<Point>,
+}
+
+impl PointSmoother {
+    fn new() -> Self {
+        Self { points: Vec::new() }
+    }
+
+    fn dedup(&mut self) -> bool {
+        let len = self.points.len();
+        if len >= 2 {
+            if self.points[len - 2] == self.points[len - 1] {
+                self.points.pop();
+                return true;
             }
         }
+        false
     }
 
-    fn remove_spikes(shape: Shape) -> Shape {
-        let spike_angle = 120_f64.to_radians();
-        let segments = shape.windows(2).map(|adjacent| adjacent[1] - adjacent[0]);
-
-        let cleaned = shape
-            .iter()
-            .skip(1)
-            .zip_longest(segments.tuple_windows())
-            .filter_map(|element| match element {
-                Both(&waypoint, (before, after)) => {
-                    if before.angle(&after) > spike_angle {
-                        None
-                    } else {
-                        Some(waypoint)
-                    }
-                }
-                Left(&waypoint) => Some(waypoint),
-                Right(_) => unreachable!(),
-            })
-            .dedup();
-
-        once(shape[0]).chain(cleaned).collect()
+    fn remove_spike(&mut self) -> bool {
+        let len = self.points.len();
+        if len >= 3 {
+            let spike_angle = 120_f64.to_radians();
+            let before = self.points[len - 2] - self.points[len - 3];
+            let after = self.points[len - 1] - self.points[len - 2];
+            if before.angle(&after) > spike_angle {
+                self.points.remove(len - 2);
+                return true;
+            }
+        }
+        false
     }
 
-    fn smooth_zigzags(shape: Shape) -> Shape {
-        let zigzag_angle = 20_f64.to_radians();
-        let segments = shape.windows(2).map(|adjacent| adjacent[1] - adjacent[0]);
+    fn smooth_zigzag(&mut self) -> bool {
+        let len = self.points.len();
+        if len >= 4 {
+            let zigzag_angle = 20_f64.to_radians();
+            let before = self.points[len - 3] - self.points[len - 4];
+            let between = self.points[len - 2] - self.points[len - 3];
+            let after = self.points[len - 1] - self.points[len - 2];
+            let angles = [
+                before.angle(&between),
+                between.angle(&after),
+                before.angle(&after),
+            ];
 
-        let mut was_merged = false;
-        let smoothed = shape
-            .iter()
-            .skip(1)
-            .zip_longest(segments.tuple_windows())
-            .filter_map(|element| match element {
-                Both(&waypoint, (before, between, after)) => {
-                    let angles = [
-                        before.angle(&between),
-                        between.angle(&after),
-                        before.angle(&after),
-                    ];
+            if (angles[0] + angles[1] - angles[2]).abs() > zigzag_angle {
+                self.points[len - 3] += between / 2.0;
+                self.points.remove(len - 2);
+                return true;
+            }
+        }
+        false
+    }
 
-                    if was_merged {
-                        was_merged = false;
-                        None
-                    } else if (angles[0] + angles[1] - angles[2]).abs() > zigzag_angle {
-                        was_merged = true;
-                        Some(waypoint + between * 0.5)
-                    } else {
-                        Some(waypoint)
-                    }
-                }
-                Left(&waypoint) => Some(waypoint),
-                Right(_) => unreachable!(),
-            });
+    fn add(&mut self, point: Point) {
+        self.points.push(point);
 
-        once(shape[0]).chain(smoothed).collect()
+        if self.dedup() {
+            return;
+        }
+        if self.remove_spike() {
+            self.dedup();
+        }
+        while self.smooth_zigzag() {}
     }
 }
 
