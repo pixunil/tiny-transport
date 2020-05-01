@@ -93,6 +93,10 @@ pub(crate) mod fixtures {
         universitaetsstr:                    52.519, 13.392, "Universitätsstr.";
         am_kupfergraben:                     52.519, 13.395, "Am Kupfergraben";
         georgenstr_am_kupfergraben:          52.520, 13.394, "Georgenstr./Am Kupfergraben";
+        anhalter_bahnhof:                    52.505, 13.382, "Anhalter Bahnhof";
+        abgeordnetenhaus:                    52.507, 13.380, "Abgeordnetenhaus";
+        potsdamer_platz_bus_stresemannstr:   52.509, 13.377, "Potsdamer Platz [Bus Stresemannstr.]";
+        potsdamer_platz_vossstr:             52.510, 13.377, "Potsdamer Platz/Voßstr.";
         wannsee:                             52.421, 13.179, "Wannsee";
         wannseebruecke:                      52.420, 13.175, "Wannseebrücke";
         am_kleinen_wannsee:                  52.420, 13.167, "Am Kleinen Wannsee";

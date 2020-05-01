@@ -47,6 +47,16 @@ stop_locations! {
             am_kupfergraben, georgenstr_am_kupfergraben, friedrichstr, oranienburger_tor,
         ],
     },
+    bus_m41: {
+        anhalter_bahnhof_hauptbahnhof => [
+            anhalter_bahnhof, abgeordnetenhaus, potsdamer_platz_bus_stresemannstr,
+            potsdamer_platz_vossstr, hauptbahnhof, hauptbahnhof,
+        ],
+        hauptbahnhof_anhalter_bahnhof => [
+            hauptbahnhof, hauptbahnhof, potsdamer_platz_vossstr, potsdamer_platz_bus_stresemannstr,
+            abgeordnetenhaus, anhalter_bahnhof,
+        ],
+    },
     bus_114: {
         wannsee_heckeshorn_wannsee => [
             wannsee, wannseebruecke, am_kleinen_wannsee, seglerweg, koblanckstr,

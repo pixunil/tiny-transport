@@ -66,8 +66,8 @@ impl StopCandidate {
 
             let candidate_behind = Self::find_nearest(
                 &nodes,
-                candidates.last().map_or(0, |last| last.pos),
-                nodes.len() - 1,
+                candidates.last().unwrap().pos + 1,
+                upper,
                 Rc::clone(location),
             );
             if candidate_nearest.total_difference(&candidates_brought_forward)
@@ -216,43 +216,30 @@ mod tests {
     use crate::trip::fixtures::*;
     use simulation::Directions;
 
-    #[test]
-    fn test_nodes_upstream() {
-        let variant = RouteVariant::new(
-            stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
-            shapes::tram_12::oranienburger_tor_am_kupfergraben(),
-        );
-        assert_eq!(
-            variant.nodes(Direction::Upstream),
-            nodes::tram_12(Directions::UpstreamOnly)
-        );
+    macro_rules! test_nodes {
+        ($line:ident :: $route:ident, $direction:ident) => {{
+            let variant =
+                RouteVariant::new(stop_locations::$line::$route(), shapes::$line::$route());
+            let mut expected_nodes = nodes::$line(Directions::from(Direction::$direction));
+            if Direction::$direction == Direction::Downstream {
+                expected_nodes.reverse();
+            }
+            assert_eq!(variant.nodes(Direction::$direction), expected_nodes);
+            variant
+        }};
+        ($line:ident :: { $upstream:ident, $downstream:ident }) => {{
+            let upstream = test_nodes!($line::$upstream, Upstream);
+            let downstream = test_nodes!($line::$downstream, Downstream);
+            assert_eq!(
+                upstream.merge_nodes(&downstream),
+                nodes::$line(Directions::Both)
+            );
+        }};
     }
 
     #[test]
-    fn test_nodes_downstream() {
-        let variant = RouteVariant::new(
-            stop_locations::tram_12::am_kupfergraben_oranienburger_tor(),
-            shapes::tram_12::am_kupfergraben_oranienburger_tor(),
-        );
-        let mut expected_nodes = nodes::tram_12(Directions::DownstreamOnly);
-        expected_nodes.reverse();
-        assert_eq!(variant.nodes(Direction::Downstream), expected_nodes);
-    }
-
-    #[test]
-    fn test_nodes_merging() {
-        let upstream = RouteVariant::new(
-            stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
-            shapes::tram_12::oranienburger_tor_am_kupfergraben(),
-        );
-        let downstream = RouteVariant::new(
-            stop_locations::tram_12::am_kupfergraben_oranienburger_tor(),
-            shapes::tram_12::am_kupfergraben_oranienburger_tor(),
-        );
-        assert_eq!(
-            upstream.merge_nodes(&downstream),
-            nodes::tram_12(Directions::Both)
-        );
+    fn test_nodes_different_direction_stops() {
+        test_nodes!(tram_12::{oranienburger_tor_am_kupfergraben, am_kupfergraben_oranienburger_tor});
     }
 
     #[test]
@@ -275,13 +262,12 @@ mod tests {
     }
 
     #[test]
+    fn test_nodes_duplicated_stop() {
+        test_nodes!(bus_m41::{anhalter_bahnhof_hauptbahnhof, hauptbahnhof_anhalter_bahnhof});
+    }
+
+    #[test]
     fn test_nodes_lasso() {
-        let shape = shapes::bus_114::wannsee_heckeshorn_wannsee();
-        let locations = stop_locations::bus_114::wannsee_heckeshorn_wannsee();
-        let variant = RouteVariant::new(locations, shape);
-        assert_eq!(
-            variant.nodes(Direction::Upstream),
-            nodes::bus_114(Directions::UpstreamOnly)
-        );
+        test_nodes!(bus_114::wannsee_heckeshorn_wannsee, Upstream);
     }
 }
