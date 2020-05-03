@@ -1,5 +1,5 @@
 [package]
-name = "gtfs-sim-serialization"
+name = "gtfs-sim-storage"
 version = "0.1.0"
 authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
 edition = "2018"
@@ -16,4 +16,4 @@ serde = "1"
 serde_derive = "1"
 na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 
-simulation = { package = "gtfs-sim-simulation", path = "../simulation" }
+simulation = { package = "gtfs-sim-simulation", path = "../simulation", features = ["fixtures"] }

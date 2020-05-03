@@ -2,7 +2,7 @@ use serde_derive::{Deserialize, Serialize};
 
 mod line;
 mod station;
-pub mod train;
+mod train;
 
 pub use crate::line::{Line, LineGroup};
 pub use crate::station::Station;
@@ -21,4 +21,11 @@ impl Dataset {
             line_groups,
         }
     }
+}
+
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    pub use crate::line::fixtures as lines;
+    pub use crate::station::fixtures as stations;
+    pub use crate::train::fixtures as trains;
 }

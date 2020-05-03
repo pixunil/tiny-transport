@@ -18,8 +18,8 @@ pub fn project_back(position: Point) -> (f64, f64) {
 }
 
 pub(crate) fn transform(point: Point) -> Point2<f32> {
-    let translated = point.coords - project(52.52, 13.5).coords;
-    Point2::new(translated.x as f32, -translated.y as f32)
+    let translated = point.coords - project(52.51, 13.39).coords;
+    Point2::new(translated.x.round() as f32, -translated.y.round() as f32)
 }
 
 pub(crate) fn debug_position(position: Point, alternate: bool) -> String {

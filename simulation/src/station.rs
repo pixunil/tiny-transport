@@ -1,6 +1,6 @@
 use na::Point2;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Station {
     position: Point2<f32>,
     name: String,
@@ -21,6 +21,25 @@ impl Station {
 
     pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>) {
         buffer.extend(self.position.iter())
+    }
+}
+
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    use super::*;
+
+    macro_rules! stations {
+        ($($station:ident: $x:expr, $y:expr, $name:expr);* $(;)?) => {
+            $(
+                pub fn $station() -> Station {
+                    Station::new(Point2::new($x as f32, $y as f32), $name.to_string())
+                }
+            )*
+        }
+    }
+
+    stations! {
+        hauptbahnhof:                         -1385,  -1812, "Hauptbahnhof";
     }
 }
 

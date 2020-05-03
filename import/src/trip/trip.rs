@@ -29,13 +29,13 @@ impl Trip {
         self.direction
     }
 
-    pub(super) fn freeze(&self) -> serialization::Train {
+    pub(super) fn store(&self) -> storage::Train {
         let durations = self
             .durations
             .iter()
             .map(|duration| duration.num_seconds() as u32)
             .collect();
-        serialization::Train::new(self.direction, durations)
+        storage::Train::new(self.direction, durations)
     }
 
     pub(super) fn available_at(&self, date: NaiveDate) -> bool {
@@ -83,7 +83,6 @@ pub(super) mod fixtures {
 mod tests {
     use super::*;
     use crate::trip::fixtures::*;
-    use serialization::train::fixtures as serialization_fixtures;
 
     #[test]
     fn test_available_at() {
@@ -93,10 +92,10 @@ mod tests {
     }
 
     #[test]
-    fn test_serialize() {
+    fn test_store() {
         assert_eq!(
-            trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0).freeze(),
-            serialization_fixtures::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0)
+            trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0).store(),
+            storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0)
         );
     }
 }

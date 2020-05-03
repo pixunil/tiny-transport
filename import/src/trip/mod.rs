@@ -8,7 +8,7 @@ mod trip;
 mod trip_buffer;
 
 #[cfg(test)]
-mod fixtures;
+pub(crate) mod fixtures;
 
 use node::Node;
 use record::{StopRecord, TripRecord};

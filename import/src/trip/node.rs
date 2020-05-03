@@ -61,7 +61,7 @@ impl Node {
         self.in_directions = Directions::Both;
     }
 
-    pub(super) fn freeze(&self) -> simulation::Node {
+    pub(super) fn store(&self) -> simulation::Node {
         let kind = match self.kind {
             Kind::Waypoint => simulation::NodeKind::Waypoint,
             Kind::Stop { .. } => simulation::NodeKind::Stop,
@@ -281,5 +281,22 @@ pub(super) mod fixtures {
             52.422, 13.180, UpstreamOnly;
             52.422, 13.179, UpstreamOnly;
             52.422, 13.178, UpstreamOnly;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use itertools::Itertools;
+
+    use super::*;
+    use crate::trip::fixtures::*;
+
+    #[test]
+    fn test_store() {
+        let nodes = nodes::tram_12(Directions::Both);
+        let expected = simulation::fixtures::nodes::tram_12();
+        for (node, expected) in nodes.into_iter().zip_eq(expected) {
+            assert_eq!(node.store(), expected);
+        }
     }
 }

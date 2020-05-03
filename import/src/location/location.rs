@@ -34,9 +34,9 @@ impl Location {
         self.id.cmp(&other.id)
     }
 
-    pub(crate) fn freeze(&self) -> serialization::Station {
+    pub(crate) fn store(&self) -> storage::Station {
         let position = transform(self.position());
-        serialization::Station::new(position, self.name.clone())
+        storage::Station::new(position, self.name.clone())
     }
 }
 
@@ -121,5 +121,14 @@ mod tests {
         let location = locations::hauptbahnhof();
         assert_eq!(location.id(), "hauptbahnhof".into());
         assert_eq!(location.position(), project(52.526, 13.369));
+    }
+
+    #[test]
+    fn test_store() {
+        let location = locations::hauptbahnhof();
+        assert_eq!(
+            location.store(),
+            storage::fixtures::stations::hauptbahnhof()
+        );
     }
 }

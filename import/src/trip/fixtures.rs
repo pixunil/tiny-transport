@@ -3,6 +3,7 @@ pub(crate) use crate::service::fixtures::*;
 pub(crate) use crate::shape::fixtures::*;
 
 pub(super) use super::node::fixtures as nodes;
+pub(crate) use super::route::fixtures as routes;
 pub(super) use super::route_buffer::fixtures as route_buffers;
 pub(super) use super::route_variant::fixtures as route_variants;
 pub(super) use super::trip::fixtures as trips;

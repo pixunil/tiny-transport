@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "simulation",
-    "serialization",
+    "storage",
     "import",
     "wasm",
     "bin",

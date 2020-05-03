@@ -37,17 +37,17 @@ impl Line {
         self.routes.iter()
     }
 
-    pub(crate) fn freeze(&self, date: NaiveDate) -> (Color, serialization::Line) {
+    pub(crate) fn store(&self, date: NaiveDate) -> (Color, storage::Line) {
         let route = self
             .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
-        let nodes = route.freeze_nodes();
-        let trains = route.freeze_trains(date);
+        let nodes = route.store_nodes();
+        let trains = route.store_trains(date);
         let color = self.color.clone();
         (
             color,
-            serialization::Line::new(self.name.clone(), self.kind, nodes, trains),
+            storage::Line::new(self.name.clone(), self.kind, nodes, trains),
         )
     }
 }
@@ -88,5 +88,14 @@ mod tests {
         let line = lines::u4();
         assert_eq!(line.name(), "U4");
         assert_eq!(line.kind(), Kind::UrbanRailway);
+    }
+
+    #[test]
+    fn test_store() {
+        let mut line = lines::tram_12();
+        line.routes = vec![routes::tram_12::oranienburger_tor_am_kupfergraben()];
+        let date = NaiveDate::from_ymd(2019, 1, 1);
+        let (_color, line) = line.store(date);
+        assert_eq!(line, storage::fixtures::lines::tram_12());
     }
 }

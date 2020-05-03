@@ -56,7 +56,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
             let imported = ImportedDataset::import(dataset)?;
             let file = File::create("wasm/www/data.bin")?;
-            imported.serialize(file, profile, date)
+            imported.store_into(file, profile, date)?;
+            Ok(())
         }
         ("load", Some(load_matches)) => {
             let data = load_matches.value_of_os("DATA").unwrap();

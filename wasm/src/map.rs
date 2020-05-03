@@ -4,7 +4,6 @@ use std::iter;
 use na::Point2;
 use wasm_bindgen::prelude::*;
 
-use serialization::Dataset;
 use simulation::{Line, LineGroup, Station};
 
 use crate::view::View;
@@ -27,7 +26,7 @@ impl Map {
 #[wasm_bindgen]
 impl Map {
     pub fn parse(data: &[u8]) -> Map {
-        let dataset = bincode::deserialize::<Dataset>(data).unwrap();
+        let dataset = bincode::deserialize::<storage::Dataset>(data).unwrap();
         dataset.into()
     }
 
@@ -154,18 +153,18 @@ impl Map {
     }
 }
 
-impl From<Dataset> for Map {
-    fn from(dataset: Dataset) -> Map {
+impl From<storage::Dataset> for Map {
+    fn from(dataset: storage::Dataset) -> Map {
         let stations = dataset
             .stations
             .into_iter()
-            .map(serialization::Station::unfreeze)
+            .map(storage::Station::load)
             .collect::<Vec<_>>();
 
         let line_groups = dataset
             .line_groups
             .into_iter()
-            .map(|line_group| line_group.unfreeze())
+            .map(storage::LineGroup::load)
             .collect();
 
         Map::new(stations, line_groups)

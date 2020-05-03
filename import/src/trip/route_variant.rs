@@ -209,8 +209,6 @@ pub(super) mod fixtures {
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_abs_diff_eq;
-
     use super::*;
     use crate::shape;
     use crate::trip::fixtures::*;
@@ -254,10 +252,9 @@ mod tests {
             Rc::new(locations::gesundbrunnen()),
         ];
         let variant = RouteVariant::new(locations, shape);
-        assert_abs_diff_eq!(
-            *variant.nodes(Direction::Upstream),
-            nodes::circle(Directions::UpstreamOnly),
-            epsilon = 0.01
+        assert_eq!(
+            variant.nodes(Direction::Upstream),
+            nodes::circle(Directions::UpstreamOnly)
         );
     }
 

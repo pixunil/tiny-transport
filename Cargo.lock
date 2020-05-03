@@ -239,8 +239,8 @@ dependencies = [
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtfs-sim-import 0.1.0",
- "gtfs-sim-serialization 0.1.0",
  "gtfs-sim-simulation 0.1.0",
+ "gtfs-sim-storage 0.1.0",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -255,8 +255,8 @@ dependencies = [
  "console 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "csv 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "geomorph 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "gtfs-sim-serialization 0.1.0",
  "gtfs-sim-simulation 0.1.0",
+ "gtfs-sim-storage 0.1.0",
  "indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -265,17 +265,6 @@ dependencies = [
  "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_test 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "zip 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "gtfs-sim-serialization"
-version = "0.1.0"
-dependencies = [
- "gtfs-sim-simulation 0.1.0",
- "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -290,14 +279,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "gtfs-sim-storage"
+version = "0.1.0"
+dependencies = [
+ "gtfs-sim-simulation 0.1.0",
+ "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "gtfs-sim-wasm"
 version = "0.1.0"
 dependencies = [
  "approx 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "console_error_panic_hook 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "gtfs-sim-serialization 0.1.0",
  "gtfs-sim-simulation 0.1.0",
+ "gtfs-sim-storage 0.1.0",
  "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasm-bindgen 0.2.56 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

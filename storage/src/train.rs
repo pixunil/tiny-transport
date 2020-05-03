@@ -21,7 +21,7 @@ impl Train {
         }
     }
 
-    pub fn unfreeze(self, kind: Kind, nodes: &[Node]) -> simulation::Train {
+    pub fn load(self, kind: Kind, nodes: &[Node]) -> simulation::Train {
         let durations = self.interpolate_times(nodes.to_vec());
         simulation::Train::new(kind, self.direction, durations)
     }

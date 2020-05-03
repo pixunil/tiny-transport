@@ -55,8 +55,8 @@ pub enum Kind {
     Stop,
 }
 
-#[cfg(test)]
-pub(crate) mod fixtures {
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
     use super::*;
 
     macro_rules! nodes {
@@ -64,10 +64,10 @@ pub(crate) mod fixtures {
         (kind) => ( Kind::Waypoint );
         ($($line:ident: $($x:literal, $y:literal, $in_directions:ident $(, $location:ident)?);* $(;)?)*) => (
             $(
-                pub(crate) fn $line() -> Vec<Node> {
+                pub fn $line() -> Vec<Node> {
                     vec![$(
                         Node {
-                            position: Point2::new($x, $y),
+                            position: Point2::new($x as f32, $y as f32),
                             kind: nodes!(kind $($location)?),
                             in_directions: Directions::$in_directions,
                         }
@@ -79,8 +79,26 @@ pub(crate) mod fixtures {
 
     nodes! {
         blue:
-            200.0, 100.0, Both, Stop;
-            220.0, 100.0, Both;
-            230.0, 105.0, Both, Stop;
+               200,    100, Both,           Stop;
+               220,    100, Both;
+               230,    105, Both,           Stop;
+        tram_12:
+               -98,  -1671, Both,           Stop;
+              -101,  -1560, Both;
+              -106,  -1338, DownstreamOnly;
+              -108,  -1226, Both;
+              -111,  -1115, Both,           Stop;
+              -113,  -1004, UpstreamOnly;
+               -46,  -1003, Both;
+                22,  -1001, Both;
+                90,   -999, UpstreamOnly;
+               158,   -998, UpstreamOnly,   Stop;
+                25,  -1112, DownstreamOnly;
+                93,  -1111, DownstreamOnly;
+               228,  -1108, DownstreamOnly, Stop;
+               299,  -1217, DownstreamOnly;
+               367,  -1216, DownstreamOnly;
+               432,  -1103, DownstreamOnly;
+               429,   -992, Both,           Stop;
     }
 }

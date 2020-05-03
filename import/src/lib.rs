@@ -65,12 +65,7 @@ impl ImportedDataset {
         self.agencies.iter()
     }
 
-    pub fn serialize(
-        &self,
-        writer: impl Write,
-        profile: Profile,
-        date: NaiveDate,
-    ) -> Result<(), Box<dyn Error>> {
+    fn store(&self, profile: Profile, date: NaiveDate) -> storage::Dataset {
         let lines = profile.filter(self.agencies());
         let mut stations = lines
             .iter()
@@ -83,7 +78,7 @@ impl ImportedDataset {
 
         let mut line_groups = HashMap::new();
         for line in lines {
-            let (color, line) = line.freeze(date);
+            let (color, line) = line.store(date);
             line_groups
                 .entry(color.clone())
                 .or_insert_with(Vec::new)
@@ -92,16 +87,24 @@ impl ImportedDataset {
 
         let stations = stations
             .into_iter()
-            .map(|station| station.freeze())
+            .map(|station| station.store())
             .collect();
 
         let line_groups = line_groups
             .into_iter()
-            .map(|(color, line_group)| serialization::LineGroup::new(color, line_group))
+            .map(|(color, line_group)| storage::LineGroup::new(color, line_group))
             .collect();
 
-        let dataset = serialization::Dataset::new(stations, line_groups);
-        bincode::serialize_into(writer, &dataset)?;
-        Ok(())
+        storage::Dataset::new(stations, line_groups)
+    }
+
+    pub fn store_into(
+        &self,
+        writer: impl Write,
+        profile: Profile,
+        date: NaiveDate,
+    ) -> bincode::Result<()> {
+        let dataset = self.store(profile, date);
+        bincode::serialize_into(writer, &dataset)
     }
 }
