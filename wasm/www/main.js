@@ -374,7 +374,7 @@ class Controller {
 
     async setUpView() {
         await this.wasm;
-        this.view = new View(this.canvas.width, this.canvas.height);
+        this.view = new View(0.08, this.canvas.width, this.canvas.height);
         this.view.viewProjection = this.view.calculateViewProjection();
     }
 

@@ -10,10 +10,10 @@ pub struct View {
 #[wasm_bindgen]
 impl View {
     #[wasm_bindgen(constructor)]
-    pub fn new(width: f32, height: f32) -> View {
+    pub fn new(scaling: f32, width: f32, height: f32) -> View {
         View {
             viewport: Vector2::new(width, height),
-            view: Similarity2::identity(),
+            view: Similarity2::from_scaling(scaling),
         }
     }
 
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_viewport_scaling() {
-        let view = View::new(300.0, 200.0);
+        let view = View::new(1.0, 300.0, 200.0);
         let transform = transform_from_view(&view);
         assert_relative_eq!(transform * Point2::new(0.0, 0.0), Point2::new(0.0, 0.0));
         assert_relative_eq!(transform * Point2::new(150.0, 0.0), Point2::new(1.0, 0.0));
@@ -81,8 +81,19 @@ mod tests {
     }
 
     #[test]
+    fn test_initial_scaling() {
+        let view = View::new(0.5, 300.0, 200.0);
+        let transform = transform_from_view(&view);
+        assert_relative_eq!(transform * Point2::new(0.0, 0.0), Point2::new(0.0, 0.0));
+        assert_relative_eq!(transform * Point2::new(300.0, 0.0), Point2::new(1.0, 0.0));
+        assert_relative_eq!(transform * Point2::new(0.0, 200.0), Point2::new(0.0, -1.0));
+        assert_relative_eq!(transform * Point2::new(-300.0, 0.0), Point2::new(-1.0, 0.0));
+        assert_relative_eq!(transform * Point2::new(0.0, -200.0), Point2::new(0.0, 1.0));
+    }
+
+    #[test]
     fn test_resize() {
-        let mut view = View::new(300.0, 200.0);
+        let mut view = View::new(1.0, 300.0, 200.0);
         view.resize(400.0, 160.0);
         let transform = transform_from_view(&view);
         assert_relative_eq!(transform * Point2::new(0.0, 0.0), Point2::new(0.0, 0.0));
@@ -94,7 +105,7 @@ mod tests {
 
     #[test]
     fn test_scroll() {
-        let mut view = View::new(300.0, 200.0);
+        let mut view = View::new(1.0, 300.0, 200.0);
         view.scroll(-300.0, 200.0);
         let transform = transform_from_view(&view);
         assert_relative_eq!(
@@ -121,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_zoom() {
-        let mut view = View::new(300.0, 200.0);
+        let mut view = View::new(1.0, 300.0, 200.0);
         view.zoom(2.0, 210.0, 120.0);
         let transform = transform_from_view(&view);
         assert_relative_eq!(view.scaling(), 2.0);
@@ -135,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_scroll_after_zoom() {
-        let mut view = View::new(300.0, 200.0);
+        let mut view = View::new(1.0, 300.0, 200.0);
         view.zoom(2.0, 210.0, 120.0);
         view.scroll(-300.0, 200.0);
         let transform = transform_from_view(&view);
@@ -163,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_zoom_after_zoom() {
-        let mut view = View::new(300.0, 200.0);
+        let mut view = View::new(1.0, 300.0, 200.0);
         view.zoom(2.0, 210.0, 120.0);
         view.zoom(3.0, 150.0, 100.0);
         let transform = transform_from_view(&view);
@@ -188,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_unproject() {
-        let view = View::new(300.0, 200.0);
+        let view = View::new(1.0, 300.0, 200.0);
         assert_relative_eq!(
             view.unproject(Point2::new(150.0, 100.0)),
             Point2::new(0.0, 0.0)
@@ -201,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_unproject_after_zoom() {
-        let mut view = View::new(300.0, 200.0);
+        let mut view = View::new(1.0, 300.0, 200.0);
         view.zoom(2.0, 210.0, 120.0);
         assert_relative_eq!(
             view.unproject(Point2::new(150.0, 100.0)),
