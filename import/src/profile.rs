@@ -62,11 +62,18 @@ impl Profile {
     }
 }
 
-impl Default for Profile {
-    fn default() -> Self {
-        Self::BerlinWithoutRailway
-    }
-}
+pub const PROFILE_NAMES: &[&str] = &[
+    "berlin-s",
+    "berlin-u",
+    "berlin-s+u",
+    "berlin-s+u+metro",
+    "berlin-no-r",
+    "berlin",
+    "berlin-brandenburg-no-r",
+    "berlin-brandenburg",
+];
+
+pub const DEFAULT_PROFILE_NAME: &str = "berlin-no-r";
 
 #[derive(Debug, Clone)]
 pub struct InvalidProfileError(String);

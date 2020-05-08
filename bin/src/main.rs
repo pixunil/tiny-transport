@@ -1,11 +1,11 @@
-use std::convert::TryFrom;
+use std::convert::TryInto;
 use std::error::Error;
 use std::fs::File;
 
 use chrono::NaiveDate;
 use clap::clap_app;
 
-use import::profile::Profile;
+use import::profile::{DEFAULT_PROFILE_NAME, PROFILE_NAMES};
 use import::ImportedDataset;
 
 mod compress;
@@ -16,6 +16,12 @@ use compress::compress;
 use inspect::inspect;
 use load::load;
 
+fn validate_date(value: String) -> Result<(), String> {
+    NaiveDate::parse_from_str(&value, "%F")
+        .map(|_| ())
+        .map_err(|error| format!("{}, it must be in the format yyyy-mm-dd", error))
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = clap_app!(gtfs_sim =>
         (@subcommand compress =>
@@ -24,16 +30,22 @@ fn main() -> Result<(), Box<dyn Error>> {
             (@arg ARCHIVE: +required "Path where the zipped archive should be created")
         )
         (@subcommand import =>
+            (about: "Imports a dataset and generates a binary export")
             (@arg DATASET: +required "Path to gtfs dataset")
-            (@arg PROFILE: --profile +takes_value "Profile used for importing")
-            (@arg DATE: --date "Date in the format yyyy-mm-dd")
+            (@arg PROFILE: --profile +takes_value
+                possible_values(PROFILE_NAMES) default_value(DEFAULT_PROFILE_NAME)
+                "Profile used for importing")
+            (@arg DATE: --date +takes_value {validate_date} default_value("2019-08-26")
+                "Date in the format yyyy-mm-dd")
         )
         (@subcommand load =>
+            (about: "Loads a binary export to check for possible errors")
             (@arg DATA: default_value("wasm/www/data.bin") "Path to imported data")
         )
         (@subcommand inspect =>
+            (about: "Imports a dataset and prints debug information for a single line")
             (@arg DATASET: +required "Path to gtfs dataset")
-            (@arg LINE: "Line name to inspect")
+            (@arg LINE: +required "Line name to inspect")
         )
     )
     .get_matches();
@@ -46,14 +58,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         ("import", Some(import_matches)) => {
             let dataset = import_matches.value_of_os("DATASET").unwrap();
-            let profile = match import_matches.value_of("PROFILE") {
-                Some(profile_name) => Profile::try_from(profile_name)?,
-                None => Profile::default(),
-            };
-            let date = match import_matches.value_of("DATE") {
-                Some(date) => NaiveDate::parse_from_str(date, "%F")?,
-                None => NaiveDate::from_ymd(2019, 8, 26),
-            };
+            let profile = import_matches.value_of("PROFILE").unwrap().try_into()?;
+            let date_format = import_matches.value_of("DATE").unwrap();
+            let date = NaiveDate::parse_from_str(date_format, "%F")?;
             let imported = ImportedDataset::import(dataset)?;
             let file = File::create("wasm/www/data.bin")?;
             imported.store_into(file, profile, date)?;
