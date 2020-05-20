@@ -116,47 +116,120 @@ impl Line {
 }
 
 #[cfg(test)]
-mod fixtures {
-    use super::*;
-    use crate::node::fixtures as nodes;
-
-    pub(super) fn blue() -> Line {
-        Line {
-            name: "Blue Line".to_string(),
-            kind: Kind::SuburbanRailway,
-            nodes: nodes::blue(),
-            trains: Vec::new(),
-        }
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
+    use na::Point2;
 
-    use super::fixtures as lines;
     use super::*;
+    use crate::direction::Directions;
+    use crate::node::Kind as NodeKind;
 
-    fn blue_line_vertices() -> Vec<f32> {
-        vec![
-            200.0, 120.0, 200.0, 80.0, 215.28, 120.0, 224.72, 80.0, 221.06, 122.89, 238.94, 87.11,
-        ]
+    macro_rules! test_vertices {
+        ($nodes:tt, $upstream:tt) => (
+            test_vertices!($nodes, $upstream, $upstream)
+        );
+        ($nodes:tt, $kind:ident, $upstream:tt) => (
+            test_vertices!($nodes, $kind, $upstream, $upstream);
+        );
+        ($nodes:tt, $upstream:tt, $downstream:tt) => (
+            test_vertices!($nodes, Railway, $upstream, $downstream)
+        );
+        (
+            [$($x:literal, $y:literal, $in_directions:ident);* $(;)?],
+            $kind:ident,
+            [$($upstream:literal),* $(,)?],
+            [$($downstream:literal),* $(,)?] $(,)?
+        ) => (
+            let line = Line {
+                name: String::new(),
+                kind: Kind::$kind,
+                nodes: vec![ $(
+                    Node::new(Point2::new($x, $y), NodeKind::Waypoint, Directions::$in_directions)
+                ),* ],
+                trains: Vec::new(),
+            };
+            let mut upstream_vertices = Vec::new();
+            line.fill_vertices_buffer_for_direction(Direction::Upstream, &mut upstream_vertices);
+            assert_relative_eq!(
+                *upstream_vertices,
+                [ $( $upstream ),* ]
+            );
+            let mut downstream_vertices = Vec::new();
+            line.fill_vertices_buffer_for_direction(Direction::Downstream, &mut downstream_vertices);
+            assert_relative_eq!(
+                *downstream_vertices,
+                [ $( $downstream ),* ]
+            );
+            let mut vertices = Vec::new();
+            let mut lengths = Vec::new();
+            line.fill_vertices_buffer_with_lengths(&mut vertices, &mut lengths);
+            assert_eq!(lengths, [upstream_vertices.len() / 2, downstream_vertices.len() / 2]);
+            upstream_vertices.append(&mut downstream_vertices);
+            assert_eq!(vertices, upstream_vertices);
+        );
     }
 
     #[test]
-    fn test_upstream_vertices() {
-        let line = lines::blue();
-        let mut vertices = Vec::new();
-        line.fill_vertices_buffer_for_direction(Direction::Upstream, &mut vertices);
-        assert_relative_eq!(*vertices, blue_line_vertices(), epsilon = 0.01);
+    fn test_empty_vertices() {
+        test_vertices!([], []);
     }
 
     #[test]
-    fn test_length_buffer() {
-        let line = lines::blue();
-        let mut vertices = Vec::new();
-        let mut lengths = Vec::new();
-        line.fill_vertices_buffer_with_lengths(&mut vertices, &mut lengths);
-        assert_eq!(lengths, [6, 6]);
+    fn test_straight_vertices() {
+        test_vertices!([
+               0.0,    0.0, Both;
+             100.0,    0.0, Both;
+             200.0,    0.0, Both;
+        ], [
+               0.0,   25.0,    0.0,  -25.0,
+             100.0,   25.0,  100.0,  -25.0,
+             200.0,   25.0,  200.0,  -25.0,
+        ]);
+    }
+
+    #[test]
+    fn test_different_line_size() {
+        test_vertices!([
+               0.0,    0.0, Both;
+             100.0,    0.0, Both;
+             200.0,    0.0, Both;
+        ],
+        SuburbanRailway,
+        [
+               0.0,   20.0,    0.0,  -20.0,
+             100.0,   20.0,  100.0,  -20.0,
+             200.0,   20.0,  200.0,  -20.0,
+        ]);
+    }
+
+    #[test]
+    fn test_right_angle_vertices() {
+        test_vertices!([
+               0.0,    0.0, Both;
+             100.0,    0.0, Both;
+             100.0,  100.0, Both;
+        ], [
+               0.0,   25.0,    0.0,  -25.0,
+              75.0,   25.0,  125.0,  -25.0,
+              75.0,  100.0,  125.0,  100.0,
+        ]);
+    }
+
+    #[test]
+    fn test_different_direction_vertices() {
+        test_vertices!([
+                0.0,    0.0, Both;
+              100.0,    0.0, UpstreamOnly;
+                0.0,  100.0, DownstreamOnly;
+              100.0,  100.0, Both;
+        ], [
+               0.0,   25.0,    0.0,  -25.0,
+              75.0,   25.0,  125.0,  -25.0,
+              75.0,  100.0,  125.0,  100.0,
+        ], [
+             -25.0,    0.0,   25.0,    0.0,
+             -25.0,  125.0,   25.0,   75.0,
+             100.0,  125.0,  100.0,   75.0,
+        ]);
     }
 }
