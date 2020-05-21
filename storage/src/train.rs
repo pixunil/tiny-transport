@@ -127,132 +127,58 @@ pub mod fixtures {
     }
 
     trips! {
+        tram_m5: {
+            zingster_str_perower_platz => Upstream, [0, 1, 0, 1, 0, 2, 0];
+        },
         tram_12: {
             oranienburger_tor_am_kupfergraben => Upstream, [0, 2, 0, 2, 0, 1, 0];
             am_kupfergraben_oranienburger_tor => Downstream, [0, 1, 0, 3, 0, 2, 0];
+        },
+        bus_m82: {
+            weskammstr_waldsassener_str => Upstream, [0, 0.5, 0, 0.5, 0, 1];
         },
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use na::Point2;
-
-    use super::*;
-    use simulation::{Directions, NodeKind};
+    use crate::fixtures::*;
+    use simulation::fixtures::nodes;
 
     #[test]
     fn test_time_interpolation_upstream() {
-        let nodes = vec![
-            Node::new(Point2::new(13.37, 52.52), NodeKind::Stop, Directions::Both),
-            Node::new(
-                Point2::new(13.38, 52.52),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(Point2::new(13.38, 52.53), NodeKind::Stop, Directions::Both),
-            Node::new(
-                Point2::new(13.395, 52.53),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(
-                Point2::new(13.395, 52.525),
-                NodeKind::Stop,
-                Directions::Both,
-            ),
-        ];
-
-        let train = Train::new(Direction::Upstream, vec![10, 0, 4, 1, 4, 0]);
-        let durations = train.interpolate_times(nodes);
-        assert_eq!(durations, vec![10, 0, 2, 2, 1, 3, 1, 0]);
+        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        let durations = train.interpolate_times(nodes::tram_12());
+        assert_eq!(
+            durations,
+            vec![32520, 0, 24, 72, 24, 0, 35, 21, 21, 21, 21, 0, 60, 0]
+        );
     }
 
     #[test]
     fn test_time_interpolation_downstream() {
-        let nodes = vec![
-            Node::new(Point2::new(13.37, 52.52), NodeKind::Stop, Directions::Both),
-            Node::new(
-                Point2::new(13.38, 52.52),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(Point2::new(13.38, 52.53), NodeKind::Stop, Directions::Both),
-            Node::new(
-                Point2::new(13.395, 52.53),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(
-                Point2::new(13.395, 52.525),
-                NodeKind::Stop,
-                Directions::Both,
-            ),
-        ];
-
-        let train = Train::new(Direction::Downstream, vec![10, 0, 4, 1, 4, 0]);
-        let duration = train.interpolate_times(nodes);
-        assert_eq!(duration, vec![10, 0, 1, 3, 1, 2, 2, 0]);
-    }
-
-    #[test]
-    fn test_multiple_waypoints_on_segment() {
-        let nodes = vec![
-            Node::new(Point2::new(13.37, 52.52), NodeKind::Stop, Directions::Both),
-            Node::new(
-                Point2::new(13.372, 52.52),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(
-                Point2::new(13.376, 52.52),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(
-                Point2::new(13.382, 52.52),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(Point2::new(13.39, 52.52), NodeKind::Stop, Directions::Both),
-        ];
-
-        let train = Train::new(Direction::Upstream, vec![10, 0, 10]);
-        let duration = train.interpolate_times(nodes);
-        assert_eq!(duration, vec![10, 0, 1, 2, 3, 4, 0]);
+        let train = trains::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
+        let duration = train.interpolate_times(nodes::tram_12());
+        assert_eq!(
+            duration,
+            vec![30840, 0, 15, 18, 9, 18, 0, 48, 24, 39, 24, 46, 0, 24, 24, 48, 24, 0]
+        );
     }
 
     #[test]
     fn test_clamp_before_dispatch() {
-        let nodes = vec![
-            Node::new(
-                Point2::new(13.37, 52.515),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-            Node::new(Point2::new(13.37, 52.52), NodeKind::Stop, Directions::Both),
-            Node::new(Point2::new(13.375, 52.52), NodeKind::Stop, Directions::Both),
-        ];
-
-        let train = Train::new(Direction::Upstream, vec![10, 0, 2, 0]);
-        let duration = train.interpolate_times(nodes);
-        assert_eq!(duration, vec![10, 0, 0, 2, 0]);
+        let train = trains::tram_m5::zingster_str_perower_platz(8, 13.0);
+        let duration = train.interpolate_times(nodes::tram_m5());
+        assert_eq!(duration, vec![29580, 0, 0, 60, 0, 60, 0, 48, 72, 0]);
     }
 
     #[test]
     fn test_clamp_after_terminus() {
-        let nodes = vec![
-            Node::new(Point2::new(13.37, 52.52), NodeKind::Stop, Directions::Both),
-            Node::new(Point2::new(13.375, 52.52), NodeKind::Stop, Directions::Both),
-            Node::new(
-                Point2::new(13.375, 52.515),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-        ];
-
-        let train = Train::new(Direction::Upstream, vec![10, 0, 2, 0]);
-        let duration = train.interpolate_times(nodes);
-        assert_eq!(duration, vec![10, 0, 2, 0, 0]);
+        let train = trains::bus_m82::weskammstr_waldsassener_str(9, 46.0);
+        let duration = train.interpolate_times(nodes::bus_m82());
+        assert_eq!(
+            duration,
+            vec![35160, 0, 0, 15, 15, 0, 0, 7, 7, 8, 7, 0, 0, 0, 0]
+        );
     }
 }

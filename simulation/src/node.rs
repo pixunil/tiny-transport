@@ -82,6 +82,15 @@ pub mod fixtures {
                200,    100, Both,           Stop;
                220,    100, Both;
                230,    105, Both,           Stop;
+        tram_m5:
+              7204,  -6855, Both;
+              7269,  -6742, Both,           Stop;
+              7337,  -6741, DownstreamOnly;
+              7335,  -6629, DownstreamOnly;
+              7400,  -6517, Both,           Stop;
+              7662,  -6066, Both,           Stop;
+              7795,  -5952, Both;
+              7926,  -5727, Both,           Stop;
         tram_12:
                -98,  -1671, Both,           Stop;
               -101,  -1560, Both;
@@ -100,5 +109,19 @@ pub mod fixtures {
                367,  -1216, DownstreamOnly;
                432,  -1103, DownstreamOnly;
                429,   -992, Both,           Stop;
+        bus_m82:
+             -2958,  10616, Both,           Stop;
+             -2958,  10616, Both;
+             -2961,  10727, Both;
+             -2963,  10838, Both;
+             -2963,  10838, Both,           Stop;
+             -2966,  10949, Both;
+             -2968,  11061, Both;
+             -2900,  11062, DownstreamOnly;
+             -2903,  11173, Both;
+             -2906,  11285, Both,           Stop;
+             -2976,  11394, UpstreamOnly;
+             -2906,  11285, Both;
+             -2906,  11285, Both;
     }
 }
