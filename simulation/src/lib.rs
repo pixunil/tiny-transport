@@ -16,4 +16,5 @@ pub use crate::train::Train;
 pub mod fixtures {
     pub use crate::node::fixtures as nodes;
     pub use crate::station::fixtures as stations;
+    pub use crate::train::fixtures as trains;
 }

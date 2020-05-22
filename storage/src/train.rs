@@ -135,7 +135,7 @@ pub mod fixtures {
             am_kupfergraben_oranienburger_tor => Downstream, [0, 1, 0, 3, 0, 2, 0];
         },
         bus_m82: {
-            weskammstr_waldsassener_str => Upstream, [0, 0.5, 0, 0.5, 0, 1];
+            weskammstr_waldsassener_str => Upstream, [0, 0.5, 0, 0.5, 0, 1, 0];
         },
     }
 }
@@ -178,7 +178,7 @@ mod tests {
         let duration = train.interpolate_times(nodes::bus_m82());
         assert_eq!(
             duration,
-            vec![35160, 0, 0, 15, 15, 0, 0, 7, 7, 8, 7, 0, 0, 0, 0]
+            vec![35160, 0, 0, 15, 15, 0, 7, 7, 8, 7, 0, 0, 0, 0]
         );
     }
 }

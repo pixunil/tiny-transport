@@ -78,10 +78,6 @@ pub mod fixtures {
     }
 
     nodes! {
-        blue:
-               200,    100, Both,           Stop;
-               220,    100, Both;
-               230,    105, Both,           Stop;
         tram_m5:
               7204,  -6855, Both;
               7269,  -6742, Both,           Stop;
@@ -113,7 +109,6 @@ pub mod fixtures {
              -2958,  10616, Both,           Stop;
              -2958,  10616, Both;
              -2961,  10727, Both;
-             -2963,  10838, Both;
              -2963,  10838, Both,           Stop;
              -2966,  10949, Both;
              -2968,  11061, Both;

@@ -128,135 +128,137 @@ impl Train {
     }
 }
 
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    macro_rules! trains {
+        ($($train:ident : $kind:ident, { $( $route:ident => $direction:ident, [$($time:literal),* $(,)?]);* $(;)? } ),* $(,)?) => (
+            $(
+                pub mod $train {
+                    use crate::train::*;
+                    $(
+                        pub fn $route(hour: u32, minute: f64) -> Train {
+                            Train::new(
+                                Kind::$kind,
+                                Direction::$direction,
+                                vec![
+                                    hour * 3600 + (minute * 60.0) as u32,
+                                    $($time),*
+                                ],
+                            )
+                        }
+                    )*
+                }
+            )*
+        );
+    }
+
+    trains! {
+        tram_m5: Tram, {
+            zingster_str_perower_platz => Upstream, [0, 0, 60, 0, 60, 0, 48, 72, 0];
+        },
+        tram_12: Tram, {
+            oranienburger_tor_am_kupfergraben =>
+                Upstream, [0, 24, 72, 24, 0, 35, 21, 21, 21, 21, 0, 60, 0];
+            am_kupfergraben_oranienburger_tor =>
+                Downstream, [0, 15, 18, 9, 18, 0, 48, 24, 39, 24, 46, 0, 24, 24, 48, 24, 0];
+        },
+        bus_m82: Bus, {
+            weskammstr_waldsassener_str => Upstream, [0, 0, 15, 15, 0, 7, 7, 8, 7, 0, 0, 0, 0];
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
 
     use super::*;
-    use crate::node::fixtures as nodes;
-    use crate::node::Kind as NodeKind;
-    use crate::Directions;
+    use crate::fixtures::*;
 
-    fn train() -> Train {
-        Train::new(
-            Kind::SuburbanRailway,
-            Direction::Upstream,
-            vec![10, 1, 2, 2, 1],
-        )
+    fn time(hour: u32, minute: f64) -> u32 {
+        return hour * 3600 + (minute * 60.0) as u32;
+    }
+
+    fn segment_vector(nodes: &[Node], from: usize, to: usize) -> Vector2<f32> {
+        (nodes[to].position() - nodes[from].position()).normalize()
     }
 
     #[test]
     fn test_before_dispatch() {
-        let mut train = train();
-        train.update(0, &nodes::blue());
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        train.update(0, &nodes::tram_12());
         assert_eq!(train.state, TrainState::WaitingForDispatch);
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_stopped() {
-        let mut train = train();
-        train.update(11, &nodes::blue());
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        train.durations[1] = 30;
+        train.update(time(9, 2.5), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Stopped { at: 0 });
         assert!(train.is_active());
 
-        let (position, orientation) = train.calculate_rectangle(&nodes::blue());
-        assert_relative_eq!(position, Point2::new(200.0, 100.0));
-        assert_relative_eq!(orientation, Vector2::new(1.0, 0.0));
+        let (position, orientation) = train.calculate_rectangle(&nodes::tram_12());
+        assert_relative_eq!(position, Point2::new(-98.0, -1671.0));
+        assert_relative_eq!(orientation, segment_vector(&nodes::tram_12(), 0, 1));
     }
 
     #[test]
     fn test_driving() {
-        let mut train = train();
-        train.update(12, &nodes::blue());
-        assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        train.update(time(9, 3.0), &nodes::tram_12());
+        assert_eq!(train.state, TrainState::Driving { from: 1, to: 3 });
         assert!(train.is_active());
 
-        let (position, orientation) = train.calculate_rectangle(&nodes::blue());
-        assert_relative_eq!(position, Point2::new(210.0, 100.0));
-        assert_relative_eq!(orientation, Vector2::new(1.0, 0.0));
+        let (position, orientation) = train.calculate_rectangle(&nodes::tram_12());
+        assert_relative_eq!(position, Point2::new(-104.5, -1393.0));
+        assert_relative_eq!(orientation, segment_vector(&nodes::tram_12(), 1, 3));
     }
 
     #[test]
     fn test_upstream_ignores_downstream_only() {
-        let mut nodes = nodes::blue();
-        nodes.insert(
-            1,
-            Node::new(
-                Point2::new(190.0, 100.0),
-                NodeKind::Waypoint,
-                Directions::DownstreamOnly,
-            ),
-        );
-        let mut train = train();
-        train.update(12, &nodes);
-        assert_eq!(train.state, TrainState::Driving { from: 0, to: 2 });
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        train.update(time(9, 6.5), &nodes::tram_12());
+        assert_eq!(train.state, TrainState::Driving { from: 9, to: 16 });
     }
 
     #[test]
     fn test_downstream_ignores_upstream_only() {
-        let mut nodes = nodes::blue();
-        nodes.insert(
-            2,
-            Node::new(
-                Point2::new(220.0, 105.0),
-                NodeKind::Waypoint,
-                Directions::UpstreamOnly,
-            ),
-        );
-        let mut train = train();
-        train.direction = Direction::Downstream;
-        train.update(12, &nodes);
-        assert_eq!(train.state, TrainState::Driving { from: 3, to: 1 });
+        let mut train = trains::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
+        train.update(time(8, 36.5), &nodes::tram_12());
+        assert_eq!(train.state, TrainState::Driving { from: 10, to: 7 });
     }
 
     #[test]
     fn test_finished() {
-        let mut train = train();
-        train.update(17, &nodes::blue());
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        train.update(time(9, 7.0), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Finished);
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_nodes_before_start() {
-        let mut nodes = nodes::blue();
-        nodes.insert(
-            0,
-            Node::new(
-                Point2::new(190.0, 100.0),
-                NodeKind::Waypoint,
-                Directions::Both,
-            ),
-        );
-        let mut train = train();
-        train.durations.insert(1, 1);
-
-        train.update(11, &nodes);
+        let mut train = trains::tram_m5::zingster_str_perower_platz(8, 13.0);
+        train.durations[1] = 30;
+        train.update(time(8, 13.5), &nodes::tram_m5());
         assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
         assert!(train.is_active());
     }
 
     #[test]
     fn test_nodes_after_terminus() {
-        let mut nodes = nodes::blue();
-        nodes.push(Node::new(
-            Point2::new(240.0, 105.0),
-            NodeKind::Waypoint,
-            Directions::Both,
-        ));
-        let mut train = train();
-        train.durations.push(1);
-
-        train.update(17, &nodes);
-        assert_eq!(train.state, TrainState::Driving { from: 2, to: 3 });
+        let mut train = trains::bus_m82::weskammstr_waldsassener_str(9, 46.0);
+        train.durations[13] = 30;
+        train.update(time(9, 47.0), &nodes::bus_m82());
+        assert_eq!(train.state, TrainState::Driving { from: 10, to: 11 });
         assert!(train.is_active());
     }
 
     #[test]
     fn test_rectangle_horizontal() {
-        let mut train = train();
-        train.update(10, &nodes::blue());
+        let train = Train::new(Kind::SuburbanRailway, Direction::Upstream, Vec::new());
         let mut buffer = Vec::new();
         train.write_rectangle(
             &mut buffer,
