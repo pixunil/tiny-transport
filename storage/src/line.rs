@@ -7,15 +7,23 @@ use simulation::{Color, Node};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Line {
     name: String,
+    color: Color,
     kind: Kind,
     nodes: Vec<Node>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, kind: Kind, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
+    pub fn new(
+        name: String,
+        color: Color,
+        kind: Kind,
+        nodes: Vec<Node>,
+        trains: Vec<Train>,
+    ) -> Line {
         Line {
             name,
+            color,
             kind,
             nodes,
             trains,
@@ -31,24 +39,7 @@ impl Line {
             .map(|train| train.load(kind, &nodes))
             .collect();
 
-        simulation::Line::new(self.name, kind, nodes, trains)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LineGroup {
-    color: Color,
-    lines: Vec<Line>,
-}
-
-impl LineGroup {
-    pub fn new(color: Color, lines: Vec<Line>) -> LineGroup {
-        LineGroup { color, lines }
-    }
-
-    pub fn load(self) -> simulation::LineGroup {
-        let lines = self.lines.into_iter().map(|line| line.load()).collect();
-        simulation::LineGroup::new(self.color, lines)
+        simulation::Line::new(self.name, self.color, kind, nodes, trains)
     }
 }
 
@@ -67,6 +58,7 @@ pub mod fixtures {
                 pub fn $line() -> Line {
                     Line {
                         name: $name.to_string(),
+                        color: Kind::$kind.color(),
                         kind: Kind::$kind,
                         nodes: nodes::$line(),
                         trains: vec![

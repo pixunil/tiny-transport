@@ -15,16 +15,16 @@ pub(crate) fn load(data: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
         .map(storage::Station::load)
         .collect::<Vec<_>>();
 
-    let line_groups: Vec<_> = dataset
-        .line_groups
+    let lines = dataset
+        .lines
         .into_iter()
-        .map(storage::LineGroup::load)
-        .collect();
+        .map(storage::Line::load)
+        .collect::<Vec<_>>();
 
     println!(
-        "Loaded {} stations and {} line groups",
+        "Loaded {} stations and {} lines",
         stations.len(),
-        line_groups.len()
+        lines.len(),
     );
     Ok(())
 }

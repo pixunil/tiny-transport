@@ -37,17 +37,19 @@ impl Line {
         self.routes.iter()
     }
 
-    pub(crate) fn store(&self, date: NaiveDate) -> (Color, storage::Line) {
+    pub(crate) fn store(&self, date: NaiveDate) -> storage::Line {
         let route = self
             .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
         let nodes = route.store_nodes();
         let trains = route.store_trains(date);
-        let color = self.color.clone();
-        (
-            color,
-            storage::Line::new(self.name.clone(), self.kind, nodes, trains),
+        storage::Line::new(
+            self.name.clone(),
+            self.color.clone(),
+            self.kind,
+            nodes,
+            trains,
         )
     }
 }
@@ -93,9 +95,9 @@ mod tests {
     #[test]
     fn test_store() {
         let mut line = lines::tram_12();
+        line.color = Kind::Tram.color();
         line.routes = vec![routes::tram_12::oranienburger_tor_am_kupfergraben()];
         let date = NaiveDate::from_ymd(2019, 1, 1);
-        let (_color, line) = line.store(date);
-        assert_eq!(line, storage::fixtures::lines::tram_12());
+        assert_eq!(line.store(date), storage::fixtures::lines::tram_12());
     }
 }

@@ -1,5 +1,4 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::File;
@@ -76,26 +75,14 @@ impl ImportedDataset {
         stations.sort_unstable_by(|a, b| a.station_cmp(b));
         stations.dedup_by(|a, b| a.station_cmp(b) == Ordering::Equal);
 
-        let mut line_groups = HashMap::new();
-        for line in lines {
-            let (color, line) = line.store(date);
-            line_groups
-                .entry(color.clone())
-                .or_insert_with(Vec::new)
-                .push(line);
-        }
-
         let stations = stations
             .into_iter()
             .map(|station| station.store())
             .collect();
 
-        let line_groups = line_groups
-            .into_iter()
-            .map(|(color, line_group)| storage::LineGroup::new(color, line_group))
-            .collect();
+        let lines = lines.into_iter().map(|line| line.store(date)).collect();
 
-        storage::Dataset::new(stations, line_groups)
+        storage::Dataset::new(stations, lines)
     }
 
     pub fn store_into(

@@ -4,22 +4,19 @@ mod line;
 mod station;
 mod train;
 
-pub use crate::line::{Line, LineGroup};
+pub use crate::line::Line;
 pub use crate::station::Station;
 pub use crate::train::Train;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Dataset {
     pub stations: Vec<Station>,
-    pub line_groups: Vec<LineGroup>,
+    pub lines: Vec<Line>,
 }
 
 impl Dataset {
-    pub fn new(stations: Vec<Station>, line_groups: Vec<LineGroup>) -> Dataset {
-        Dataset {
-            stations,
-            line_groups,
-        }
+    pub fn new(stations: Vec<Station>, lines: Vec<Line>) -> Self {
+        Self { stations, lines }
     }
 }
 

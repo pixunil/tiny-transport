@@ -156,7 +156,7 @@ class LineRenderer extends Renderer {
     }
 
     fillBuffers(model) {
-        this.lineSizes = model.line_sizes();
+        this.lineCount = model.line_count();
         this.trackRunSizes = model.track_run_sizes();
         this.colors = model.line_colors();
 
@@ -177,16 +177,14 @@ class LineRenderer extends Renderer {
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
         let offset = 0;
-        this.lineSizes.reduce((start, count, index) => {
-            this.gl.uniform3fv(this.uniformLocations.color, this.colors.slice(3 * index, 3 * index + 3));
-
-            const stop = start + count;
-            for (let trackRunSize of this.trackRunSizes.slice(start, stop)) {
+        for (let line = 0; line < this.lineCount; line++) {
+            this.gl.uniform3fv(this.uniformLocations.color, this.colors.slice(3 * line, 3 * line + 3));
+            for (let track = 0; track < 2; track++) {
+                const trackRunSize = this.trackRunSizes[2 * line + track];
                 this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, trackRunSize);
                 offset += trackRunSize;
             }
-            return stop;
-        }, 0);
+        }
     }
 }
 

@@ -3,6 +3,7 @@ use itertools::Itertools;
 use na::Vector2;
 
 use super::Kind;
+use crate::color::Color;
 use crate::direction::Direction;
 use crate::node::Node;
 use crate::train::Train;
@@ -10,15 +11,23 @@ use crate::train::Train;
 #[derive(Debug, PartialEq)]
 pub struct Line {
     name: String,
+    color: Color,
     kind: Kind,
     nodes: Vec<Node>,
     trains: Vec<Train>,
 }
 
 impl Line {
-    pub fn new(name: String, kind: Kind, nodes: Vec<Node>, trains: Vec<Train>) -> Line {
+    pub fn new(
+        name: String,
+        color: Color,
+        kind: Kind,
+        nodes: Vec<Node>,
+        trains: Vec<Train>,
+    ) -> Line {
         Line {
             name,
+            color,
             kind,
             nodes,
             trains,
@@ -35,6 +44,10 @@ impl Line {
 
     pub fn nodes(&self) -> &[Node] {
         &self.nodes
+    }
+
+    pub fn fill_color_buffer(&self, colors: &mut Vec<f32>) {
+        colors.extend(self.color.iter().map(|component| component as f32 / 255.0));
     }
 
     pub fn active_trains(&self) -> impl Iterator<Item = &Train> {
@@ -129,6 +142,7 @@ pub mod fixtures {
                 pub fn $line() -> Line {
                     Line {
                         name: $name.to_string(),
+                        color: Kind::$kind.color(),
                         kind: Kind::$kind,
                         nodes: nodes::$line(),
                         trains: vec![
@@ -171,6 +185,14 @@ mod tests {
     }
 
     #[test]
+    fn test_fill_color_buffer() {
+        let line = lines::tram_12();
+        let mut colors = Vec::new();
+        line.fill_color_buffer(&mut colors);
+        assert_relative_eq!(*colors, [0.8, 0.04, 0.13], epsilon = 0.01);
+    }
+
+    #[test]
     fn test_active_trains() {
         let mut line = lines::tram_12();
         assert_eq!(line.active_trains().count(), 0);
@@ -202,6 +224,7 @@ mod tests {
         ) => (
             let line = Line {
                 name: String::new(),
+                color: Kind::$kind.color(),
                 kind: Kind::$kind,
                 nodes: vec![ $(
                     Node::new(Point2::new($x, $y), NodeKind::Waypoint, Directions::$in_directions)
