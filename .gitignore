@@ -4,6 +4,9 @@
 # rust
 /target
 
+# tarpaulin
+cobertura.xml
+
 # project data
 import/data/**/*.txt
 wasm/www/data.bin

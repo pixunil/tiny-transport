@@ -1,5 +1,7 @@
 [default]
 ignore-tests = true
+workspace = true
+exclude = ["gtfs-sim-bin"]
 exclude-files = ["bin/*"]
 
 [report]
