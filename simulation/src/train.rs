@@ -31,7 +31,7 @@ impl TrainState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Train {
     kind: Kind,
     direction: Direction,

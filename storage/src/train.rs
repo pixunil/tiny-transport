@@ -142,6 +142,7 @@ pub mod fixtures {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::fixtures::*;
     use simulation::fixtures::nodes;
 
@@ -179,6 +180,15 @@ mod tests {
         assert_eq!(
             duration,
             vec![35160, 0, 0, 15, 15, 0, 7, 7, 8, 7, 0, 0, 0, 0]
+        );
+    }
+
+    #[test]
+    fn test_load() {
+        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(8, 13.0);
+        assert_eq!(
+            train.load(Kind::Tram, &nodes::tram_12()),
+            simulation::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(8, 13.0)
         );
     }
 }
