@@ -23,6 +23,7 @@ pub(crate) mod fixtures {
                         }
                     )*
 
+                    #[allow(dead_code)]
                     pub(crate) fn by_id() -> HashMap<ShapeId, Shape> {
                         map! {
                             $( stringify!($shape) => $shape() ),*

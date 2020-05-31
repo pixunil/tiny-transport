@@ -100,7 +100,7 @@ pub(super) mod fixtures {
 
                     $(
                         pub(in crate::trip) fn $trip(hour: i64, minute: f64) -> TripBuffer {
-                            #[allow(unused_variable)]
+                            #[allow(unused_variables)]
                             let start = hour * 3600 + (minute * 60.0) as i64;
                             TripBuffer {
                                 line_id: $line_id,
