@@ -1,6 +1,6 @@
 use serde_derive::{Deserialize, Serialize};
 
-use super::train::Train;
+use crate::train::Train;
 use simulation::line::Kind;
 use simulation::{Color, Node};
 
@@ -22,7 +22,7 @@ impl Line {
         }
     }
 
-    fn load(self) -> simulation::Line {
+    pub fn load(self) -> simulation::Line {
         let kind = self.kind;
         let nodes = self.nodes;
         let trains = self
@@ -83,5 +83,16 @@ pub mod fixtures {
         tram_12:            "12",           Tram,
             oranienburger_tor_am_kupfergraben, [9, 2.0],
             am_kupfergraben_oranienburger_tor, [8, 34.0];
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::fixtures::lines;
+
+    #[test]
+    fn test_load() {
+        let line = lines::tram_12();
+        assert_eq!(line.load(), simulation::fixtures::lines::tram_12());
     }
 }

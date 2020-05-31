@@ -7,7 +7,7 @@ use crate::direction::Direction;
 use crate::node::Node;
 use crate::train::Train;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Line {
     name: String,
     kind: Kind,
@@ -115,6 +115,39 @@ impl Line {
     }
 }
 
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    use super::*;
+    use crate::fixtures::{nodes, trains};
+
+    macro_rules! lines {
+        (trains $line:ident, $route:ident, [$( $hour:expr, $minute:expr );* $(;)?]) => {
+            $( trains::$line::$route($hour, $minute) ),*
+        };
+        ($($line:ident: $name:literal, $kind:ident, $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt);* $(;)?) => {
+            $(
+                pub fn $line() -> Line {
+                    Line {
+                        name: $name.to_string(),
+                        kind: Kind::$kind,
+                        nodes: nodes::$line(),
+                        trains: vec![
+                            lines!(trains $line, $upstream, $upstream_times),
+                            lines!(trains $line, $downstream, $downstream_times),
+                        ],
+                    }
+                }
+            )*
+        };
+    }
+
+    lines! {
+        tram_12:            "12",           Tram,
+            oranienburger_tor_am_kupfergraben, [9, 2.0],
+            am_kupfergraben_oranienburger_tor, [8, 34.0];
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
@@ -122,7 +155,34 @@ mod tests {
 
     use super::*;
     use crate::direction::Directions;
+    use crate::fixtures::{lines, nodes};
     use crate::node::Kind as NodeKind;
+
+    fn time(hour: u32, minute: f64) -> u32 {
+        return hour * 3600 + (minute * 60.0) as u32;
+    }
+
+    #[test]
+    fn test_getters() {
+        let line = lines::tram_12();
+        assert_eq!(line.name(), "12");
+        assert_eq!(line.kind(), Kind::Tram);
+        assert_eq!(line.nodes(), &*nodes::tram_12());
+    }
+
+    #[test]
+    fn test_active_trains() {
+        let mut line = lines::tram_12();
+        assert_eq!(line.active_trains().count(), 0);
+        line.update(time(8, 34.0));
+        assert_eq!(line.active_trains().count(), 0);
+        line.update(time(0, 1.0));
+        assert_eq!(line.active_trains().count(), 1);
+        line.update(time(0, 6.0));
+        assert_eq!(line.active_trains().count(), 0);
+        line.update(time(0, 22.0));
+        assert_eq!(line.active_trains().count(), 1);
+    }
 
     macro_rules! test_vertices {
         ($nodes:tt, $upstream:tt) => (

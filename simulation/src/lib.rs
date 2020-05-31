@@ -14,6 +14,7 @@ pub use crate::train::Train;
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
+    pub use crate::line::fixtures::*;
     pub use crate::node::fixtures as nodes;
     pub use crate::station::fixtures as stations;
     pub use crate::train::fixtures as trains;
