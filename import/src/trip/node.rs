@@ -3,8 +3,6 @@ use std::rc::Rc;
 
 use ordered_float::NotNan;
 
-use approx::AbsDiffEq;
-
 use crate::coord::{debug_position, transform, Point};
 use crate::location::Location;
 use simulation::Directions;
@@ -71,22 +69,7 @@ impl Node {
     }
 }
 
-type Epsilon = <Point as AbsDiffEq>::Epsilon;
-
-impl AbsDiffEq for Node {
-    type Epsilon = Epsilon;
-
-    fn default_epsilon() -> Epsilon {
-        Point::default_epsilon()
-    }
-
-    fn abs_diff_eq(&self, other: &Node, epsilon: Epsilon) -> bool {
-        Point::abs_diff_eq(&self.position, &other.position, epsilon)
-            && self.kind == other.kind
-            && self.in_directions == other.in_directions
-    }
-}
-
+#[cfg_attr(tarpaulin, skip)]
 impl fmt::Debug for Node {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let position = debug_position(self.position, formatter.alternate());
@@ -286,10 +269,55 @@ pub(super) mod fixtures {
 
 #[cfg(test)]
 mod tests {
+    use approx::assert_relative_eq;
     use itertools::Itertools;
 
     use super::*;
+    use crate::coord::project;
     use crate::trip::fixtures::*;
+
+    #[test]
+    fn test_getters() {
+        let node = nodes::tram_12(Directions::Both).remove(4);
+        assert_eq!(node.position(), project(52.520, 13.388));
+        assert_eq!(node.location(), Some(&Rc::new(locations::friedrichstr())));
+        assert_eq!(node.in_directions(), Directions::Both);
+    }
+
+    #[test]
+    fn test_distance_to() {
+        let node = nodes::tram_12(Directions::Both).remove(4);
+        assert_relative_eq!(
+            node.distance_to(&locations::friedrichstr()).into_inner(),
+            67.86,
+            epsilon = 0.01
+        );
+    }
+
+    #[test]
+    fn test_make_stop() {
+        let mut node = Node::new(project(52.520, 13.388), Directions::Both);
+        node.make_stop(Rc::new(locations::friedrichstr()));
+        assert_eq!(node, nodes::tram_12(Directions::Both)[4]);
+    }
+
+    #[test]
+    fn test_merge() {
+        let mut upstream_node = nodes::tram_12(Directions::UpstreamOnly).remove(3);
+        let downstream_node = nodes::tram_12(Directions::DownstreamOnly).remove(4);
+        assert!(upstream_node.can_be_merged(&downstream_node));
+        upstream_node.merge(downstream_node);
+        assert_eq!(upstream_node, nodes::tram_12(Directions::Both)[4])
+    }
+
+    #[test]
+    fn test_can_not_be_merged() {
+        let upstream_node = nodes::tram_12(Directions::UpstreamOnly).remove(4);
+        let mut downstream_node = Node::new(project(52.520, 13.388), Directions::DownstreamOnly);
+        assert!(!upstream_node.can_be_merged(&downstream_node));
+        downstream_node.make_stop(Rc::new(locations::oranienburger_tor()));
+        assert!(!upstream_node.can_be_merged(&downstream_node));
+    }
 
     #[test]
     fn test_store() {

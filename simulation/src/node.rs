@@ -2,8 +2,6 @@ use serde_derive::{Deserialize, Serialize};
 
 use na::Point2;
 
-use approx::AbsDiffEq;
-
 use crate::direction::{Direction, Directions};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -32,20 +30,6 @@ impl Node {
 
     pub fn allows(&self, direction: Direction) -> bool {
         self.in_directions.allows(direction)
-    }
-}
-
-type Epsilon = <Point2<f32> as AbsDiffEq>::Epsilon;
-
-impl AbsDiffEq for Node {
-    type Epsilon = Epsilon;
-
-    fn default_epsilon() -> Epsilon {
-        Point2::<f32>::default_epsilon()
-    }
-
-    fn abs_diff_eq(&self, other: &Node, epsilon: Epsilon) -> bool {
-        self.kind == other.kind && Point2::abs_diff_eq(&self.position, &other.position, epsilon)
     }
 }
 
@@ -118,5 +102,20 @@ pub mod fixtures {
              -2976,  11394, UpstreamOnly;
              -2906,  11285, Both;
              -2906,  11285, Both;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fixtures::nodes;
+
+    #[test]
+    fn test_getters() {
+        let node = nodes::tram_12().remove(4);
+        assert_eq!(node.position(), Point2::new(-111.0, -1115.0));
+        assert!(node.is_stop());
+        assert!(node.allows(Direction::Upstream));
+        assert!(node.allows(Direction::Downstream));
     }
 }
