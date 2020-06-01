@@ -1,4 +1,4 @@
-import {Map, View, default as init} from "./wasm/gtfs_sim_wasm.js";
+import {Dataset, View, default as init} from "./wasm/gtfs_sim_wasm.js";
 
 function loadSource(url) {
     return new Promise((resolve, reject) => {
@@ -126,9 +126,9 @@ class StationRenderer extends Renderer {
 
     fillBuffers(model) {
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.station_positions(), this.gl.STATIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.stationPositions(), this.gl.STATIC_DRAW);
 
-        this.size = model.station_size();
+        this.count = model.stationCount();
     }
 
     run() {
@@ -144,7 +144,7 @@ class StationRenderer extends Renderer {
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
-        this.gl.drawArrays(this.gl.POINTS, 0, this.size);
+        this.gl.drawArrays(this.gl.POINTS, 0, this.count);
     }
 }
 
@@ -156,12 +156,12 @@ class LineRenderer extends Renderer {
     }
 
     fillBuffers(model) {
-        this.lineCount = model.line_count();
-        this.trackRunSizes = model.track_run_sizes();
-        this.colors = model.line_colors();
+        this.count = model.lineCount();
+        this.trackRunSizes = model.lineVerticesSizes();
+        this.colors = model.lineColors();
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.line_vertices(), this.gl.STATIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.lineVertices(), this.gl.STATIC_DRAW);
     }
 
     run() {
@@ -177,7 +177,7 @@ class LineRenderer extends Renderer {
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
         let offset = 0;
-        for (let line = 0; line < this.lineCount; line++) {
+        for (let line = 0; line < this.count; line++) {
             this.gl.uniform3fv(this.uniformLocations.color, this.colors.slice(3 * line, 3 * line + 3));
             for (let track = 0; track < 2; track++) {
                 const trackRunSize = this.trackRunSizes[2 * line + track];
@@ -247,7 +247,7 @@ class TrainRenderer extends Renderer {
     }
 
     generateTextures(model) {
-        const names = model.line_names().split("\n");
+        const names = model.lineNames().split("\n");
         this.lineNamesTextureGenerator = new LineNamesTextureGenerator(names, 0);
 
         this.texture = this.gl.createTexture();
@@ -266,22 +266,22 @@ class TrainRenderer extends Renderer {
 
     fillBuffers(model, timePassed) {
         model.update(timePassed);
-        this.size = model.train_size();
+        this.count = model.trainCount();
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_vertices(), this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.trainVertices(), this.gl.DYNAMIC_DRAW);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.color);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_colors(), this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.trainColors(), this.gl.DYNAMIC_DRAW);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.extent);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_extents(), this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.trainExtents(), this.gl.DYNAMIC_DRAW);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.lineNumber);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_line_numbers(), this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.trainLineNumbers(), this.gl.DYNAMIC_DRAW);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.side);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.train_sides(), this.gl.DYNAMIC_DRAW);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, model.trainSides(), this.gl.DYNAMIC_DRAW);
     }
 
     run() {
@@ -330,7 +330,7 @@ class TrainRenderer extends Renderer {
             false, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.side);
 
-        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6 * this.size);
+        this.gl.drawArrays(this.gl.TRIANGLES, 0, 6 * this.count);
     }
 }
 
@@ -378,7 +378,7 @@ class Controller {
 
     async setUpModel() {
         const data = new Uint8Array(await sources.data);
-        this.model = Map.parse(data);
+        this.model = Dataset.parse(data);
         this.model.update(14010);
     }
 
@@ -398,7 +398,7 @@ class Controller {
     }
 
     updateTooltip(x, y) {
-        const name = this.model.find_station(this.view, x, y);
+        const name = this.model.findStation(this.view, x, y);
         this.gl.canvas.title = name ? name : "";
     }
 

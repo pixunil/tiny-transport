@@ -34,6 +34,11 @@ pub mod fixtures {
 
     stations! {
         hauptbahnhof:                         -1385,  -1812, "Hauptbahnhof";
+        friedrichstr:                          -168,  -1147, "Friedrichstr.";
+        oranienburger_tor:                     -124,  -1632, "Oranienburger Tor";
+        universitaetsstr:                       147,   -995, "Universitätsstr.";
+        am_kupfergraben:                        389,  -1039, "Am Kupfergraben";
+        georgenstr_am_kupfergraben:             308,  -1160, "Georgenstr./Am Kupfergraben";
     }
 }
 

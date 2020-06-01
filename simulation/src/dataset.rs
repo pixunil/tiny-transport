@@ -1,30 +1,19 @@
-use std::convert::From;
 use std::iter;
 
 use na::Point2;
-use wasm_bindgen::prelude::*;
 
-use simulation::{Line, Station};
+use crate::line::Line;
+use crate::station::Station;
 
-use crate::view::View;
-
-#[wasm_bindgen]
-pub struct Map {
+#[derive(Debug, PartialEq)]
+pub struct Dataset {
     stations: Vec<Station>,
     lines: Vec<Line>,
 }
 
-impl Map {
-    fn new(stations: Vec<Station>, lines: Vec<Line>) -> Self {
+impl Dataset {
+    pub fn new(stations: Vec<Station>, lines: Vec<Line>) -> Self {
         Self { stations, lines }
-    }
-}
-
-#[wasm_bindgen]
-impl Map {
-    pub fn parse(data: &[u8]) -> Map {
-        let dataset = bincode::deserialize::<storage::Dataset>(data).unwrap();
-        dataset.into()
     }
 
     pub fn update(&mut self, time_passed: u32) {
@@ -33,15 +22,7 @@ impl Map {
         }
     }
 
-    pub fn find_station(&self, view: &View, x: f32, y: f32) -> Option<String> {
-        let position = view.unproject(Point2::new(x, y));
-        self.stations
-            .iter()
-            .find(|station| station.contains(position))
-            .map(|station| station.name().to_string())
-    }
-
-    pub fn station_size(&self) -> usize {
+    pub fn station_count(&self) -> usize {
         self.stations.len()
     }
 
@@ -53,16 +34,22 @@ impl Map {
         buffer
     }
 
+    pub fn find_station(&self, position: Point2<f32>) -> Option<&Station> {
+        self.stations
+            .iter()
+            .find(|station| station.contains(position))
+    }
+
+    pub fn line_count(&self) -> usize {
+        self.lines.len()
+    }
+
     pub fn line_colors(&self) -> Vec<f32> {
         let mut colors = Vec::new();
         for line in &self.lines {
             line.fill_color_buffer(&mut colors);
         }
         colors
-    }
-
-    pub fn line_count(&self) -> usize {
-        self.lines.len()
     }
 
     fn line_vertices_with_sizes(&self) -> (Vec<f32>, Vec<usize>) {
@@ -74,7 +61,7 @@ impl Map {
         (vertices, sizes)
     }
 
-    pub fn track_run_sizes(&self) -> Vec<usize> {
+    pub fn line_vertices_sizes(&self) -> Vec<usize> {
         self.line_vertices_with_sizes().1
     }
 
@@ -90,7 +77,7 @@ impl Map {
             .join("\n")
     }
 
-    pub fn train_size(&self) -> usize {
+    pub fn train_count(&self) -> usize {
         self.lines
             .iter()
             .map(|line| line.active_trains().count())
@@ -148,16 +135,38 @@ impl Map {
     }
 }
 
-impl From<storage::Dataset> for Map {
-    fn from(dataset: storage::Dataset) -> Map {
-        let stations = dataset
-            .stations
-            .into_iter()
-            .map(storage::Station::load)
-            .collect::<Vec<_>>();
+#[cfg(any(test, feature = "fixtures"))]
+pub mod fixtures {
+    use super::*;
+    use crate::fixtures::{lines, stations};
 
-        let lines = dataset.lines.into_iter().map(storage::Line::load).collect();
+    pub fn tram_12() -> Dataset {
+        Dataset {
+            stations: vec![
+                stations::oranienburger_tor(),
+                stations::friedrichstr(),
+                stations::universitaetsstr(),
+                stations::am_kupfergraben(),
+                stations::georgenstr_am_kupfergraben(),
+            ],
+            lines: vec![lines::tram_12()],
+        }
+    }
+}
 
-        Map::new(stations, lines)
+#[cfg(test)]
+mod tests {
+    use crate::fixtures::datasets;
+
+    #[test]
+    fn test_static_data() {
+        let dataset = datasets::tram_12();
+        assert_eq!(dataset.station_count(), 5);
+        assert_eq!(dataset.station_positions().len(), 2 * 5);
+        assert_eq!(dataset.line_count(), 1);
+        assert_eq!(dataset.line_colors().len(), 3 * 1);
+        assert_eq!(dataset.line_vertices_sizes(), [20, 28]);
+        assert_eq!(dataset.line_vertices().len(), 2 * 48);
+        assert_eq!(dataset.line_names(), "12".to_string());
     }
 }

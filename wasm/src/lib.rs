@@ -1,4 +1,4 @@
-mod map;
+mod dataset;
 mod view;
 
 #[cfg(feature = "console_error_panic_hook")]
