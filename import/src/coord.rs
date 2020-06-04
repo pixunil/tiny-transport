@@ -3,9 +3,9 @@ use geomorph::utm::Utm;
 
 use na::Point2;
 
-pub(crate) type Point = Point2<f64>;
+pub type Point = Point2<f64>;
 
-pub(crate) fn project(lat: f64, lon: f64) -> Point {
+pub fn project(lat: f64, lon: f64) -> Point {
     let coord = Coord::new(lat, lon);
     let utm = Utm::from(coord);
     Point::new(utm.easting, utm.northing)
@@ -17,7 +17,7 @@ pub fn project_back(position: Point) -> (f64, f64) {
     (coord.lat, coord.lon)
 }
 
-pub(crate) fn transform(point: Point) -> Point2<f32> {
+pub fn transform(point: Point) -> Point2<f32> {
     let translated = point.coords - project(52.51, 13.39).coords;
     Point2::new(translated.x.round() as f32, -translated.y.round() as f32)
 }

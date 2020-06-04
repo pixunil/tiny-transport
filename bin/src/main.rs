@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fs::File;
 
 use chrono::NaiveDate;
-use clap::clap_app;
+use clap::{clap_app, value_t};
 
 use import::profile::{DEFAULT_PROFILE_NAME, PROFILE_NAMES};
 use import::ImportedDataset;
@@ -13,7 +13,7 @@ mod inspect;
 mod load;
 
 use compress::compress;
-use inspect::inspect;
+use inspect::{inspect, Format};
 use load::load;
 
 fn validate_date(value: String) -> Result<(), String> {
@@ -46,6 +46,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             (about: "Imports a dataset and prints debug information for a single line")
             (@arg DATASET: +required "Path to gtfs dataset")
             (@arg LINE: +required "Line name to inspect")
+            (@arg FORMAT: --format +takes_value +case_insensitive
+                possible_values(&Format::variants()) default_value("import")
+                "Output format")
         )
     )
     .get_matches();
@@ -73,7 +76,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         ("inspect", Some(inspect_matches)) => {
             let dataset = inspect_matches.value_of_os("DATASET").unwrap();
             let line_name = inspect_matches.value_of("LINE").unwrap();
-            inspect(dataset, line_name)
+            let format = value_t!(inspect_matches, "FORMAT", Format).unwrap_or_else(|e| e.exit());
+            inspect(dataset, line_name, format)
         }
         ("", None) => Ok(()),
         _ => unreachable!(),
