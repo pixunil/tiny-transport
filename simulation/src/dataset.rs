@@ -1,4 +1,6 @@
 use std::iter;
+use std::ops::Deref;
+use std::rc::Rc;
 
 use na::Point2;
 
@@ -7,12 +9,12 @@ use crate::station::Station;
 
 #[derive(Debug, PartialEq)]
 pub struct Dataset {
-    stations: Vec<Station>,
+    stations: Vec<Rc<Station>>,
     lines: Vec<Line>,
 }
 
 impl Dataset {
-    pub fn new(stations: Vec<Station>, lines: Vec<Line>) -> Self {
+    pub fn new(stations: Vec<Rc<Station>>, lines: Vec<Line>) -> Self {
         Self { stations, lines }
     }
 
@@ -38,6 +40,7 @@ impl Dataset {
         self.stations
             .iter()
             .find(|station| station.contains(position))
+            .map(|station| station.deref())
     }
 
     pub fn line_count(&self) -> usize {
@@ -140,17 +143,30 @@ pub mod fixtures {
     use super::*;
     use crate::fixtures::{lines, stations};
 
-    pub fn tram_12() -> Dataset {
-        Dataset {
-            stations: vec![
-                stations::oranienburger_tor(),
-                stations::friedrichstr(),
-                stations::universitaetsstr(),
-                stations::am_kupfergraben(),
-                stations::georgenstr_am_kupfergraben(),
-            ],
-            lines: vec![lines::tram_12()],
+    macro_rules! datasets {
+        ( $( $dataset:ident => {
+                stations: [ $($station:ident),* $(,)? ],
+                lines: [ $($line:ident),* $(,)? ],
+            } ),* $(,)? ) => {
+            $(
+                pub fn $dataset() -> Dataset {
+                    Dataset {
+                        stations: vec![ $(Rc::new(stations::$station())),* ],
+                        lines: vec![ $(lines::$line()),* ],
+                    }
+                }
+            )*
         }
+    }
+
+    datasets! {
+        tram_12 => {
+            stations: [
+                oranienburger_tor, friedrichstr, universitaetsstr, am_kupfergraben,
+                georgenstr_am_kupfergraben,
+            ],
+            lines: [tram_12],
+        },
     }
 }
 

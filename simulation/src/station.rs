@@ -45,6 +45,13 @@ pub mod fixtures {
         universitaetsstr:                       147,   -995, "Universitätsstr.";
         am_kupfergraben:                        389,  -1039, "Am Kupfergraben";
         georgenstr_am_kupfergraben:             308,  -1160, "Georgenstr./Am Kupfergraben";
+        zingster_str:                           7269,  -6742, "Zingster Str.";
+        zingster_str_ribnitzer_str:             7400,  -6517, "Zingster Str./Ribnitzer Str.";
+        ahrenshooper_str:                       7730,  -6065, "Ahrenshooper Str.";
+        prerower_platz:                         7926,  -5727, "Prerower Platz";
+        weskammstr:                            -2958,  10616, "Weskammstr.";
+        lichterfelder_ring_waldsassener_str:   -2963,  10838, "Lichterfelder Ring/Waldsassener Str.";
+        waldsassener_str:                      -2906,  11285, "Waldsassener Str.";
     }
 }
 

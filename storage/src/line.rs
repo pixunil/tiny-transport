@@ -1,8 +1,11 @@
+use std::rc::Rc;
+
 use serde_derive::{Deserialize, Serialize};
 
+use crate::node::Node;
 use crate::train::Train;
 use simulation::line::Kind;
-use simulation::{Color, Node};
+use simulation::Color;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Line {
@@ -30,9 +33,13 @@ impl Line {
         }
     }
 
-    pub fn load(self) -> simulation::Line {
+    pub fn load(self, stations: &[Rc<simulation::Station>]) -> simulation::Line {
         let kind = self.kind;
-        let nodes = self.nodes;
+        let nodes = self
+            .nodes
+            .into_iter()
+            .map(|node| node.load(&stations))
+            .collect::<Vec<_>>();
         let trains = self
             .trains
             .into_iter()
@@ -45,9 +52,10 @@ impl Line {
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
+    use std::ops::Index;
+
     use super::*;
-    use crate::fixtures::*;
-    use simulation::fixtures::nodes;
+    use crate::fixtures::{nodes, trains};
 
     macro_rules! lines {
         (trains $line:ident, $route:ident, [$( $hour:expr, $minute:expr );* $(;)?]) => {
@@ -55,12 +63,12 @@ pub mod fixtures {
         };
         ($($line:ident: $name:literal, $kind:ident, $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt);* $(;)?) => {
             $(
-                pub fn $line() -> Line {
+                pub fn $line<'a>(station_ids: &impl Index<&'a str, Output = usize>) -> Line {
                     Line {
                         name: $name.to_string(),
                         color: Kind::$kind.color(),
                         kind: Kind::$kind,
-                        nodes: nodes::$line(),
+                        nodes: nodes::$line(station_ids),
                         trains: vec![
                             lines!(trains $line, $upstream, $upstream_times),
                             lines!(trains $line, $downstream, $downstream_times),
@@ -81,10 +89,18 @@ pub mod fixtures {
 #[cfg(test)]
 mod tests {
     use crate::fixtures::lines;
+    use crate::stations_with_ids;
 
     #[test]
     fn test_load() {
-        let line = lines::tram_12();
-        assert_eq!(line.load(), simulation::fixtures::lines::tram_12());
+        let (stations, station_ids) = stations_with_ids![
+            oranienburger_tor,
+            friedrichstr,
+            universitaetsstr,
+            am_kupfergraben,
+            georgenstr_am_kupfergraben,
+        ];
+        let line = lines::tram_12(&station_ids);
+        assert_eq!(line.load(&stations), simulation::fixtures::lines::tram_12());
     }
 }

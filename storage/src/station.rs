@@ -40,6 +40,21 @@ pub mod fixtures {
         am_kupfergraben:                        389,  -1039, "Am Kupfergraben";
         georgenstr_am_kupfergraben:             308,  -1160, "Georgenstr./Am Kupfergraben";
     }
+
+    #[macro_export]
+    macro_rules! stations_with_ids {
+        ($( $station:ident ),* $(,)?) => ({
+            let stations = vec![
+                $( std::rc::Rc::new(simulation::fixtures::stations::$station() )),*
+            ];
+            let station_ids = vec![ $( stringify!($station) ),* ]
+                .into_iter()
+                .enumerate()
+                .map(|(i, identifier)| (identifier, i))
+                .collect::<std::collections::HashMap<_, _>>();
+            (stations, station_ids)
+        });
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,7 @@
 use chrono::NaiveDate;
 
 use crate::create_id_type;
+use crate::location::Linearizer;
 use crate::trip::Route;
 use simulation::line::Kind;
 use simulation::Color;
@@ -37,12 +38,12 @@ impl Line {
         self.routes.iter()
     }
 
-    pub(crate) fn store(&self, date: NaiveDate) -> storage::Line {
+    pub(crate) fn store(&self, date: NaiveDate, linearizer: &mut Linearizer) -> storage::Line {
         let route = self
             .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
-        let nodes = route.store_nodes();
+        let nodes = route.store_nodes(linearizer);
         let trains = route.store_trains(date);
         storage::Line::new(
             self.name.clone(),
@@ -98,6 +99,10 @@ mod tests {
         line.color = Kind::Tram.color();
         line.routes = vec![routes::tram_12::oranienburger_tor_am_kupfergraben()];
         let date = NaiveDate::from_ymd(2019, 1, 1);
-        assert_eq!(line.store(date), storage::fixtures::lines::tram_12());
+        let mut linearizer = Linearizer::new();
+        assert_eq!(
+            line.store(date, &mut linearizer),
+            storage::fixtures::lines::tram_12(&linearizer.location_ids())
+        );
     }
 }

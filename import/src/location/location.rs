@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::fmt;
 
 use crate::coord::{debug_position, transform, Point};
@@ -28,10 +27,6 @@ impl Location {
 
     pub fn position(&self) -> Point {
         self.position
-    }
-
-    pub(crate) fn station_cmp(&self, other: &Location) -> Ordering {
-        self.id.cmp(&other.id)
     }
 
     pub(crate) fn store(&self) -> storage::Station {

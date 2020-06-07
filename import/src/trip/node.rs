@@ -4,7 +4,7 @@ use std::rc::Rc;
 use ordered_float::NotNan;
 
 use crate::coord::{debug_position, transform, Point};
-use crate::location::Location;
+use crate::location::{Linearizer, Location};
 use simulation::Directions;
 
 #[derive(PartialEq)]
@@ -59,13 +59,15 @@ impl Node {
         self.in_directions = Directions::Both;
     }
 
-    pub(super) fn store(&self) -> simulation::Node {
+    pub(super) fn store(&self, linerarizer: &mut Linearizer) -> storage::Node {
         let kind = match self.kind {
-            Kind::Waypoint => simulation::NodeKind::Waypoint,
-            Kind::Stop { .. } => simulation::NodeKind::Stop,
+            Kind::Waypoint => storage::NodeKind::Waypoint,
+            Kind::Stop { ref location } => storage::NodeKind::Stop {
+                at: linerarizer.retrieve(location),
+            },
         };
         let position = transform(self.position);
-        simulation::Node::new(position, kind, self.in_directions)
+        storage::Node::new(position, kind, self.in_directions)
     }
 }
 
@@ -270,7 +272,6 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
-    use itertools::Itertools;
 
     use super::*;
     use crate::coord::project;
@@ -321,10 +322,13 @@ mod tests {
 
     #[test]
     fn test_store() {
-        let nodes = nodes::tram_12(Directions::Both);
-        let expected = simulation::fixtures::nodes::tram_12();
-        for (node, expected) in nodes.into_iter().zip_eq(expected) {
-            assert_eq!(node.store(), expected);
-        }
+        let mut linearizer = Linearizer::new();
+        assert_eq!(
+            nodes::tram_12(Directions::Both)
+                .into_iter()
+                .map(|node| node.store(&mut linearizer))
+                .collect::<Vec<_>>(),
+            storage::fixtures::nodes::tram_12(&linearizer.location_ids())
+        );
     }
 }

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use serde_derive::{Deserialize, Serialize};
 
 use crate::line::Line;
@@ -15,28 +17,57 @@ impl Dataset {
     }
 
     pub fn load(self) -> simulation::Dataset {
-        let stations = self.stations.into_iter().map(Station::load).collect();
-        let lines = self.lines.into_iter().map(Line::load).collect();
+        let stations = self
+            .stations
+            .into_iter()
+            .map(Station::load)
+            .map(|station| Rc::new(station))
+            .collect::<Vec<_>>();
+        let lines = self
+            .lines
+            .into_iter()
+            .map(|line| line.load(&stations))
+            .collect();
         simulation::Dataset::new(stations, lines)
     }
 }
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::fixtures::{lines, stations};
 
-    pub fn tram_12() -> Dataset {
-        Dataset {
-            stations: vec![
-                stations::oranienburger_tor(),
-                stations::friedrichstr(),
-                stations::universitaetsstr(),
-                stations::am_kupfergraben(),
-                stations::georgenstr_am_kupfergraben(),
+    macro_rules! datasets {
+        ( $( $dataset:ident => {
+                stations: [ $($station:ident),* $(,)? ],
+                lines: [ $($line:ident),* $(,)? ],
+            } ),* $(,)? ) => (
+            $(
+                pub fn $dataset() -> Dataset {
+                    let station_ids = vec![ $( stringify!($station)),* ]
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, identifier)| (identifier, i))
+                        .collect::<HashMap<_, _>>();
+                    Dataset {
+                        stations: vec![ $( stations::$station() ),* ],
+                        lines: vec![ $( lines::$line(&station_ids) ),* ],
+                    }
+                }
+            )*
+        );
+    }
+
+    datasets! {
+        tram_12 => {
+            stations: [
+                oranienburger_tor, friedrichstr, universitaetsstr, am_kupfergraben,
+                georgenstr_am_kupfergraben,
             ],
-            lines: vec![lines::tram_12()],
-        }
+            lines: [tram_12],
+        },
     }
 }
 

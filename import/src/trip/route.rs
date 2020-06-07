@@ -1,9 +1,7 @@
-use std::rc::Rc;
-
 use chrono::NaiveDate;
 
 use super::{Node, Trip};
-use crate::location::Location;
+use crate::location::Linearizer;
 
 #[derive(Debug, PartialEq)]
 pub struct Route {
@@ -27,12 +25,11 @@ impl Route {
             .count()
     }
 
-    pub(crate) fn locations(&self) -> impl Iterator<Item = &Rc<Location>> {
-        self.nodes.iter().filter_map(Node::location)
-    }
-
-    pub(crate) fn store_nodes(&self) -> Vec<simulation::Node> {
-        self.nodes.iter().map(Node::store).collect()
+    pub(crate) fn store_nodes(&self, linearizer: &mut Linearizer) -> Vec<storage::Node> {
+        self.nodes
+            .iter()
+            .map(|node| node.store(linearizer))
+            .collect()
     }
 
     pub(crate) fn store_trains(&self, date: NaiveDate) -> Vec<storage::Train> {

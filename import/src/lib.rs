@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::File;
@@ -20,10 +19,11 @@ mod shape;
 mod trip;
 mod utils;
 
-use agency::Agency;
-use line::Line;
-use profile::Profile;
-use utils::Dataset;
+use crate::agency::Agency;
+use crate::line::Line;
+use crate::location::Linearizer;
+use crate::profile::Profile;
+use crate::utils::Dataset;
 
 pub struct ImportedDataset {
     agencies: Vec<Agency>,
@@ -65,22 +65,17 @@ impl ImportedDataset {
     }
 
     fn store(&self, profile: Profile, date: NaiveDate) -> storage::Dataset {
-        let lines = profile.filter(self.agencies());
-        let mut stations = lines
-            .iter()
-            .flat_map(|line| line.routes())
-            .flat_map(|route| route.locations())
-            .cloned()
-            .collect::<Vec<_>>();
-        stations.sort_unstable_by(|a, b| a.station_cmp(b));
-        stations.dedup_by(|a, b| a.station_cmp(b) == Ordering::Equal);
-
-        let stations = stations
+        let mut linearizer = Linearizer::new();
+        let lines = profile
+            .filter(self.agencies())
             .into_iter()
-            .map(|station| station.store())
+            .map(|line| line.store(date, &mut linearizer))
             .collect();
 
-        let lines = lines.into_iter().map(|line| line.store(date)).collect();
+        let stations = linearizer
+            .into_iter()
+            .map(|location| location.store())
+            .collect();
 
         storage::Dataset::new(stations, lines)
     }
