@@ -67,6 +67,16 @@ pub mod fixtures {
     }
 
     nodes! {
+        s3:
+               846,  -1428, Both,           hackescher_markt;
+              -244,  -1229, Both,           friedrichstr;
+             -1387,  -1700, Both,           hauptbahnhof;
+             -2893,  -1178, Both,           bellevue;
+        u6:
+              -491,  -2348, Both,           naturkundemuseum;
+              -164,  -1784, Both,           oranienburger_tor;
+              -111,  -1115, Both,           friedrichstr;
+               -55,   -558, Both,           franzoesische_str;
         tram_m5:
               7204,  -6855, Both;
               7269,  -6742, Both,           zingster_str;

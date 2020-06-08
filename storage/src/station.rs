@@ -13,8 +13,8 @@ impl Station {
         Station { position, name }
     }
 
-    pub fn load(self) -> simulation::Station {
-        simulation::Station::new(self.position, self.name)
+    pub fn load(self, kind: simulation::station::Kind) -> simulation::Station {
+        simulation::Station::new(self.position, self.name, kind)
     }
 }
 
@@ -35,6 +35,10 @@ pub mod fixtures {
     stations! {
         hauptbahnhof:                         -1385,  -1812, "Hauptbahnhof";
         friedrichstr:                          -168,  -1147, "Friedrichstr.";
+        hackescher_markt:                       846,  -1428, "Hackescher Markt";
+        bellevue:                             -2893,  -1178, "Bellevue";
+        naturkundemuseum:                      -491,  -2348, "Naturkundemuseum";
+        franzoesische_str:                      -55,   -558, "Französische Str.";
         oranienburger_tor:                     -124,  -1632, "Oranienburger Tor";
         universitaetsstr:                       147,   -995, "Universitätsstr.";
         am_kupfergraben:                        389,  -1039, "Am Kupfergraben";
@@ -65,7 +69,7 @@ mod tests {
     fn test_load() {
         let station = stations::hauptbahnhof();
         assert_eq!(
-            station.load(),
+            station.load(simulation::station::Kind::Interchange),
             simulation::fixtures::stations::hauptbahnhof()
         );
     }

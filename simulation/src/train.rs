@@ -153,6 +153,14 @@ pub mod fixtures {
     }
 
     trains! {
+        s3: SuburbanRailway, {
+            hackescher_markt_bellevue => Upstream, [30, 90, 48, 114, 36, 126, 0];
+            bellevue_hackescher_markt => Downstream, [30, 126, 42, 114, 48, 90, 0];
+        },
+        u6: UrbanRailway, {
+            naturkundemuseum_franzoesische_str => Upstream, [0, 90, 0, 60, 0, 90, 0];
+            franzoesische_str_naturkundemuseum => Downstream, [0, 90, 0, 90, 0, 60, 0];
+        },
         tram_m5: Tram, {
             zingster_str_perower_platz => Upstream, [0, 0, 60, 0, 60, 0, 48, 72, 0];
         },

@@ -47,6 +47,7 @@ macro_rules! delegate {
 delegate! {
     pub fn station_count(&self) -> usize; [stationCount]
         pub fn station_positions(&self) -> Vec<f32>; [stationPositions]
+        pub fn station_types(&self) -> Vec<u8>; [stationTypes]
 
         pub fn line_count(&self) -> usize; [lineCount]
         pub fn line_colors(&self) -> Vec<f32>; [lineColors]

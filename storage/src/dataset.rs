@@ -1,3 +1,4 @@
+use std::iter::repeat_with;
 use std::rc::Rc;
 
 use serde_derive::{Deserialize, Serialize};
@@ -17,11 +18,18 @@ impl Dataset {
     }
 
     pub fn load(self) -> simulation::Dataset {
+        let mut station_infos = repeat_with(Vec::new).take(self.stations.len()).collect();
+        for line in &self.lines {
+            line.add_to_station_infos(&mut station_infos);
+        }
+        let station_kinds = station_infos
+            .into_iter()
+            .map(|line_kinds| simulation::station::Kind::from_line_kinds(&line_kinds));
         let stations = self
             .stations
             .into_iter()
-            .map(Station::load)
-            .map(|station| Rc::new(station))
+            .zip(station_kinds)
+            .map(|(station, kind)| Rc::new(station.load(kind)))
             .collect::<Vec<_>>();
         let lines = self
             .lines
@@ -61,12 +69,13 @@ pub mod fixtures {
     }
 
     datasets! {
-        tram_12 => {
+        hauptbahnhof_friedrichstr => {
             stations: [
-                oranienburger_tor, friedrichstr, universitaetsstr, am_kupfergraben,
-                georgenstr_am_kupfergraben,
+                hauptbahnhof, friedrichstr, hackescher_markt, bellevue,
+                naturkundemuseum, franzoesische_str, oranienburger_tor,
+                universitaetsstr, am_kupfergraben, georgenstr_am_kupfergraben,
             ],
-            lines: [tram_12],
+            lines: [u6, s3, tram_12],
         },
     }
 }
@@ -77,7 +86,10 @@ mod tests {
 
     #[test]
     fn test_load() {
-        let dataset = datasets::tram_12();
-        assert_eq!(dataset.load(), simulation::fixtures::datasets::tram_12());
+        let dataset = datasets::hauptbahnhof_friedrichstr();
+        assert_eq!(
+            dataset.load(),
+            simulation::fixtures::datasets::hauptbahnhof_friedrichstr()
+        );
     }
 }

@@ -156,6 +156,12 @@ pub mod fixtures {
     }
 
     lines! {
+        s3:                 "S3",           SuburbanRailway,
+            hackescher_markt_bellevue, [7, 24.9],
+            bellevue_hackescher_markt, [7, 12.4];
+        u6:                 "U6",           UrbanRailway,
+            naturkundemuseum_franzoesische_str, [5, 56.0],
+            franzoesische_str_naturkundemuseum, [5, 30.0];
         tram_12:            "12",           Tram,
             oranienburger_tor_am_kupfergraben, [9, 2.0],
             am_kupfergraben_oranienburger_tor, [8, 34.0];

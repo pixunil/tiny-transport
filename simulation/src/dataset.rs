@@ -36,6 +36,14 @@ impl Dataset {
         buffer
     }
 
+    pub fn station_types(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+        for station in &self.stations {
+            station.fill_type_buffer(&mut buffer);
+        }
+        buffer
+    }
+
     pub fn find_station(&self, position: Point2<f32>) -> Option<&Station> {
         self.stations
             .iter()
@@ -167,6 +175,14 @@ pub mod fixtures {
             ],
             lines: [tram_12],
         },
+        hauptbahnhof_friedrichstr => {
+            stations: [
+                hauptbahnhof, friedrichstr, hackescher_markt, bellevue,
+                naturkundemuseum, franzoesische_str, oranienburger_tor,
+                universitaetsstr, am_kupfergraben, georgenstr_am_kupfergraben,
+            ],
+            lines: [u6, s3, tram_12],
+        },
     }
 }
 
@@ -179,6 +195,7 @@ mod tests {
         let dataset = datasets::tram_12();
         assert_eq!(dataset.station_count(), 5);
         assert_eq!(dataset.station_positions().len(), 2 * 5);
+        assert_eq!(dataset.station_types().len(), 5);
         assert_eq!(dataset.line_count(), 1);
         assert_eq!(dataset.line_colors().len(), 3 * 1);
         assert_eq!(dataset.line_vertices_sizes(), [20, 28]);

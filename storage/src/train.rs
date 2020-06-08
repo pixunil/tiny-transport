@@ -127,6 +127,14 @@ pub mod fixtures {
     }
 
     trips! {
+        s3: {
+            hackescher_markt_bellevue => Upstream, [0.5, 1.5, 0.8, 1.9, 0.6, 2.1, 0.5];
+            bellevue_hackescher_markt => Downstream, [0.5, 2.1, 0.7, 1.9, 0.8, 1.5, 0.5];
+        },
+        u6: {
+            naturkundemuseum_franzoesische_str => Upstream, [0, 1.5, 0, 1, 0, 1.5, 0];
+            franzoesische_str_naturkundemuseum => Downstream, [0, 1.5, 0, 1.5, 0, 1, 0];
+        },
         tram_m5: {
             zingster_str_perower_platz => Upstream, [0, 1, 0, 1, 0, 2, 0];
         },

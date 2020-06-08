@@ -3,7 +3,7 @@ mod dataset;
 mod direction;
 pub mod line;
 mod node;
-mod station;
+pub mod station;
 mod train;
 
 pub use crate::color::Color;
