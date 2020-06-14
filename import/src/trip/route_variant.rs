@@ -6,6 +6,7 @@ use ordered_float::NotNan;
 use super::{Node, Route, Trip};
 use crate::location::Location;
 use crate::shape::Shape;
+use itertools::Itertools;
 use simulation::Direction;
 
 struct StopCandidate {
@@ -45,10 +46,10 @@ impl StopCandidate {
             let (at, lower) = candidates
                 .iter()
                 .enumerate()
-                .map(|(i, candidate)| (i + 1, candidate.pos))
-                .rfind(|&(at, pos)| {
+                .map(|(i, candidate)| (i + 1, candidate.pos + 1))
+                .rfind(|&(at, lower)| {
                     let following = candidates.len() - at;
-                    pos + following < candidate_nearest.pos
+                    lower + following < candidate_nearest.pos
                 })
                 .unwrap_or((0, 0));
             let locations_brought_forward = candidates[at..]
@@ -79,6 +80,11 @@ impl StopCandidate {
                 candidates.push(candidate_behind);
             }
         }
+
+        debug_assert!(candidates
+            .iter()
+            .tuple_windows()
+            .all(|(a, b)| a.pos < b.pos));
         candidates
     }
 
