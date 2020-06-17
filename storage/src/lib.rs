@@ -18,18 +18,3 @@ pub mod fixtures {
     pub use crate::station::fixtures as stations;
     pub use crate::train::fixtures as trains;
 }
-
-#[cfg(test)]
-#[macro_export]
-macro_rules! map {
-    () => (
-        std::collections::HashMap::new()
-    );
-    ($($key:expr => $value:expr),* $(,)?) => ({
-        let mut map = std::collections::HashMap::new();
-        $(
-            map.insert($key.into(), $value);
-        )*
-        map
-    });
-}

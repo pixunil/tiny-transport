@@ -73,8 +73,8 @@ impl ServiceExceptionRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::map;
     use crate::service::fixtures::*;
+    use test_utils::map;
 
     fn working_day_service_record() -> ServiceRecord {
         ServiceRecord {

@@ -79,7 +79,7 @@ impl Into<Location> for LocationRecord {
 mod tests {
     use super::*;
     use crate::location::fixtures::locations;
-    use crate::map;
+    use test_utils::map;
 
     fn main_station_record() -> LocationRecord {
         LocationRecord {

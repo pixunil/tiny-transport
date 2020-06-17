@@ -5,4 +5,5 @@ members = [
     "import",
     "wasm",
     "bin",
+    "test",
 ]

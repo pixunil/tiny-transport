@@ -22,7 +22,7 @@ impl AgencyRecord {
 mod tests {
     use super::*;
     use crate::agency::fixtures::*;
-    use crate::map;
+    use test_utils::map;
 
     fn agency_record() -> AgencyRecord {
         AgencyRecord {

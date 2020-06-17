@@ -64,8 +64,8 @@ impl StopRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::map;
     use crate::trip::fixtures::*;
+    use test_utils::map;
 
     fn u4_trip_record() -> TripRecord {
         TripRecord {

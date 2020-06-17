@@ -71,7 +71,7 @@ pub(super) mod fixtures {
 mod tests {
     use super::*;
     use crate::line::fixtures::*;
-    use crate::map;
+    use test_utils::map;
 
     fn colors() -> HashMap<String, Color> {
         map! {

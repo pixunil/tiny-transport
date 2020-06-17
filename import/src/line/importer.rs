@@ -78,8 +78,9 @@ impl Importer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::line::fixtures::*;
-    use crate::{dataset, map};
+    use crate::dataset;
+    use crate::line::fixtures::lines;
+    use test_utils::map;
 
     #[test]
     fn test_deduplication() {

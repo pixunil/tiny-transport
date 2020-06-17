@@ -29,7 +29,7 @@ impl Importer {
 mod tests {
     use super::*;
     use crate::agency::fixtures::*;
-    use crate::map;
+    use test_utils::map;
 
     #[test]
     fn test_from_csv() {

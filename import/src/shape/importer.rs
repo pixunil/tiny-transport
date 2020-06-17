@@ -114,7 +114,8 @@ mod tests {
 
     use super::*;
     use crate::coord::project;
-    use crate::{dataset, map, shape};
+    use crate::{dataset, shape};
+    use test_utils::map;
 
     #[test]
     fn test_remove_overlapping() {

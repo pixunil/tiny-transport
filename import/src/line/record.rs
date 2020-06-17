@@ -59,7 +59,7 @@ impl LineColorRecord {
 mod tests {
     use super::*;
     use crate::line::fixtures::*;
-    use crate::map;
+    use test_utils::map;
 
     fn u4_line_record() -> LineRecord {
         LineRecord {

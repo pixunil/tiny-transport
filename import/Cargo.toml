@@ -32,3 +32,5 @@ storage = { package = "gtfs-sim-storage", path = "../storage", features = ["fixt
 
 [dev-dependencies]
 serde_test = "1"
+
+test_utils = { package = "gtfs-sim-test", path = "../test" }

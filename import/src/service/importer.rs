@@ -55,8 +55,9 @@ mod tests {
     use chrono::NaiveDate;
 
     use super::*;
+    use crate::dataset;
     use crate::service::fixtures::*;
-    use crate::{dataset, map};
+    use test_utils::map;
 
     #[test]
     fn test_from_csv() {

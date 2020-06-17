@@ -1,0 +1,8 @@
+[package]
+name = "gtfs-sim-test"
+version = "0.1.0"
+authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
+edition = "2018"
+description = "Provides test utilities"
+repository = "https://github.com/pixunil/gtfs-sim"
+license = "MIT"

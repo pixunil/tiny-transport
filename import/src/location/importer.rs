@@ -34,8 +34,9 @@ impl Importer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dataset;
     use crate::location::location::fixtures as locations;
-    use crate::{dataset, map};
+    use test_utils::map;
 
     #[test]
     fn test_station_with_parent() {

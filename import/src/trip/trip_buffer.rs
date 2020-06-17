@@ -142,8 +142,8 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::map;
     use crate::trip::fixtures::*;
+    use test_utils::map;
 
     #[test]
     fn test_add_stop() {

@@ -13,7 +13,7 @@ pub(crate) mod fixtures {
                 pub(crate) mod $line {
                     use std::collections::HashMap;
 
-                    use crate::map;
+                    use test_utils::map;
                     use crate::coord::project;
                     use crate::shape::{Shape, ShapeId};
 

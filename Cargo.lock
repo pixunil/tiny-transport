@@ -257,6 +257,7 @@ dependencies = [
  "geomorph 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gtfs-sim-simulation 0.1.0",
  "gtfs-sim-storage 0.1.0",
+ "gtfs-sim-test 0.1.0",
  "indicatif 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -283,11 +284,16 @@ name = "gtfs-sim-storage"
 version = "0.1.0"
 dependencies = [
  "gtfs-sim-simulation 0.1.0",
+ "gtfs-sim-test 0.1.0",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "nalgebra 0.18.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "gtfs-sim-test"
+version = "0.1.0"
 
 [[package]]
 name = "gtfs-sim-wasm"
