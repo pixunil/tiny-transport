@@ -66,10 +66,11 @@ pub mod fixtures {
 
     use super::*;
     use crate::fixtures::{nodes, trains};
+    use test_utils::time;
 
     macro_rules! lines {
-        (trains $line:ident, $route:ident, [$( $hour:expr, $minute:expr );* $(;)?]) => {
-            $( trains::$line::$route($hour, $minute) ),*
+        (@trains $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {
+            $( trains::$line::$route(time!($($time),*)) ),*
         };
         ($($line:ident: $name:literal, $kind:ident, $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt);* $(;)?) => {
             $(
@@ -80,8 +81,8 @@ pub mod fixtures {
                         kind: Kind::$kind,
                         nodes: nodes::$line(station_ids),
                         trains: vec![
-                            lines!(trains $line, $upstream, $upstream_times),
-                            lines!(trains $line, $downstream, $downstream_times),
+                            lines!(@trains $line, $upstream, $upstream_times),
+                            lines!(@trains $line, $downstream, $downstream_times),
                         ],
                     }
                 }
@@ -91,14 +92,14 @@ pub mod fixtures {
 
     lines! {
         s3:                 "S3",           SuburbanRailway,
-            hackescher_markt_bellevue, [7, 24.9],
-            bellevue_hackescher_markt, [7, 12.4];
+            hackescher_markt_bellevue, [7:24:54],
+            bellevue_hackescher_markt, [7:12:24];
         u6:                 "U6",           UrbanRailway,
-            naturkundemuseum_franzoesische_str, [5, 56.0],
-            franzoesische_str_naturkundemuseum, [5, 30.0];
+            naturkundemuseum_franzoesische_str, [5:56:00],
+            franzoesische_str_naturkundemuseum, [5:30:00];
         tram_12:            "12",           Tram,
-            oranienburger_tor_am_kupfergraben, [9, 2.0],
-            am_kupfergraben_oranienburger_tor, [8, 34.0];
+            oranienburger_tor_am_kupfergraben, [9:02:00],
+            am_kupfergraben_oranienburger_tor, [8:34:00];
     }
 }
 

@@ -8,7 +8,7 @@ repository = "https://github.com/pixunil/gtfs-sim"
 license = "MIT"
 
 [features]
-fixtures = []
+fixtures = ["test_utils"]
 
 [dependencies]
 itertools = "0.8"
@@ -17,6 +17,4 @@ serde_derive = "1"
 na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 
 simulation = { package = "gtfs-sim-simulation", path = "../simulation", features = ["fixtures"] }
-
-[dev-dependencies]
-test_utils = { package = "gtfs-sim-test", path = "../test" }
+test_utils = { package = "gtfs-sim-test", path = "../test", optional = true }

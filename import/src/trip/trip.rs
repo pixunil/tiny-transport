@@ -46,23 +46,24 @@ impl Trip {
 #[cfg(test)]
 pub(super) mod fixtures {
     macro_rules! trips {
-        ($($line:ident: {$($trip:ident => $direction:ident, $service:ident, [$($time:expr),*]);* $(;)?}),* $(,)?) => (
+        ($(
+            $line:ident: {
+                $( $trip:ident => $direction:ident, $service:ident, $times:tt );* $(;)?
+            }
+        ),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
                     use simulation::Direction;
                     use crate::trip::fixtures::*;
                     use crate::trip::trip::*;
+                    use test_utils::times;
 
                     $(
-                        pub(in crate::trip) fn $trip(hour: i64, minute: f64) -> Trip {
-                            let start = hour * 3600 + (minute * 60.0) as i64;
+                        pub(in crate::trip) fn $trip(start: i64) -> Trip {
                             Trip {
                                 direction: Direction::$direction,
                                 service: Rc::new(services::$service()),
-                                durations: vec![
-                                    Duration::seconds(start),
-                                    $( Duration::seconds(($time as f64 * 60.0) as i64) ),*
-                                ],
+                                durations: times!(Duration; start, $times),
                             }
                         }
                     )*
@@ -73,8 +74,10 @@ pub(super) mod fixtures {
 
     trips! {
         tram_12: {
-            oranienburger_tor_am_kupfergraben => Upstream, mon_fri, [0, 2, 0, 2, 0, 1, 0];
-            am_kupfergraben_oranienburger_tor => Downstream, mon_fri, [0, 1, 0, 3, 0, 2, 0];
+            oranienburger_tor_am_kupfergraben => Upstream, mon_fri,
+            [0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00];
+            am_kupfergraben_oranienburger_tor => Downstream, mon_fri,
+            [0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00];
         },
     }
 }
@@ -82,11 +85,12 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::*;
+    use crate::trip::fixtures::trips;
+    use test_utils::time;
 
     #[test]
     fn test_available_at() {
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         let date = NaiveDate::from_ymd(2019, 1, 7);
         assert!(trip.available_at(date));
     }
@@ -94,8 +98,8 @@ mod tests {
     #[test]
     fn test_store() {
         assert_eq!(
-            trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0).store(),
-            storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0)
+            trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00)).store(),
+            storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00))
         );
     }
 }

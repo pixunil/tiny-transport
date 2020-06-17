@@ -93,11 +93,12 @@ pub(super) mod fixtures {
 mod tests {
     use super::*;
     use crate::trip::fixtures::*;
+    use test_utils::time;
 
     #[test]
     fn test_create_first_upstream_variant() {
         let mut buffer = RouteBuffer::new();
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         buffer.add_trip(
             stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
             &shapes::tram_12::oranienburger_tor_am_kupfergraben(),
@@ -109,7 +110,7 @@ mod tests {
     #[test]
     fn test_create_first_downstream_variant() {
         let mut buffer = RouteBuffer::new();
-        let trip = trips::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
+        let trip = trips::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
         buffer.add_trip(
             stop_locations::tram_12::am_kupfergraben_oranienburger_tor(),
             &shapes::tram_12::am_kupfergraben_oranienburger_tor(),
@@ -121,7 +122,7 @@ mod tests {
     #[test]
     fn test_append_to_upstream_variant() {
         let mut buffer = route_buffers::tram_12::with_1_upstream();
-        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(9, 12.0);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:12:00));
         buffer.add_trip(
             stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
             &shapes::tram_12::oranienburger_tor_am_kupfergraben(),

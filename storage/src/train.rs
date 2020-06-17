@@ -103,21 +103,18 @@ impl Train {
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
     macro_rules! trips {
-        ($($line:ident: {$($trip:ident => $direction:ident, [$($time:expr),*]);* $(;)?}),* $(,)?) => (
+        ($($line:ident: {$($trip:ident => $direction:ident, $times:tt);* $(;)?}),* $(,)?) => (
             $(
                 pub mod $line {
                     use simulation::Direction;
                     use crate::train::*;
+                    use test_utils::times;
 
                     $(
-                        pub fn $trip(hour: u32, minute: f64) -> Train {
-                            let start = hour * 3600 + (minute * 60.0) as u32;
+                        pub fn $trip(start: u32) -> Train {
                             Train {
                                 direction: Direction::$direction,
-                                durations: vec![
-                                    start,
-                                    $( ($time as f64 * 60.0) as u32 ),*
-                                ],
+                                durations: times![start, $times],
                             }
                         }
                     )*
@@ -128,22 +125,30 @@ pub mod fixtures {
 
     trips! {
         s3: {
-            hackescher_markt_bellevue => Upstream, [0.5, 1.5, 0.8, 1.9, 0.6, 2.1, 0.5];
-            bellevue_hackescher_markt => Downstream, [0.5, 2.1, 0.7, 1.9, 0.8, 1.5, 0.5];
+            hackescher_markt_bellevue => Upstream,
+            [0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30];
+            bellevue_hackescher_markt => Downstream,
+            [0:30, 2:06, 0:42, 1:54, 0:48, 1:30, 0:30];
         },
         u6: {
-            naturkundemuseum_franzoesische_str => Upstream, [0, 1.5, 0, 1, 0, 1.5, 0];
-            franzoesische_str_naturkundemuseum => Downstream, [0, 1.5, 0, 1.5, 0, 1, 0];
+            naturkundemuseum_franzoesische_str => Upstream,
+            [0:00, 1:30, 0:00, 1:00, 0:00, 1:30, 0:00];
+            franzoesische_str_naturkundemuseum => Downstream,
+            [0:00, 1:30, 0:00, 1:30, 0:00, 1:00, 0:00];
         },
         tram_m5: {
-            zingster_str_perower_platz => Upstream, [0, 1, 0, 1, 0, 2, 0];
+            zingster_str_perower_platz => Upstream,
+            [0:00, 1:00, 0:00, 1:00, 0:00, 2:00, 0:00];
         },
         tram_12: {
-            oranienburger_tor_am_kupfergraben => Upstream, [0, 2, 0, 2, 0, 1, 0];
-            am_kupfergraben_oranienburger_tor => Downstream, [0, 1, 0, 3, 0, 2, 0];
+            oranienburger_tor_am_kupfergraben => Upstream,
+            [0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00];
+            am_kupfergraben_oranienburger_tor => Downstream,
+            [0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00];
         },
         bus_m82: {
-            weskammstr_waldsassener_str => Upstream, [0, 0.5, 0, 0.5, 0, 1, 0];
+            weskammstr_waldsassener_str => Upstream,
+            [0:00, 0:30, 0:00, 0:30, 0:00, 1:00, 0:00];
         },
     }
 }
@@ -153,50 +158,55 @@ mod tests {
     use super::*;
     use crate::fixtures::*;
     use simulation::fixtures::nodes;
+    use test_utils::{time, times};
 
     #[test]
     fn test_time_interpolation_upstream() {
-        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
-        let durations = train.interpolate_times(nodes::tram_12());
+        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         assert_eq!(
-            durations,
-            vec![32520, 0, 24, 72, 24, 0, 35, 21, 21, 21, 21, 0, 60, 0]
+            train.interpolate_times(nodes::tram_12()),
+            times![9:02:00, 0:00, 0:24, 1:12, 0:24, 0:00, 0:35, 0:21, 0:21, 0:21,
+                0:21, 0:00, 1:00, 0:00]
         );
     }
 
     #[test]
     fn test_time_interpolation_downstream() {
-        let train = trains::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
-        let duration = train.interpolate_times(nodes::tram_12());
+        let train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
         assert_eq!(
-            duration,
-            vec![30840, 0, 15, 18, 9, 18, 0, 48, 24, 39, 24, 46, 0, 24, 24, 48, 24, 0]
+            train.interpolate_times(nodes::tram_12()),
+            times![8:34:00, 0:00, 0:15, 0:18, 0:09, 0:18, 0:00, 0:48, 0:24, 0:39,
+                0:24, 0:46, 0:00, 0:24, 0:24, 0:48, 0:24, 0:00]
         );
     }
 
     #[test]
     fn test_clamp_before_dispatch() {
-        let train = trains::tram_m5::zingster_str_perower_platz(8, 13.0);
-        let duration = train.interpolate_times(nodes::tram_m5());
-        assert_eq!(duration, vec![29580, 0, 0, 60, 0, 60, 0, 48, 72, 0]);
+        let train = trains::tram_m5::zingster_str_perower_platz(time!(8:13:00));
+        assert_eq!(
+            train.interpolate_times(nodes::tram_m5()),
+            times![8:13:00, 0:00, 0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00]
+        );
     }
 
     #[test]
     fn test_clamp_after_terminus() {
-        let train = trains::bus_m82::weskammstr_waldsassener_str(9, 46.0);
-        let duration = train.interpolate_times(nodes::bus_m82());
+        let train = trains::bus_m82::weskammstr_waldsassener_str(time!(9:46:00));
         assert_eq!(
-            duration,
-            vec![35160, 0, 0, 15, 15, 0, 7, 7, 8, 7, 0, 0, 0, 0]
+            train.interpolate_times(nodes::bus_m82()),
+            times![9:46:00, 0:00, 0:00, 0:15, 0:15, 0:00, 0:07, 0:07, 0:08, 0:07,
+                0:00, 0:00, 0:00, 0:00]
         );
     }
 
     #[test]
     fn test_load() {
-        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(8, 13.0);
+        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(8:13:00));
         assert_eq!(
             train.load(Kind::Tram, &nodes::tram_12()),
-            simulation::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(8, 13.0)
+            simulation::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(
+                time!(8:13:00)
+            )
         );
     }
 }

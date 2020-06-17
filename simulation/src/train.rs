@@ -131,19 +131,24 @@ impl Train {
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
     macro_rules! trains {
-        ($($train:ident : $kind:ident, { $( $route:ident => $direction:ident, [$($time:literal),* $(,)?]);* $(;)? } ),* $(,)?) => (
+        ($(
+            $train:ident : $kind:ident, {
+                $(
+                    $route:ident => $direction:ident, $times:tt
+                );* $(;)?
+            }
+        ),* $(,)?) => (
             $(
                 pub mod $train {
                     use crate::train::*;
+                    use test_utils::times;
+
                     $(
-                        pub fn $route(hour: u32, minute: f64) -> Train {
+                        pub fn $route(start: u32) -> Train {
                             Train::new(
                                 Kind::$kind,
                                 Direction::$direction,
-                                vec![
-                                    hour * 3600 + (minute * 60.0) as u32,
-                                    $($time),*
-                                ],
+                                times!(start, $times),
                             )
                         }
                     )*
@@ -154,24 +159,31 @@ pub mod fixtures {
 
     trains! {
         s3: SuburbanRailway, {
-            hackescher_markt_bellevue => Upstream, [30, 90, 48, 114, 36, 126, 0];
-            bellevue_hackescher_markt => Downstream, [30, 126, 42, 114, 48, 90, 0];
+            hackescher_markt_bellevue => Upstream,
+            [0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:00];
+            bellevue_hackescher_markt => Downstream,
+            [0:30, 2:06, 0:42, 1:54, 0:48, 1:30, 0:00];
         },
         u6: UrbanRailway, {
-            naturkundemuseum_franzoesische_str => Upstream, [0, 90, 0, 60, 0, 90, 0];
-            franzoesische_str_naturkundemuseum => Downstream, [0, 90, 0, 90, 0, 60, 0];
+            naturkundemuseum_franzoesische_str => Upstream,
+            [0:00, 1:30, 0:00, 1:00, 0:00, 1:30, 0:00];
+            franzoesische_str_naturkundemuseum => Downstream,
+            [0:00, 1:30, 0:00, 1:30, 0:00, 1:00, 0:00];
         },
         tram_m5: Tram, {
-            zingster_str_perower_platz => Upstream, [0, 0, 60, 0, 60, 0, 48, 72, 0];
+            zingster_str_perower_platz => Upstream,
+            [0:00, 0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00];
         },
         tram_12: Tram, {
-            oranienburger_tor_am_kupfergraben =>
-                Upstream, [0, 24, 72, 24, 0, 35, 21, 21, 21, 21, 0, 60, 0];
-            am_kupfergraben_oranienburger_tor =>
-                Downstream, [0, 15, 18, 9, 18, 0, 48, 24, 39, 24, 46, 0, 24, 24, 48, 24, 0];
+            oranienburger_tor_am_kupfergraben => Upstream,
+            [0:00, 0:24, 1:12, 0:24, 0:00, 0:35, 0:21, 0:21, 0:21, 0:21, 0:00, 1:00, 0:00];
+            am_kupfergraben_oranienburger_tor => Downstream,
+            [0:00, 0:15, 0:18, 0:09, 0:18, 0:00, 0:48, 0:24, 0:39, 0:24, 0:46, 0:00, 0:24,
+                0:24, 0:48, 0:24, 0:00];
         },
         bus_m82: Bus, {
-            weskammstr_waldsassener_str => Upstream, [0, 0, 15, 15, 0, 7, 7, 8, 7, 0, 0, 0, 0];
+            weskammstr_waldsassener_str => Upstream,
+            [0:00, 0:00, 0:15, 0:15, 0:00, 0:07, 0:07, 0:08, 0:07, 0:00, 0:00, 0:00, 0:00];
         },
     }
 }
@@ -182,10 +194,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::*;
-
-    fn time(hour: u32, minute: f64) -> u32 {
-        return hour * 3600 + (minute * 60.0) as u32;
-    }
+    use test_utils::time;
 
     fn segment_vector(nodes: &[Node], from: usize, to: usize) -> Vector2<f32> {
         (nodes[to].position() - nodes[from].position()).normalize()
@@ -193,7 +202,7 @@ mod tests {
 
     #[test]
     fn test_before_dispatch() {
-        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         train.update(0, &nodes::tram_12());
         assert_eq!(train.state, TrainState::WaitingForDispatch);
         assert!(!train.is_active());
@@ -201,9 +210,9 @@ mod tests {
 
     #[test]
     fn test_stopped() {
-        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         train.durations[1] = 30;
-        train.update(time(9, 2.5), &nodes::tram_12());
+        train.update(time!(9:02:30), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Stopped { at: 0 });
         assert!(train.is_active());
 
@@ -214,8 +223,8 @@ mod tests {
 
     #[test]
     fn test_driving() {
-        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
-        train.update(time(9, 3.0), &nodes::tram_12());
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
+        train.update(time!(9:3:00), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Driving { from: 1, to: 3 });
         assert!(train.is_active());
 
@@ -226,40 +235,40 @@ mod tests {
 
     #[test]
     fn test_upstream_ignores_downstream_only() {
-        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
-        train.update(time(9, 6.5), &nodes::tram_12());
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
+        train.update(time!(9:06:30), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Driving { from: 9, to: 16 });
     }
 
     #[test]
     fn test_downstream_ignores_upstream_only() {
-        let mut train = trains::tram_12::am_kupfergraben_oranienburger_tor(8, 34.0);
-        train.update(time(8, 36.5), &nodes::tram_12());
+        let mut train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
+        train.update(time!(8:36:30), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Driving { from: 10, to: 7 });
     }
 
     #[test]
     fn test_finished() {
-        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(9, 2.0);
-        train.update(time(9, 7.0), &nodes::tram_12());
+        let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
+        train.update(time!(9:07:00), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Finished);
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_nodes_before_start() {
-        let mut train = trains::tram_m5::zingster_str_perower_platz(8, 13.0);
+        let mut train = trains::tram_m5::zingster_str_perower_platz(time!(8:13:00));
         train.durations[1] = 30;
-        train.update(time(8, 13.5), &nodes::tram_m5());
+        train.update(time!(8:13:30), &nodes::tram_m5());
         assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
         assert!(train.is_active());
     }
 
     #[test]
     fn test_nodes_after_terminus() {
-        let mut train = trains::bus_m82::weskammstr_waldsassener_str(9, 46.0);
+        let mut train = trains::bus_m82::weskammstr_waldsassener_str(time!(9:46:00));
         train.durations[13] = 30;
-        train.update(time(9, 47.0), &nodes::bus_m82());
+        train.update(time!(9:47:00), &nodes::bus_m82());
         assert_eq!(train.state, TrainState::Driving { from: 10, to: 11 });
         assert!(train.is_active());
     }

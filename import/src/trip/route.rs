@@ -44,23 +44,24 @@ impl Route {
 #[cfg(test)]
 pub(crate) mod fixtures {
     macro_rules! routes {
-        (trips $line:ident, $route:ident, [$($hour:expr, $minute:expr);* $(;)?]) => {
-            $( trips::$line::$route($hour, $minute) ),*
+        (@trips $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {
+            $( trips::$line::$route(time!($($time),*)) ),*
         };
         ($( $line:ident : { $( $route:ident: $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt );* $(;)? } ),* $(,)?) => {
             $(
                 pub(crate) mod $line {
-                    use crate::trip::fixtures::*;
+                    use crate::trip::fixtures::{nodes, trips};
                     use crate::trip::Route;
                     use simulation::Directions;
+                    use test_utils::time;
 
                     $(
                         pub(crate) fn $route() -> Route {
                             Route {
                                 nodes: nodes::$line(Directions::Both),
                                 trips: vec![
-                                    routes!(trips $line, $upstream, $upstream_times),
-                                    routes!(trips $line, $downstream, $downstream_times),
+                                    routes!(@trips $line, $upstream, $upstream_times),
+                                    routes!(@trips $line, $downstream, $downstream_times),
                                 ],
                             }
                         }
@@ -73,8 +74,8 @@ pub(crate) mod fixtures {
     routes! {
         tram_12: {
             oranienburger_tor_am_kupfergraben:
-                oranienburger_tor_am_kupfergraben, [9, 2.0],
-                am_kupfergraben_oranienburger_tor, [8, 34.0];
+                oranienburger_tor_am_kupfergraben, [9:02:00],
+                am_kupfergraben_oranienburger_tor, [8:34:00];
         },
     }
 }

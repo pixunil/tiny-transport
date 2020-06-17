@@ -11,3 +11,59 @@ macro_rules! map {
         map
     });
 }
+
+#[macro_export]
+macro_rules! time {
+    ($(:)? $minute:literal : $second:literal) => {
+        time!(0, $minute, $second)
+    };
+    ($(:)? $hour:literal : $minute:literal : $second:literal) => {
+        time!($hour, $minute, $second)
+    };
+    ($minute:literal, $second:literal) => {
+        time!(0, $minute, $second)
+    };
+    ($hour:literal, $minute:literal, $second:literal) => {
+        $hour * 3600 + $minute * 60 + $second
+    };
+}
+
+#[macro_export]
+macro_rules! times {
+    (Duration; $( $( $(:)? $time:literal )* ),*) => {{
+        use $crate::time;
+        vec![
+            $( Duration::seconds(time!($($time),*)) ),*
+        ]
+    }};
+    (Duration; +$start:expr, []) => {{
+        let _start = $start;
+        Vec::new()
+    }};
+    (Duration; +$start:expr, [ $( $( $(:)? $time:literal )* ),* ]) => {{
+        use $crate::time;
+        vec![
+            $( Duration::seconds($start + time!($($time),*)) ),*
+        ]
+    }};
+    (Duration; $start:expr, [ $( $( $(:)? $time:literal )* ),* ]) => {{
+        use $crate::time;
+        vec![
+            Duration::seconds($start),
+            $( Duration::seconds(time!($($time),*)) ),*
+        ]
+    }};
+    ($( $( $(:)? $time:literal )* ),*) => {{
+        use $crate::time;
+        vec![
+            $( time!($($time),*) ),*
+        ]
+    }};
+    ($start:expr, [ $( $( $(:)? $time:literal )* ),* ]) => {{
+        use $crate::time;
+        vec![
+            $start,
+            $( time!($($time),*) ),*
+        ]
+    }};
+}

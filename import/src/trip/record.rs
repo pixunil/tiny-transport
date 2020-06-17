@@ -65,7 +65,7 @@ impl StopRecord {
 mod tests {
     use super::*;
     use crate::trip::fixtures::*;
-    use test_utils::map;
+    use test_utils::{map, time};
 
     fn u4_trip_record() -> TripRecord {
         TripRecord {
@@ -88,7 +88,7 @@ mod tests {
         assert_eq!(
             buffers,
             map! {
-                "u4_0" => trip_buffers::u4::empty(0, 0.0),
+                "u4_0" => trip_buffers::u4::empty(time!(0:00)),
             }
         );
     }
@@ -109,8 +109,8 @@ mod tests {
         assert_eq!(
             buffers,
             map! {
-                "u4_0" => trip_buffers::u4::empty(0, 0.0),
-                "u4_duplicate_0" => trip_buffers::u4::empty(0, 0.0),
+                "u4_0" => trip_buffers::u4::empty(time!(0:00)),
+                "u4_duplicate_0" => trip_buffers::u4::empty(time!(0:00)),
             }
         );
     }
@@ -121,37 +121,37 @@ mod tests {
             StopRecord {
                 trip_id: "u4_0".into(),
                 stop_id: "nollendorfplatz".into(),
-                arrival_time: Duration::seconds(16560),
-                departure_time: Duration::seconds(16560),
+                arrival_time: Duration::seconds(time!(4:36:00)),
+                departure_time: Duration::seconds(time!(4:36:00)),
             },
             StopRecord {
                 trip_id: "u4_0".into(),
                 stop_id: "viktoria_luise_platz".into(),
-                arrival_time: Duration::seconds(16680),
-                departure_time: Duration::seconds(16680),
+                arrival_time: Duration::seconds(time!(4:38:00)),
+                departure_time: Duration::seconds(time!(4:38:00)),
             },
             StopRecord {
                 trip_id: "u4_0".into(),
                 stop_id: "bayerischer_platz".into(),
-                arrival_time: Duration::seconds(16770),
-                departure_time: Duration::seconds(16770),
+                arrival_time: Duration::seconds(time!(4:39:30)),
+                departure_time: Duration::seconds(time!(4:39:30)),
             },
             StopRecord {
                 trip_id: "u4_0".into(),
                 stop_id: "rathaus_schoeneberg".into(),
-                arrival_time: Duration::seconds(16860),
-                departure_time: Duration::seconds(16860),
+                arrival_time: Duration::seconds(time!(4:41:00)),
+                departure_time: Duration::seconds(time!(4:41:00)),
             },
             StopRecord {
                 trip_id: "u4_0".into(),
                 stop_id: "innsbrucker_platz".into(),
-                arrival_time: Duration::seconds(16920),
-                departure_time: Duration::seconds(16920),
+                arrival_time: Duration::seconds(time!(4:42:00)),
+                departure_time: Duration::seconds(time!(4:42:00)),
             },
         ];
 
         let mut buffers = map! {
-            "u4_0" => trip_buffers::u4::empty(0, 0.0),
+            "u4_0" => trip_buffers::u4::empty(time!(0:00)),
         };
 
         for record in records {
@@ -161,7 +161,7 @@ mod tests {
         assert_eq!(
             buffers,
             map! {
-                "u4_0" => trip_buffers::u4::nollendorfplatz_innsbrucker_platz(4, 36.0),
+                "u4_0" => trip_buffers::u4::nollendorfplatz_innsbrucker_platz(time!(4:36:00)),
             }
         );
     }
