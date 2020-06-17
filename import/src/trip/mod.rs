@@ -4,6 +4,7 @@ mod record;
 mod route;
 mod route_buffer;
 mod route_variant;
+mod scheduler;
 mod trip;
 mod trip_buffer;
 
@@ -14,6 +15,7 @@ use node::Node;
 use record::{StopRecord, TripRecord};
 use route_buffer::RouteBuffer;
 use route_variant::RouteVariant;
+use scheduler::Scheduler;
 use trip::Trip;
 use trip_buffer::{TripBuffer, TripId};
 

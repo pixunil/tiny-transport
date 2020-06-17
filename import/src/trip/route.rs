@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use super::{Node, Trip};
+use super::{Node, Scheduler, Trip};
 use crate::location::Linearizer;
 
 #[derive(Debug, PartialEq)]
@@ -33,10 +33,11 @@ impl Route {
     }
 
     pub(crate) fn store_trains(&self, date: NaiveDate) -> Vec<storage::Train> {
+        let scheduler = Scheduler::new(&self.nodes);
         self.trips
             .iter()
             .filter(|trip| trip.available_at(date))
-            .map(Trip::store)
+            .map(|trip| trip.store(&scheduler))
             .collect()
     }
 }

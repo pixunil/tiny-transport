@@ -1,11 +1,12 @@
 use std::fmt;
 use std::rc::Rc;
 
+use itertools::Itertools;
 use ordered_float::NotNan;
 
 use crate::coord::{debug_position, transform, Point};
 use crate::location::{Linearizer, Location};
-use simulation::Directions;
+use simulation::{Direction, Directions};
 
 #[derive(PartialEq)]
 pub struct Node {
@@ -41,6 +42,20 @@ impl Node {
 
     pub fn in_directions(&self) -> Directions {
         self.in_directions
+    }
+
+    pub(super) fn segment_weights(nodes: &[Self], direction: Direction) -> Vec<f64> {
+        let mut weights = nodes
+            .iter()
+            .filter(|node| node.in_directions.allows(direction))
+            .filter(|node| node.location().is_some())
+            .tuple_windows()
+            .map(|(before, after)| na::distance(&before.position, &after.position))
+            .collect::<Vec<_>>();
+        if direction == Direction::Downstream {
+            weights.reverse();
+        }
+        weights
     }
 
     pub(super) fn make_stop(&mut self, location: Rc<Location>) {
@@ -148,6 +163,11 @@ pub(super) mod fixtures {
             52.475, 13.366, Both,           suedkreuz;
             52.501, 13.283, Both,           westkreuz;
             52.549, 13.388, Both,           gesundbrunnen;
+        s3:
+            52.523, 13.402, Both,           hackescher_markt;
+            52.521, 13.386, Both,           friedrichstr;
+            52.525, 13.369, Both,           hauptbahnhof;
+            52.520, 13.347, Both,           bellevue;
         tram_12:
             52.525, 13.388, Both,           oranienburger_tor;
             52.524, 13.388, Both;
@@ -204,7 +224,7 @@ pub(super) mod fixtures {
             52.526, 13.369, DownstreamOnly, hauptbahnhof;
             52.527, 13.369, Both;
         bus_114:
-            52.422, 13.178, UpstreamOnly;
+            52.422, 13.178, UpstreamOnly, wannsee;
             52.421, 13.178, UpstreamOnly, wannsee;
             52.421, 13.177, UpstreamOnly;
             52.421, 13.176, UpstreamOnly;
@@ -262,7 +282,7 @@ pub(super) mod fixtures {
             52.421, 13.176, UpstreamOnly;
             52.421, 13.177, UpstreamOnly;
             52.421, 13.178, UpstreamOnly, wannsee;
-            52.422, 13.179, UpstreamOnly;
+            52.422, 13.179, UpstreamOnly, wannsee;
             52.422, 13.180, UpstreamOnly;
             52.422, 13.179, UpstreamOnly;
             52.422, 13.178, UpstreamOnly;

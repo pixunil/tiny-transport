@@ -169,6 +169,7 @@ pub(crate) fn inspect(
 
     let line = imported
         .agencies()
+        .filter(|agency| agency.name() == "Berliner Verkehrsbetriebe")
         .flat_map(|agency| agency.lines())
         .find(|line| line.name() == line_name)
         .ok_or_else(|| format!("No line with name {} found.", line_name))?;

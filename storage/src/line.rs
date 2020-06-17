@@ -95,11 +95,11 @@ pub mod fixtures {
             hackescher_markt_bellevue, [7:24:54],
             bellevue_hackescher_markt, [7:12:24];
         u6:                 "U6",           UrbanRailway,
-            naturkundemuseum_franzoesische_str, [5:56:00],
-            franzoesische_str_naturkundemuseum, [5:30:00];
+            naturkundemuseum_franzoesische_str, [5:55:40],
+            franzoesische_str_naturkundemuseum, [5:29:40];
         tram_12:            "12",           Tram,
-            oranienburger_tor_am_kupfergraben, [9:02:00],
-            am_kupfergraben_oranienburger_tor, [8:34:00];
+            oranienburger_tor_am_kupfergraben, [9:01:40],
+            am_kupfergraben_oranienburger_tor, [8:33:40];
     }
 }
 

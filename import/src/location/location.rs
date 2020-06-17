@@ -77,6 +77,7 @@ pub(crate) mod fixtures {
         hauptbahnhof:                        52.526, 13.369, "Hauptbahnhof";
         friedrichstr:                        52.520, 13.387, "Friedrichstr.";
         hackescher_markt:                    52.523, 13.402, "Hackescher Markt";
+        bellevue:                            52.520, 13.347, "Bellevue";
         gesundbrunnen:                       52.549, 13.388, "Gesundbrunnen";
         ostkreuz:                            52.503, 13.469, "Ostkreuz";
         suedkreuz:                           52.475, 13.366, "Südkreuz";

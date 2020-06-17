@@ -160,9 +160,9 @@ pub mod fixtures {
     trains! {
         s3: SuburbanRailway, {
             hackescher_markt_bellevue => Upstream,
-            [0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:00];
+            [0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30];
             bellevue_hackescher_markt => Downstream,
-            [0:30, 2:06, 0:42, 1:54, 0:48, 1:30, 0:00];
+            [0:30, 2:06, 0:42, 1:54, 0:48, 1:30, 0:30];
         },
         u6: UrbanRailway, {
             naturkundemuseum_franzoesische_str => Upstream,
@@ -172,14 +172,14 @@ pub mod fixtures {
         },
         tram_m5: Tram, {
             zingster_str_perower_platz => Upstream,
-            [0:00, 0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00];
+            [0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00];
         },
         tram_12: Tram, {
             oranienburger_tor_am_kupfergraben => Upstream,
-            [0:00, 0:24, 1:12, 0:24, 0:00, 0:35, 0:21, 0:21, 0:21, 0:21, 0:00, 1:00, 0:00];
+            [0:20, 0:27, 1:21, 0:27, 0:20, 0:19, 0:11, 0:12, 0:12, 0:12, 0:20, 1:00, 0:20];
             am_kupfergraben_oranienburger_tor => Downstream,
-            [0:00, 0:15, 0:18, 0:09, 0:18, 0:00, 0:48, 0:24, 0:39, 0:24, 0:46, 0:00, 0:24,
-                0:24, 0:48, 0:24, 0:00];
+            [0:20, 0:19, 0:22, 0:12, 0:22, 0:20, 0:25, 0:12, 0:20, 0:12, 0:24, 0:20, 0:30,
+                0:31, 1:01, 0:30, 0:20];
         },
         bus_m82: Bus, {
             weskammstr_waldsassener_str => Upstream,
@@ -224,33 +224,33 @@ mod tests {
     #[test]
     fn test_driving() {
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(time!(9:3:00), &nodes::tram_12());
-        assert_eq!(train.state, TrainState::Driving { from: 1, to: 3 });
+        train.update(time!(9:02:47), &nodes::tram_12());
+        assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
         assert!(train.is_active());
 
         let (position, orientation) = train.calculate_rectangle(&nodes::tram_12());
-        assert_relative_eq!(position, Point2::new(-104.5, -1393.0));
-        assert_relative_eq!(orientation, segment_vector(&nodes::tram_12(), 1, 3));
+        assert_relative_eq!(position, Point2::new(-101.0, -1560.0));
+        assert_relative_eq!(orientation, segment_vector(&nodes::tram_12(), 0, 1));
     }
 
     #[test]
     fn test_upstream_ignores_downstream_only() {
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(time!(9:06:30), &nodes::tram_12());
+        train.update(time!(9:06:22), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Driving { from: 9, to: 16 });
     }
 
     #[test]
     fn test_downstream_ignores_upstream_only() {
         let mut train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
-        train.update(time!(8:36:30), &nodes::tram_12());
+        train.update(time!(8:36:45), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Driving { from: 10, to: 7 });
     }
 
     #[test]
     fn test_finished() {
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(time!(9:07:00), &nodes::tram_12());
+        train.update(time!(9:08:00), &nodes::tram_12());
         assert_eq!(train.state, TrainState::Finished);
         assert!(!train.is_active());
     }

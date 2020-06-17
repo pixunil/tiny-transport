@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use chrono::{Duration, NaiveDate};
 
+use super::Scheduler;
 use crate::service::Service;
 use simulation::Direction;
 
@@ -29,12 +30,8 @@ impl Trip {
         self.direction
     }
 
-    pub(super) fn store(&self) -> storage::Train {
-        let durations = self
-            .durations
-            .iter()
-            .map(|duration| duration.num_seconds() as u32)
-            .collect();
+    pub(super) fn store(&self, scheduler: &Scheduler) -> storage::Train {
+        let durations = scheduler.process(self.direction, &self.durations);
         storage::Train::new(self.direction, durations)
     }
 
@@ -85,7 +82,8 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::trips;
+    use crate::trip::fixtures::{nodes, trips};
+    use simulation::Directions;
     use test_utils::time;
 
     #[test]
@@ -97,9 +95,10 @@ mod tests {
 
     #[test]
     fn test_store() {
+        let scheduler = Scheduler::new(&nodes::tram_12(Directions::UpstreamOnly));
         assert_eq!(
-            trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00)).store(),
-            storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00))
+            trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00)).store(&scheduler),
+            storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:01:40))
         );
     }
 }

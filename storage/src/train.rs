@@ -39,6 +39,7 @@ impl Train {
         for (i, (start, end)) in stop_positions.tuple_windows().enumerate() {
             self.fill_driving(2 * i + 1, start, end, &nodes, &mut durations);
         }
+        durations.push(*self.durations.last().unwrap());
 
         self.fill_after_terminus(&nodes, &mut durations);
         durations
@@ -94,8 +95,7 @@ impl Train {
             .iter()
             .rev()
             .position(|node| self.is_node_allowed(node))
-            .unwrap()
-            + 1;
+            .unwrap();
         durations.extend(iter::repeat(0).take(count));
     }
 }
@@ -142,9 +142,9 @@ pub mod fixtures {
         },
         tram_12: {
             oranienburger_tor_am_kupfergraben => Upstream,
-            [0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00];
+            [0:20, 2:15, 0:20, 1:05, 0:20, 1:00, 0:20];
             am_kupfergraben_oranienburger_tor => Downstream,
-            [0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00];
+            [0:20, 1:15, 0:20, 1:33, 0:20, 2:32, 0:20];
         },
         bus_m82: {
             weskammstr_waldsassener_str => Upstream,
@@ -162,21 +162,21 @@ mod tests {
 
     #[test]
     fn test_time_interpolation_upstream() {
-        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
+        let train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:01:40));
         assert_eq!(
             train.interpolate_times(nodes::tram_12()),
-            times![9:02:00, 0:00, 0:24, 1:12, 0:24, 0:00, 0:35, 0:21, 0:21, 0:21,
-                0:21, 0:00, 1:00, 0:00]
+            times![9:01:40, 0:20, 0:27, 1:21, 0:27, 0:20, 0:19, 0:11, 0:12, 0:12,
+                0:12, 0:20, 1:00, 0:20]
         );
     }
 
     #[test]
     fn test_time_interpolation_downstream() {
-        let train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
+        let train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:33:40));
         assert_eq!(
             train.interpolate_times(nodes::tram_12()),
-            times![8:34:00, 0:00, 0:15, 0:18, 0:09, 0:18, 0:00, 0:48, 0:24, 0:39,
-                0:24, 0:46, 0:00, 0:24, 0:24, 0:48, 0:24, 0:00]
+            times![8:33:40, 0:20, 0:19, 0:22, 0:12, 0:22, 0:20, 0:25, 0:12, 0:20,
+                0:12, 0:24, 0:20, 0:30, 0:31, 1:01, 0:30, 0:20]
         );
     }
 
