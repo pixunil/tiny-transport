@@ -81,4 +81,27 @@ mod tests {
             dataset
         });
     }
+
+    #[test]
+    fn test_dataset_directory() -> Result<(), Box<<PathBuf as Dataset>::Error>> {
+        let mut path = PathBuf::from("tests/data/sample/.txt");
+        let mut table = path.open_csv("sample.txt")?;
+        assert_eq!(table.size, 20);
+        let mut content = String::new();
+        table.reader.read_to_string(&mut content)?;
+        assert_eq!(content, "sample dataset file\n");
+        Ok(())
+    }
+
+    #[test]
+    fn test_open_dataset_archive() -> Result<(), Box<dyn Error>> {
+        let path = PathBuf::from("tests/data/sample.bzip");
+        let mut archive = ZipArchive::new(File::open(&path)?)?;
+        let mut table = archive.open_csv("sample.txt")?;
+        assert_eq!(table.size, 20);
+        let mut content = String::new();
+        table.reader.read_to_string(&mut content)?;
+        assert_eq!(content, "sample dataset file\n");
+        Ok(())
+    }
 }
