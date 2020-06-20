@@ -95,7 +95,8 @@ mod tests {
 
     #[test]
     fn test_store() {
-        let scheduler = Scheduler::new(&nodes::tram_12(Directions::UpstreamOnly));
+        let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::UpstreamOnly);
+        let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00)).store(&scheduler),
             storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:01:40))

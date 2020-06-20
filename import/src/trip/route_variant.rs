@@ -224,15 +224,18 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shape;
     use crate::trip::fixtures::*;
     use simulation::Directions;
 
     macro_rules! test_nodes {
         ($line:ident :: $route:ident, $direction:ident) => {{
+            test_nodes!($line::$route, $line::$route, $direction)
+        }};
+        ($line:ident :: $route:ident, $line_nodes:ident :: $nodes:ident, $direction:ident) => {{
             let variant =
                 RouteVariant::new(stop_locations::$line::$route(), shapes::$line::$route());
-            let mut expected_nodes = nodes::$line(Directions::from(Direction::$direction));
+            let directions = Directions::from(Direction::$direction);
+            let mut expected_nodes = nodes::$line_nodes::$nodes(directions);
             if Direction::$direction == Direction::Downstream {
                 expected_nodes.reverse();
             }
@@ -241,10 +244,10 @@ mod tests {
         }};
         ($line:ident :: { $upstream:ident, $downstream:ident }) => {{
             let upstream = test_nodes!($line::$upstream, Upstream);
-            let downstream = test_nodes!($line::$downstream, Downstream);
+            let downstream = test_nodes!($line::$downstream, $line::$upstream, Downstream);
             assert_eq!(
                 upstream.merge_nodes(&downstream),
-                nodes::$line(Directions::Both)
+                nodes::$line::$upstream(Directions::Both)
             );
         }};
     }
@@ -256,20 +259,7 @@ mod tests {
 
     #[test]
     fn test_nodes_circle() {
-        let shape =
-            shape!(52.549, 13.388; 52.503, 13.469; 52.475, 13.366; 52.501, 13.283; 52.549, 13.388);
-        let locations = vec![
-            Rc::new(locations::gesundbrunnen()),
-            Rc::new(locations::ostkreuz()),
-            Rc::new(locations::suedkreuz()),
-            Rc::new(locations::westkreuz()),
-            Rc::new(locations::gesundbrunnen()),
-        ];
-        let variant = RouteVariant::new(locations, shape);
-        assert_eq!(
-            variant.nodes(Direction::Upstream),
-            nodes::circle(Directions::UpstreamOnly)
-        );
+        test_nodes!(s41::circle, Upstream);
     }
 
     #[test]

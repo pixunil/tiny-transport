@@ -29,6 +29,11 @@ macro_rules! stop_locations {
 }
 
 stop_locations! {
+    s41: {
+        circle => [
+            gesundbrunnen, ostkreuz, suedkreuz, westkreuz, gesundbrunnen,
+        ],
+    },
     u4: {
         empty => [],
         nollendorfplatz_innsbrucker_platz => [

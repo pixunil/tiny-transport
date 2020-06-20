@@ -59,7 +59,7 @@ pub(crate) mod fixtures {
                     $(
                         pub(crate) fn $route() -> Route {
                             Route {
-                                nodes: nodes::$line(Directions::Both),
+                                nodes: nodes::$line::$route(Directions::Both),
                                 trips: vec![
                                     routes!(@trips $line, $upstream, $upstream_times),
                                     routes!(@trips $line, $downstream, $downstream_times),

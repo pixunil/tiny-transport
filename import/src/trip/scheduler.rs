@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn test_sufficient_stop_times() {
         let durations = times!(Duration; 7:24:54, 0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30);
-        let nodes = nodes::s3(Directions::Both);
+        let nodes = nodes::s3::hackescher_markt_bellevue(Directions::Both);
         let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             scheduler.process(Direction::Upstream, &durations),
@@ -164,7 +164,7 @@ mod tests {
     #[test]
     fn test_no_stop_times_upstream() {
         let durations = times![Duration; 9:02:00, 0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00];
-        let nodes = nodes::tram_12(Directions::Both);
+        let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both);
         let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             scheduler.process(Direction::Upstream, &durations),
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_no_stop_times_downstream() {
         let durations = times![Duration; 8:34:00, 0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00];
-        let nodes = nodes::tram_12(Directions::Both);
+        let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both);
         let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             scheduler.process(Direction::Downstream, &durations),
