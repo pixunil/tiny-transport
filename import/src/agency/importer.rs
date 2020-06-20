@@ -28,7 +28,7 @@ impl Importer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agency::fixtures::*;
+    use crate::fixtures::{agencies, lines};
     use test_utils::map;
 
     #[test]

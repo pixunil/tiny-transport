@@ -58,12 +58,12 @@ impl RouteBuffer {
 }
 
 #[cfg(test)]
-pub(super) mod fixtures {
+pub(crate) mod fixtures {
     macro_rules! route_buffers {
         ($($line:ident: {$($route:ident => [$($upstream:ident),* $(,)?], [$($downstream:ident),* $(,)?]),* $(,)?}),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
-                    use crate::trip::fixtures::*;
+                    use crate::fixtures::route_variants;
                     use crate::trip::route_buffer::*;
 
                     $(
@@ -92,7 +92,7 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::*;
+    use crate::fixtures::{route_buffers, shapes, stop_locations, trips};
     use test_utils::time;
 
     #[test]

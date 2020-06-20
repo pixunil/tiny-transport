@@ -5,9 +5,8 @@ mod record;
 
 #[cfg(test)]
 pub(crate) mod fixtures {
-    pub(super) use super::incomplete_line::fixtures as incomplete_lines;
+    pub(crate) use super::incomplete_line::fixtures as incomplete_lines;
     pub(crate) use super::line::fixtures as lines;
-    pub(crate) use crate::trip::fixtures::*;
 }
 
 use incomplete_line::IncompleteLine;

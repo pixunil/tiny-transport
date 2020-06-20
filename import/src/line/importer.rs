@@ -79,7 +79,7 @@ impl Importer {
 mod tests {
     use super::*;
     use crate::dataset;
-    use crate::line::fixtures::lines;
+    use crate::fixtures::lines;
     use test_utils::map;
 
     #[test]

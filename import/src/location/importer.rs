@@ -35,7 +35,7 @@ impl Importer {
 mod tests {
     use super::*;
     use crate::dataset;
-    use crate::location::location::fixtures as locations;
+    use crate::fixtures::locations;
     use test_utils::map;
 
     #[test]

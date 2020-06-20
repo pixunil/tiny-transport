@@ -182,7 +182,7 @@ impl RouteVariant {
 }
 
 #[cfg(test)]
-pub(super) mod fixtures {
+pub(crate) mod fixtures {
     macro_rules! route_variants {
         ($(
             $line:ident: {
@@ -194,7 +194,7 @@ pub(super) mod fixtures {
         ),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
-                    use crate::trip::fixtures::*;
+                    use crate::fixtures::{shapes, stop_locations, trips};
                     use crate::trip::route_variant::*;
                     use test_utils::time;
 
@@ -224,7 +224,7 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::*;
+    use crate::fixtures::{nodes, shapes, stop_locations};
     use simulation::Directions;
 
     macro_rules! test_nodes {

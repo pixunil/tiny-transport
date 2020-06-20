@@ -19,6 +19,9 @@ mod shape;
 mod trip;
 mod utils;
 
+#[cfg(test)]
+mod fixtures;
+
 use crate::agency::Agency;
 use crate::line::Line;
 use crate::location::Linearizer;

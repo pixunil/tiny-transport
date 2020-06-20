@@ -84,7 +84,7 @@ pub(crate) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::line::fixtures::*;
+    use crate::fixtures::{lines, routes};
 
     #[test]
     fn test_getters() {

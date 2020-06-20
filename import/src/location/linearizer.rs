@@ -50,7 +50,7 @@ mod tests {
     use itertools::assert_equal;
 
     use super::*;
-    use crate::location::fixtures::locations;
+    use crate::fixtures::locations;
 
     #[test]
     fn test_retrieve() {

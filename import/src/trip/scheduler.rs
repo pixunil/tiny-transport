@@ -133,7 +133,7 @@ impl Scheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::nodes;
+    use crate::fixtures::nodes;
     use simulation::Directions;
 
     macro_rules! times {

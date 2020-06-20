@@ -41,7 +41,7 @@ impl Trip {
 }
 
 #[cfg(test)]
-pub(super) mod fixtures {
+pub(crate) mod fixtures {
     macro_rules! trips {
         ($(
             $line:ident: {
@@ -51,7 +51,7 @@ pub(super) mod fixtures {
             $(
                 pub(in crate::trip) mod $line {
                     use simulation::Direction;
-                    use crate::trip::fixtures::*;
+                    use crate::fixtures::services;
                     use crate::trip::trip::*;
                     use test_utils::times;
 
@@ -82,7 +82,7 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::{nodes, trips};
+    use crate::fixtures::{nodes, trips};
     use simulation::Directions;
     use test_utils::time;
 

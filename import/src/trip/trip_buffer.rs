@@ -89,7 +89,7 @@ impl TripBuffer {
 }
 
 #[cfg(test)]
-pub(super) mod fixtures {
+pub(crate) mod fixtures {
     macro_rules! trip_buffers {
         ($(
             $line:ident: $line_id:expr, {
@@ -102,7 +102,7 @@ pub(super) mod fixtures {
             $(
                 pub(in crate::trip) mod $line {
                     use simulation::Direction;
-                    use crate::trip::fixtures::*;
+                    use crate::fixtures::{services, stop_locations};
                     use crate::trip::trip_buffer::*;
                     use test_utils::times;
 
@@ -144,7 +144,7 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::trip::fixtures::*;
+    use crate::fixtures::{locations, route_buffers, shapes, trip_buffers};
     use test_utils::{map, time, times};
 
     #[test]

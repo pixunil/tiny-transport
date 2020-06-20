@@ -37,7 +37,7 @@ pub(crate) mod fixtures {
 
 #[cfg(test)]
 mod tests {
-    use crate::agency::fixtures::*;
+    use crate::fixtures::{agencies, lines};
 
     #[test]
     fn test_getters() {

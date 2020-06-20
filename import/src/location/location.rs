@@ -112,7 +112,7 @@ pub(crate) mod fixtures {
 #[cfg(test)]
 mod tests {
     use crate::coord::project;
-    use crate::location::fixtures::*;
+    use crate::fixtures::locations;
 
     #[test]
     fn test_getters() {

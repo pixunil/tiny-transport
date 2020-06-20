@@ -56,7 +56,7 @@ mod tests {
 
     use super::*;
     use crate::dataset;
-    use crate::service::fixtures::*;
+    use crate::fixtures::services;
     use test_utils::map;
 
     #[test]

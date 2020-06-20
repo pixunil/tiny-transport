@@ -48,7 +48,7 @@ impl IncompleteLine {
 }
 
 #[cfg(test)]
-pub(super) mod fixtures {
+pub(crate) mod fixtures {
     use super::*;
 
     macro_rules! incomplete_lines {
@@ -70,7 +70,7 @@ pub(super) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::line::fixtures::*;
+    use crate::fixtures::incomplete_lines;
     use test_utils::map;
 
     fn colors() -> HashMap<String, Color> {

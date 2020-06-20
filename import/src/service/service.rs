@@ -78,7 +78,7 @@ pub(crate) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::service::fixtures::*;
+    use crate::fixtures::services;
 
     #[test]
     fn test_regularly_available() {

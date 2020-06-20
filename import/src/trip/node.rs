@@ -113,7 +113,7 @@ pub(crate) enum Kind {
 }
 
 #[cfg(test)]
-pub(super) mod fixtures {
+pub(crate) mod fixtures {
     macro_rules! nodes {
         (@kind $location:ident) => ( Kind::Stop { location: Rc::new(locations::$location()) });
         (@kind) => ( Kind::Waypoint );
@@ -147,7 +147,7 @@ pub(super) mod fixtures {
             $(
                 pub(in crate::trip) mod $line {
                     use crate::coord::project;
-                    use crate::location::fixtures::locations;
+                    use crate::fixtures::locations;
                     use crate::trip::node::*;
 
                     $(
@@ -324,7 +324,7 @@ mod tests {
 
     use super::*;
     use crate::coord::project;
-    use crate::trip::fixtures::*;
+    use crate::fixtures::{locations, nodes};
 
     #[test]
     fn test_getters() {

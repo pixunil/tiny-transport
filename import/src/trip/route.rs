@@ -51,7 +51,7 @@ pub(crate) mod fixtures {
         ($( $line:ident : { $( $route:ident: $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt );* $(;)? } ),* $(,)?) => {
             $(
                 pub(crate) mod $line {
-                    use crate::trip::fixtures::{nodes, trips};
+                    use crate::fixtures::{nodes, trips};
                     use crate::trip::Route;
                     use simulation::Directions;
                     use test_utils::time;

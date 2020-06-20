@@ -1,13 +1,11 @@
-pub(crate) use crate::location::fixtures::*;
-pub(crate) use crate::service::fixtures::*;
-pub(crate) use crate::shape::fixtures::*;
-
-pub(super) use super::node::fixtures as nodes;
-pub(crate) use super::route::fixtures as routes;
-pub(super) use super::route_buffer::fixtures as route_buffers;
-pub(super) use super::route_variant::fixtures as route_variants;
-pub(super) use super::trip::fixtures as trips;
-pub(super) use super::trip_buffer::fixtures as trip_buffers;
+pub(crate) use crate::agency::fixtures::agencies;
+pub(crate) use crate::line::fixtures::{incomplete_lines, lines};
+pub(crate) use crate::location::fixtures::locations;
+pub(crate) use crate::service::fixtures::services;
+pub(crate) use crate::shape::fixtures::shapes;
+pub(crate) use crate::trip::fixtures::{
+    nodes, route_buffers, route_variants, routes, trip_buffers, trips,
+};
 
 macro_rules! stop_locations {
     ($($line:ident: {$($route:ident => [$($location:ident),* $(,)?]),* $(,)?}),* $(,)?) => (
@@ -15,7 +13,8 @@ macro_rules! stop_locations {
             $(
                 pub(crate) mod $line {
                     use std::rc::Rc;
-                    use crate::location::{Location, fixtures::*};
+                    use crate::fixtures::locations;
+                    use crate::location::Location;
 
                     $(
                         pub(crate) fn $route() -> Vec<Rc<Location>> {
