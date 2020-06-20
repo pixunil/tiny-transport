@@ -121,8 +121,33 @@ impl RouteVariant {
         self.locations == locations && &self.shape == shape
     }
 
-    pub(super) fn order(&self) -> impl Ord {
-        self.trips.len()
+    pub(super) fn difference(&self, downstream: &Self) -> impl Ord {
+        let mut sub_results = iter::repeat_with(|| {
+            iter::repeat(0)
+                .take(downstream.locations.len())
+                .collect::<Vec<_>>()
+        })
+        .take(self.locations.len() + 1)
+        .collect::<Vec<_>>();
+
+        for (a, location_a) in self.locations.iter().enumerate() {
+            for (b, location_b) in downstream.locations.iter().rev().enumerate() {
+                if a == 0 || b == 0 {
+                    sub_results[a][b] = a.max(b);
+                    continue;
+                }
+
+                let mut option_match_or_replace = sub_results[a - 1][b - 1];
+                if location_a != location_b {
+                    option_match_or_replace += 1;
+                }
+                let option_add = sub_results[a - 1][b] + 1;
+                let option_remove = sub_results[a][b - 1] + 1;
+                sub_results[a][b] = option_match_or_replace.min(option_add).min(option_remove);
+            }
+        }
+
+        sub_results[self.locations.len() - 1][downstream.locations.len() - 1]
     }
 
     pub(super) fn add_trip(&mut self, trip: Trip) {
@@ -184,26 +209,30 @@ impl RouteVariant {
 #[cfg(test)]
 pub(crate) mod fixtures {
     macro_rules! route_variants {
+        (@trips $line:ident, $route:ident, []) => { vec![] };
+        (@trips $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {{
+            use crate::fixtures::trips;
+            use test_utils::time;
+            vec![ $( trips::$line::$route(time!($($time),*)) ),* ]
+        }};
         ($(
             $line:ident: {
                 $(
-                    $variant:ident: $route:ident,
-                    [ $( $( $(:)? $time:literal )* ),* $(,)?]
+                    $name:ident: $route:ident, $times:tt
                 ),* $(,)?
             }
         ),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
-                    use crate::fixtures::{shapes, stop_locations, trips};
+                    use crate::fixtures::{shapes, stop_locations};
                     use crate::trip::route_variant::*;
-                    use test_utils::time;
 
                     $(
-                        pub(in crate::trip) fn $variant() -> RouteVariant {
+                        pub(in crate::trip) fn $name() -> RouteVariant {
                             RouteVariant {
                                 locations: stop_locations::$line::$route(),
                                 shape: shapes::$line::$route(),
-                                trips: vec![$( trips::$line::$route(time!($($time),*)) ),*],
+                                trips: route_variants!(@trips $line, $route, $times),
                             }
                         }
                     )*
@@ -213,6 +242,16 @@ pub(crate) mod fixtures {
     }
 
     route_variants! {
+        tram_m10: {
+            clara_jaschke_str_warschauer_str:
+                clara_jaschke_str_warschauer_str, [],
+            warschauer_str_lueneburger_str:
+                warschauer_str_lueneburger_str, [],
+            clara_jaschke_str_landsberger_allee_petersburger_str:
+                clara_jaschke_str_landsberger_allee_petersburger_str, [],
+            landsberger_allee_petersburger_str_lueneburger_str:
+                landsberger_allee_petersburger_str_lueneburger_str, [],
+        },
         tram_12: {
             upstream_1_trip: oranienburger_tor_am_kupfergraben, [9:02:00],
             downstream_1_trip: am_kupfergraben_oranienburger_tor, [8:34:00],

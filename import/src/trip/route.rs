@@ -45,25 +45,26 @@ impl Route {
 #[cfg(test)]
 pub(crate) mod fixtures {
     macro_rules! routes {
-        (@trips $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {
-            $( trips::$line::$route(time!($($time),*)) ),*
-        };
+        (@trips $line:ident, $route:ident, []) => { vec![] };
+        (@trips $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {{
+            use crate::fixtures::trips;
+            use test_utils::time;
+            vec![ $( trips::$line::$route(time!($($time),*)) ),* ]
+        }};
         ($( $line:ident : { $( $route:ident: $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt );* $(;)? } ),* $(,)?) => {
             $(
                 pub(crate) mod $line {
-                    use crate::fixtures::{nodes, trips};
+                    use crate::fixtures::nodes;
                     use crate::trip::Route;
                     use simulation::Directions;
-                    use test_utils::time;
 
                     $(
                         pub(crate) fn $route() -> Route {
+                            let mut trips = routes!(@trips $line, $upstream, $upstream_times);
+                            trips.append(&mut routes!(@trips $line, $downstream, $downstream_times));
                             Route {
                                 nodes: nodes::$line::$route(Directions::Both),
-                                trips: vec![
-                                    routes!(@trips $line, $upstream, $upstream_times),
-                                    routes!(@trips $line, $downstream, $downstream_times),
-                                ],
+                                trips,
                             }
                         }
                     )*
@@ -73,6 +74,14 @@ pub(crate) mod fixtures {
     }
 
     routes! {
+        tram_m10: {
+            clara_jaschke_str_warschauer_str:
+                clara_jaschke_str_warschauer_str, [],
+                warschauer_str_lueneburger_str, [];
+            clara_jaschke_str_landsberger_allee_petersburger_str:
+                clara_jaschke_str_landsberger_allee_petersburger_str, [],
+                landsberger_allee_petersburger_str_lueneburger_str, [];
+        },
         tram_12: {
             oranienburger_tor_am_kupfergraben:
                 oranienburger_tor_am_kupfergraben, [9:02:00],

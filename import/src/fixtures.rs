@@ -39,9 +39,40 @@ stop_locations! {
             nollendorfplatz, viktoria_luise_platz, bayerischer_platz,
             rathaus_schoeneberg, innsbrucker_platz,
         ],
-        innsbrucker_platz_nollendorfplatz => [
-            innsbrucker_platz, rathaus_schoeneberg, bayerischer_platz,
-            viktoria_luise_platz, nollendorfplatz,
+    },
+    tram_m10: {
+        clara_jaschke_str_warschauer_str => [
+            clara_jaschke_str, hauptbahnhof, invalidenpark, naturkundemuseum, nordbahnhof,
+            gedenkstaette_berliner_mauer, bernauer_str, wolliner_str,
+            friedrich_ludwig_jahn_sportpark, eberswalder_str, husemannstr,
+            prenzlauer_allee_danziger_str, winsstr, greifswalder_str_danziger_str,
+            arnswalder_platz, kniprodestr_danziger_str, paul_heyse_str,
+            landsberger_allee_petersburger_str, strassmannstr, bersarinplatz, frankfurter_tor,
+            gruenberger_str_warschauer_str, warschauer_str, warschauer_str,
+        ],
+        warschauer_str_lueneburger_str => [
+            warschauer_str, warschauer_str, revaler_str, gruenberger_str_warschauer_str,
+            frankfurter_tor, bersarinplatz, strassmannstr, landsberger_allee_petersburger_str,
+            paul_heyse_str, kniprodestr_danziger_str, arnswalder_platz,
+            greifswalder_str_danziger_str, winsstr, prenzlauer_allee_danziger_str, husemannstr,
+            eberswalder_str, friedrich_ludwig_jahn_sportpark, wolliner_str, bernauer_str,
+            gedenkstaette_berliner_mauer, nordbahnhof, naturkundemuseum, invalidenpark,
+            hauptbahnhof, lesser_ury_weg, lueneburger_str,
+        ],
+        clara_jaschke_str_landsberger_allee_petersburger_str => [
+            clara_jaschke_str, hauptbahnhof, invalidenpark, naturkundemuseum, nordbahnhof,
+            gedenkstaette_berliner_mauer, bernauer_str, wolliner_str,
+            friedrich_ludwig_jahn_sportpark, eberswalder_str, husemannstr,
+            prenzlauer_allee_danziger_str, winsstr, greifswalder_str_danziger_str,
+            arnswalder_platz, kniprodestr_danziger_str, paul_heyse_str,
+            landsberger_allee_petersburger_str,
+        ],
+        landsberger_allee_petersburger_str_lueneburger_str => [
+            landsberger_allee_petersburger_str, paul_heyse_str, kniprodestr_danziger_str,
+            arnswalder_platz, greifswalder_str_danziger_str, winsstr, prenzlauer_allee_danziger_str,
+            husemannstr, eberswalder_str, friedrich_ludwig_jahn_sportpark, wolliner_str,
+            bernauer_str, gedenkstaette_berliner_mauer, nordbahnhof, naturkundemuseum,
+            invalidenpark, hauptbahnhof, lesser_ury_weg, lueneburger_str,
         ],
     },
     tram_12: {

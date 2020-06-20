@@ -3,7 +3,7 @@ use std::error::Error;
 use std::iter;
 use std::rc::Rc;
 
-use super::{Route, StopRecord, TripBuffer, TripId, TripRecord};
+use super::{Route, RouteBuffer, StopRecord, TripBuffer, TripId, TripRecord};
 use crate::line::LineId;
 use crate::location::{Location, LocationId};
 use crate::service::{Service, ServiceId};
@@ -65,25 +65,20 @@ impl<'a> Importer<'a> {
     }
 
     fn combine_into_routes(&self, buffers: HashMap<TripId, TripBuffer>) -> Vec<Vec<Route>> {
-        let mut action = Action::start("Sorting trips after terminus");
-        let mut route_buffers = iter::repeat_with(HashMap::new)
+        let mut action = Action::start("Assigning trips to their lines");
+        let mut route_buffers = iter::repeat_with(RouteBuffer::new)
             .take(self.num_lines)
             .collect();
 
         for (_, buffer) in action.wrap_iter(buffers) {
-            buffer.create_and_place_trip_by_terminus(&self.shapes, &mut route_buffers);
+            buffer.create_and_place_trip(&self.shapes, &mut route_buffers);
         }
-        action.complete("Sorted trips after terminus");
+        action.complete("Assigned trips to their lines");
 
         let mut action = Action::start("Merging trips into routes");
         let routes = action
             .wrap_iter(route_buffers)
-            .map(|route_buffers| {
-                route_buffers
-                    .into_iter()
-                    .flat_map(|(_, buffer)| buffer.into_routes())
-                    .collect()
-            })
+            .map(|route_buffer| route_buffer.into_routes())
             .collect();
         action.complete("Merged trips into routes");
         routes

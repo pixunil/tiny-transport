@@ -1,7 +1,5 @@
 use std::rc::Rc;
 
-use itertools::{EitherOrBoth::*, Itertools};
-
 use super::{Route, RouteVariant, Trip};
 use crate::location::Location;
 use crate::shape::Shape;
@@ -42,18 +40,52 @@ impl RouteBuffer {
         }
     }
 
-    pub(super) fn into_routes(mut self) -> impl Iterator<Item = Route> {
-        self.upstream.sort_by_key(RouteVariant::order);
-        self.downstream.sort_by_key(RouteVariant::order);
-
-        self.upstream
-            .into_iter()
-            .zip_longest(self.downstream)
-            .map(|variants| match variants {
-                Both(upstream, downstream) => upstream.merge(downstream),
-                Left(upstream) => upstream.single(Direction::Upstream),
-                Right(downstream) => downstream.single(Direction::Downstream),
+    pub(super) fn into_routes(mut self) -> Vec<Route> {
+        let mut differences = self
+            .upstream
+            .iter()
+            .map(|upstream| {
+                self.downstream
+                    .iter()
+                    .map(|downstream| upstream.difference(downstream))
+                    .collect::<Vec<_>>()
             })
+            .collect::<Vec<_>>();
+
+        fn find_pair(differences: &Vec<Vec<impl Ord>>) -> Option<(usize, usize)> {
+            differences
+                .iter()
+                .enumerate()
+                .flat_map(|(a, sub_differences)| {
+                    sub_differences
+                        .iter()
+                        .enumerate()
+                        .map(move |(b, difference)| (a, b, difference))
+                })
+                .min_by_key(|(_, _, difference)| *difference)
+                .map(|(a, b, _)| (a, b))
+        }
+
+        let mut routes = Vec::new();
+        while let Some((a, b)) = find_pair(&differences) {
+            routes.push(self.upstream.remove(a).merge(self.downstream.remove(b)));
+            differences.remove(a);
+            for sub_differences in &mut differences {
+                sub_differences.remove(b);
+            }
+        }
+
+        routes.extend(
+            self.upstream
+                .into_iter()
+                .map(|variant| variant.single(Direction::Upstream)),
+        );
+        routes.extend(
+            self.downstream
+                .into_iter()
+                .map(|variant| variant.single(Direction::Downstream)),
+        );
+        routes
     }
 }
 
@@ -85,14 +117,14 @@ pub(crate) mod fixtures {
             with_1_downstream => [], [downstream_1_trip],
             with_1_upstream_1_downstream => [upstream_1_trip], [downstream_1_trip],
             with_2_upstream => [upstream_2_trips], [],
-         },
+        },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures::{route_buffers, shapes, stop_locations, trips};
+    use crate::fixtures::{route_buffers, route_variants, routes, shapes, stop_locations, trips};
     use test_utils::time;
 
     #[test]
@@ -129,5 +161,35 @@ mod tests {
             trip,
         );
         assert_eq!(buffer, route_buffers::tram_12::with_2_upstream());
+    }
+
+    #[test]
+    fn test_into_routes_same_terminus() {
+        let buffer = route_buffers::tram_12::with_1_upstream_1_downstream();
+        assert_eq!(
+            buffer.into_routes(),
+            vec![routes::tram_12::oranienburger_tor_am_kupfergraben()]
+        );
+    }
+
+    #[test]
+    fn test_into_routes_different_terminus() {
+        let buffer = RouteBuffer {
+            upstream: vec![
+                route_variants::tram_m10::clara_jaschke_str_warschauer_str(),
+                route_variants::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(),
+            ],
+            downstream: vec![
+                route_variants::tram_m10::landsberger_allee_petersburger_str_lueneburger_str(),
+                route_variants::tram_m10::warschauer_str_lueneburger_str(),
+            ],
+        };
+        assert_eq!(
+            buffer.into_routes(),
+            vec![
+                routes::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(),
+                routes::tram_m10::clara_jaschke_str_warschauer_str(),
+            ]
+        );
     }
 }

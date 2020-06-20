@@ -188,6 +188,59 @@ pub(crate) mod fixtures {
                 52.520, 13.347, Both,           bellevue;
             ],
         },
+        tram_m10: {
+            clara_jaschke_str_warschauer_str: [
+                52.525, 13.366, UpstreamOnly,   clara_jaschke_str;
+                52.523, 13.362, DownstreamOnly, lueneburger_str;
+                52.524, 13.363, DownstreamOnly, lesser_ury_weg;
+                52.526, 13.370, Both,           hauptbahnhof;
+                52.529, 13.377, Both,           invalidenpark;
+                52.530, 13.382, Both,           naturkundemuseum;
+                52.532, 13.388, Both,           nordbahnhof;
+                52.536, 13.390, Both,           gedenkstaette_berliner_mauer;
+                52.538, 13.396, Both,           bernauer_str;
+                52.540, 13.401, Both,           wolliner_str;
+                52.541, 13.406, Both,           friedrich_ludwig_jahn_sportpark;
+                52.541, 13.412, Both,           eberswalder_str;
+                52.540, 13.420, Both,           husemannstr;
+                52.539, 13.424, Both,           prenzlauer_allee_danziger_str;
+                52.538, 13.428, Both,           winsstr;
+                52.536, 13.434, Both,           greifswalder_str_danziger_str;
+                52.534, 13.437, Both,           arnswalder_platz;
+                52.532, 13.441, Both,           kniprodestr_danziger_str;
+                52.528, 13.445, Both,           paul_heyse_str;
+                52.527, 13.447, Both,           landsberger_allee_petersburger_str;
+                52.522, 13.450, Both,           strassmannstr;
+                52.519, 13.453, Both,           bersarinplatz;
+                52.516, 13.454, Both,           frankfurter_tor;
+                52.512, 13.452, Both,           gruenberger_str_warschauer_str;
+                52.509, 13.451, DownstreamOnly, revaler_str;
+                52.508, 13.450, Both,           warschauer_str;
+                52.505, 13.448, Both,           warschauer_str;
+            ],
+            clara_jaschke_str_landsberger_allee_petersburger_str: [
+                52.525, 13.366, UpstreamOnly,   clara_jaschke_str;
+                52.523, 13.362, DownstreamOnly, lueneburger_str;
+                52.524, 13.363, DownstreamOnly, lesser_ury_weg;
+                52.526, 13.370, Both,           hauptbahnhof;
+                52.529, 13.377, Both,           invalidenpark;
+                52.530, 13.382, Both,           naturkundemuseum;
+                52.532, 13.388, Both,           nordbahnhof;
+                52.536, 13.390, Both,           gedenkstaette_berliner_mauer;
+                52.538, 13.396, Both,           bernauer_str;
+                52.540, 13.401, Both,           wolliner_str;
+                52.541, 13.406, Both,           friedrich_ludwig_jahn_sportpark;
+                52.541, 13.412, Both,           eberswalder_str;
+                52.540, 13.420, Both,           husemannstr;
+                52.539, 13.424, Both,           prenzlauer_allee_danziger_str;
+                52.538, 13.428, Both,           winsstr;
+                52.536, 13.434, Both,           greifswalder_str_danziger_str;
+                52.534, 13.437, Both,           arnswalder_platz;
+                52.532, 13.441, Both,           kniprodestr_danziger_str;
+                52.528, 13.445, Both,           paul_heyse_str;
+                52.527, 13.447, Both,           landsberger_allee_petersburger_str;
+            ],
+        },
         tram_12: {
             oranienburger_tor_am_kupfergraben: [
                 52.525, 13.388, Both,           oranienburger_tor;
