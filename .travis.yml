@@ -9,28 +9,25 @@ git:
 
 os: linux
 
-rust:
-  - stable
-  - beta
-  - nightly
-
-before_script:
-  - rustup component add rustfmt
-
 script:
   - cargo build --workspace
   - cargo test --workspace --exclude gtfs-sim-bin
-  - cargo fmt --all -- --check
-
-after_success: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin sh -c "cargo tarpaulin" &&
-    bash <(curl -s https://codecov.io/bash)
-  fi
 
 jobs:
   include:
-    - stage: build
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+    - name: Linting
+      before_script:
+        - rustup component add rustfmt
+      script:
+        - cargo fmt --all -- --check
+    - name: Coverage
+      script:
+        - docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin sh -c "cargo tarpaulin" &&
+          bash <(curl -s https://codecov.io/bash)
+    - name: Build
       install:
         - cargo install wasm-pack
       before_script:
@@ -39,18 +36,12 @@ jobs:
         - cargo run --release import import/data/vbb.bzip
         - cargo run --release load
         - wasm-pack build wasm --target web --out-dir www/wasm
-      after_success:
-        - echo "Skipped coverage reporting"
       before_deploy:
         - rm wasm/www/wasm/.gitignore
       deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
+        provider: pages:git
+        edge: true
+        token: $GITHUB_TOKEN
         local_dir: wasm/www
   allow_failures:
     - rust: nightly
-
-stages:
-  - test
-  - build
