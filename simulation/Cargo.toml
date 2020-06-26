@@ -13,9 +13,9 @@ default = []
 fixtures = ["test_utils"]
 
 [dependencies]
-itertools = "0.8"
+approx = "0.3"
+itertools = "0.9"
+na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
 serde = "1"
 serde_derive = "1"
-approx = "0.3"
-na = { package = "nalgebra", version = "0.18.0", features = ["serde-serialize"] }
 test_utils = { package = "gtfs-sim-test", path = "../test", optional = true }
