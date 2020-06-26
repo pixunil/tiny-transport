@@ -35,7 +35,7 @@ impl Location {
     }
 }
 
-#[cfg_attr(tarpaulin, skip)]
+#[cfg(not(tarpaulin_include))]
 impl fmt::Debug for Location {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         let position = debug_position(self.position, formatter.alternate());

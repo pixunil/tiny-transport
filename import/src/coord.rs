@@ -22,6 +22,7 @@ pub fn transform(point: Point) -> Point2<f32> {
     Point2::new(translated.x.round() as f32, -translated.y.round() as f32)
 }
 
+#[cfg(not(tarpaulin_include))]
 pub(crate) fn debug_position(position: Point, alternate: bool) -> String {
     let (lat, lon) = project_back(position);
     format!(

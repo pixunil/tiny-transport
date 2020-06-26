@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use super::Dataset;
 
 #[cfg(feature = "progress")]
-#[cfg_attr(tarpaulin, skip)]
+#[cfg(not(tarpaulin_include))]
 pub(crate) struct Action {
     message: &'static str,
     started: Instant,
@@ -18,7 +18,7 @@ pub(crate) struct Action {
 }
 
 #[cfg(feature = "progress")]
-#[cfg_attr(tarpaulin, skip)]
+#[cfg(not(tarpaulin_include))]
 impl Action {
     pub(crate) fn start(message: &'static str) -> Self {
         Self {
