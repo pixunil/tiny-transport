@@ -197,7 +197,7 @@ mod tests {
         assert_eq!(dataset.station_positions().len(), 2 * 5);
         assert_eq!(dataset.station_types().len(), 5);
         assert_eq!(dataset.line_count(), 1);
-        assert_eq!(dataset.line_colors().len(), 3 * 1);
+        assert_eq!(dataset.line_colors().len(), 3);
         assert_eq!(dataset.line_vertices_sizes(), [20, 28]);
         assert_eq!(dataset.line_vertices().len(), 2 * 48);
         assert_eq!(dataset.line_names(), "12".to_string());

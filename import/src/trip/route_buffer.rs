@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use super::{Route, RouteVariant, Trip};
+use crate::coord::Point;
 use crate::location::Location;
-use crate::shape::Shape;
 use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
@@ -19,7 +19,7 @@ impl RouteBuffer {
         }
     }
 
-    pub(super) fn add_trip(&mut self, locations: Vec<Rc<Location>>, shape: &Shape, trip: Trip) {
+    pub(super) fn add_trip(&mut self, locations: Vec<Rc<Location>>, shape: &[Point], trip: Trip) {
         let variants = match trip.direction() {
             Direction::Upstream => &mut self.upstream,
             Direction::Downstream => &mut self.downstream,
@@ -33,7 +33,7 @@ impl RouteBuffer {
                 variant.add_trip(trip);
             }
             None => {
-                let mut variant = RouteVariant::new(locations, shape.clone());
+                let mut variant = RouteVariant::new(locations, shape.to_vec());
                 variant.add_trip(trip);
                 variants.push(variant);
             }
@@ -52,7 +52,7 @@ impl RouteBuffer {
             })
             .collect::<Vec<_>>();
 
-        fn find_pair(differences: &Vec<Vec<impl Ord>>) -> Option<(usize, usize)> {
+        fn find_pair(differences: &[Vec<impl Ord>]) -> Option<(usize, usize)> {
             differences
                 .iter()
                 .enumerate()

@@ -1,3 +1,5 @@
+#![allow(clippy::zero_prefixed_literal)]
+
 mod dataset;
 mod line;
 mod node;

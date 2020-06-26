@@ -44,7 +44,7 @@ impl Importer {
         }
 
         for incomplete_line in &mut self.incomplete_lines {
-            incomplete_line.add_color_when_applicable(&mut colors);
+            incomplete_line.add_color_when_applicable(&colors);
         }
 
         action.complete("Imported line colors");

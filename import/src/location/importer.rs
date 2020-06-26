@@ -22,7 +22,7 @@ impl Importer {
 
         for record in queues.0.into_iter().chain(queues.1) {
             if let Err(record) = record.try_import(&mut locations) {
-                Err(LocationImportError::ParentNotFound(record))?;
+                return Err(LocationImportError::ParentNotFound(record).into());
             }
         }
 

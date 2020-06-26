@@ -4,6 +4,7 @@ use std::rc::Rc;
 use ordered_float::NotNan;
 
 use super::{Node, Route, Trip};
+use crate::coord::Point;
 use crate::location::Location;
 use crate::shape::Shape;
 use itertools::Itertools;
@@ -29,7 +30,7 @@ impl StopCandidate {
         }
     }
 
-    fn distribute_across<'a>(nodes: &[Node], locations: &[Rc<Location>]) -> Vec<Self> {
+    fn distribute_across(nodes: &[Node], locations: &[Rc<Location>]) -> Vec<Self> {
         let mut candidates: Vec<Self> = Vec::with_capacity(locations.len());
         for (i, location) in locations.iter().enumerate() {
             let upper = nodes.len() + i - locations.len() + 1;
@@ -117,8 +118,8 @@ impl RouteVariant {
         }
     }
 
-    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &Shape) -> bool {
-        self.locations == locations && &self.shape == shape
+    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &[Point]) -> bool {
+        self.locations == locations && self.shape == shape
     }
 
     pub(super) fn difference(&self, downstream: &Self) -> impl Ord {
@@ -159,14 +160,10 @@ impl RouteVariant {
             .shape
             .iter()
             .chain(
-                iter::repeat(self.shape.last().unwrap()).take(
-                    self.locations
-                        .len()
-                        .checked_sub(self.shape.len())
-                        .unwrap_or(0),
-                ),
+                iter::repeat(self.shape.last().unwrap())
+                    .take(self.locations.len().saturating_sub(self.shape.len())),
             )
-            .map(|waypoint| Node::new(waypoint.clone(), direction.into()))
+            .map(|waypoint| Node::new(*waypoint, direction.into()))
             .collect::<Vec<_>>();
 
         for candidate in StopCandidate::distribute_across(&nodes, &self.locations) {

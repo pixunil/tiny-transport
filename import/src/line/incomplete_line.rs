@@ -34,12 +34,9 @@ impl IncompleteLine {
     }
 
     pub(super) fn finish(self, routes: Vec<Route>, lines: &mut HashMap<AgencyId, Vec<Line>>) {
-        let line = Line::new(
-            self.name,
-            self.color.unwrap_or(self.kind.color()),
-            self.kind,
-            routes,
-        );
+        #[allow(clippy::or_fun_call)]
+        let color = self.color.unwrap_or(self.kind.color());
+        let line = Line::new(self.name, color, self.kind, routes);
         lines
             .entry(self.agency_id)
             .or_insert_with(Vec::new)

@@ -96,11 +96,11 @@ impl Line {
             .tuple_windows()
             .map(|(before, after)| after.position() - before.position())
             .collect::<Vec<_>>();
-        if segments.len() == 0 {
+        if segments.is_empty() {
             return;
         }
-        segments.insert(0, segments.first().unwrap().clone());
-        segments.insert(segments.len(), segments.last().unwrap().clone());
+        segments.insert(0, *segments.first().unwrap());
+        segments.insert(segments.len(), *segments.last().unwrap());
 
         for (node, adjacent) in nodes.zip_eq(segments.windows(2)) {
             let perp = adjacent[0].perp(&adjacent[1]);

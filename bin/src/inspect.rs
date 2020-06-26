@@ -30,7 +30,7 @@ impl Format {
     }
 
     fn print_route_info(self, stop_locations: Vec<String>, shape: Vec<(f64, f64)>) {
-        if stop_locations.len() > 0 {
+        if !stop_locations.is_empty() {
             let termini = (
                 stop_locations.first().unwrap(),
                 stop_locations.last().unwrap(),

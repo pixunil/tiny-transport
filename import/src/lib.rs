@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception, clippy::zero_prefixed_literal)]
+
 use std::error::Error;
 use std::ffi::OsStr;
 use std::fs::File;

@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception, clippy::zero_prefixed_literal)]
+
 mod color;
 mod dataset;
 mod direction;

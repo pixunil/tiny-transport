@@ -104,9 +104,7 @@ impl Scheduler {
             .skip(1)
             .step_by(2)
             .map(|duration| {
-                let missing_stop_duration = Self::MINIMUM_STOP_DURATION
-                    .checked_sub(*duration)
-                    .unwrap_or(0);
+                let missing_stop_duration = Self::MINIMUM_STOP_DURATION.saturating_sub(*duration);
                 *duration += missing_stop_duration;
                 missing_stop_duration
             })

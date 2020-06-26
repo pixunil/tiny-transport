@@ -50,11 +50,9 @@ impl PointSmoother {
 
     fn dedup(&mut self) -> bool {
         let len = self.points.len();
-        if len >= 2 {
-            if self.points[len - 2] == self.points[len - 1] {
-                self.points.pop();
-                return true;
-            }
+        if len >= 2 && self.points[len - 2] == self.points[len - 1] {
+            self.points.pop();
+            return true;
         }
         false
     }

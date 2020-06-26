@@ -97,8 +97,8 @@ impl TryFrom<&str> for Profile {
             "berlin-s+u+metro" => Ok(Self::BerlinMetro),
             "berlin-no-r" => Ok(Self::BerlinWithoutRailway),
             "berlin" => Ok(Self::Berlin),
-            "berlin-brandenburg-no-r" => Ok(Self::BerlinWithoutRailway),
-            "berlin-brandenburg" => Ok(Self::Berlin),
+            "berlin-brandenburg-no-r" => Ok(Self::BerlinBrandenburgWithoutRailway),
+            "berlin-brandenburg" => Ok(Self::BerlinBrandenburg),
             _ => Err(InvalidProfileError(value.to_string())),
         }
     }
