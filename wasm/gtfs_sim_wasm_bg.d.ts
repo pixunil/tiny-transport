@@ -1,0 +1,30 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export function __wbg_dataset_free(a: number): void;
+export function dataset_parse(a: number, b: number): number;
+export function dataset_update(a: number, b: number): void;
+export function dataset_findStation(a: number, b: number, c: number, d: number, e: number): void;
+export function dataset_stationCount(a: number): number;
+export function dataset_stationPositions(a: number, b: number): void;
+export function dataset_stationTypes(a: number, b: number): void;
+export function dataset_lineCount(a: number): number;
+export function dataset_lineColors(a: number, b: number): void;
+export function dataset_lineVerticesSizes(a: number, b: number): void;
+export function dataset_lineVertices(a: number, b: number): void;
+export function dataset_lineNames(a: number, b: number): void;
+export function dataset_trainCount(a: number): number;
+export function dataset_trainVertices(a: number, b: number): void;
+export function dataset_trainColors(a: number, b: number): void;
+export function dataset_trainLineNumbers(a: number, b: number): void;
+export function dataset_trainSides(a: number, b: number): void;
+export function dataset_trainExtents(a: number, b: number): void;
+export function __wbg_view_free(a: number): void;
+export function view_new(a: number, b: number, c: number): number;
+export function view_resize(a: number, b: number, c: number): void;
+export function view_scaling(a: number): number;
+export function view_calculateViewProjection(a: number, b: number): void;
+export function view_scroll(a: number, b: number, c: number): void;
+export function view_zoom(a: number, b: number, c: number, d: number): void;
+export function __wbindgen_malloc(a: number): number;
+export function __wbindgen_free(a: number, b: number): void;

@@ -1,0 +1,22 @@
+{
+  "name": "gtfs-sim-wasm",
+  "collaborators": [
+    "Jakob Stigloher <pixunil@gmx.de>"
+  ],
+  "description": "Wasm binding of the simulation",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pixunil/gtfs-sim"
+  },
+  "files": [
+    "gtfs_sim_wasm_bg.wasm",
+    "gtfs_sim_wasm.js",
+    "gtfs_sim_wasm.d.ts",
+    "LICENSE.md"
+  ],
+  "module": "gtfs_sim_wasm.js",
+  "types": "gtfs_sim_wasm.d.ts",
+  "sideEffects": false
+}
