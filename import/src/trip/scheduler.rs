@@ -133,20 +133,7 @@ mod tests {
     use super::*;
     use crate::fixtures::nodes;
     use simulation::Directions;
-
-    macro_rules! times {
-        (@time Duration, $time:expr) => { Duration::seconds($time) };
-        (@time $type:ty, $time:expr) => { $time as $type };
-        (@seconds $minute:literal, $second:literal) => { times!(@seconds 0, $minute, $second) };
-        (@seconds $hour:literal, $minute:literal, $second:literal) => {
-            $hour * 3600 + $minute * 60 + $second
-        };
-        ($type:ident; $( $( $(:)? $time:literal )* ),* ) => {
-            vec![
-                $( times!(@time $type, times!(@seconds $( $time ),* )) ),*
-            ]
-        };
-    }
+    use test_utils::times;
 
     #[test]
     fn test_sufficient_stop_times() {
@@ -155,29 +142,29 @@ mod tests {
         let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             scheduler.process(Direction::Upstream, &durations),
-            times!(u32; 7:24:54, 0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30)
+            times!(7:24:54, 0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30)
         )
     }
 
     #[test]
     fn test_no_stop_times_upstream() {
-        let durations = times![Duration; 9:02:00, 0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00];
+        let durations = times!(Duration; 9:02:00, 0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00);
         let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both);
         let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             scheduler.process(Direction::Upstream, &durations),
-            times!(u32; 9:01:40, 0:20, 2:15, 0:20, 1:05, 0:20, 1:00, 0:20)
+            times!(9:01:40, 0:20, 2:15, 0:20, 1:05, 0:20, 1:00, 0:20)
         );
     }
 
     #[test]
     fn test_no_stop_times_downstream() {
-        let durations = times![Duration; 8:34:00, 0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00];
+        let durations = times!(Duration; 8:34:00, 0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00);
         let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both);
         let scheduler = Scheduler::new(&nodes);
         assert_eq!(
             scheduler.process(Direction::Downstream, &durations),
-            times!(u32; 8:33:40, 0:20, 1:15, 0:20, 1:33, 0:20, 2:32, 0:20)
+            times!(8:33:40, 0:20, 1:15, 0:20, 1:33, 0:20, 2:32, 0:20)
         );
     }
 }

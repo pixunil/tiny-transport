@@ -114,7 +114,7 @@ pub mod fixtures {
                         pub fn $trip(start: u32) -> Train {
                             Train {
                                 direction: Direction::$direction,
-                                durations: times![start, $times],
+                                durations: times!(start, $times),
                             }
                         }
                     )*
@@ -185,7 +185,7 @@ mod tests {
         let train = trains::tram_m5::zingster_str_perower_platz(time!(8:13:00));
         assert_eq!(
             train.interpolate_times(nodes::tram_m5()),
-            times![8:13:00, 0:00, 0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00]
+            times!(8:13:00, 0:00, 0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00)
         );
     }
 
