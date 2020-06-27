@@ -193,7 +193,7 @@ mod tests {
     use approx::assert_relative_eq;
 
     use super::*;
-    use crate::fixtures::*;
+    use crate::fixtures::{nodes, trains};
     use test_utils::time;
 
     fn segment_vector(nodes: &[Node], from: usize, to: usize) -> Vector2<f32> {

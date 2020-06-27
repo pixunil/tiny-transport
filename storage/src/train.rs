@@ -156,15 +156,14 @@ pub mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures::*;
-    use simulation::fixtures::nodes;
+    use crate::fixtures::trains;
     use test_utils::{time, times};
 
     #[test]
     fn test_time_interpolation_upstream() {
         let train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:01:40));
         assert_eq!(
-            train.interpolate_times(nodes::tram_12()),
+            train.interpolate_times(simulation::fixtures::nodes::tram_12()),
             times![9:01:40, 0:20, 0:27, 1:21, 0:27, 0:20, 0:19, 0:11, 0:12, 0:12,
                 0:12, 0:20, 1:00, 0:20]
         );
@@ -174,7 +173,7 @@ mod tests {
     fn test_time_interpolation_downstream() {
         let train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:33:40));
         assert_eq!(
-            train.interpolate_times(nodes::tram_12()),
+            train.interpolate_times(simulation::fixtures::nodes::tram_12()),
             times![8:33:40, 0:20, 0:19, 0:22, 0:12, 0:22, 0:20, 0:25, 0:12, 0:20,
                 0:12, 0:24, 0:20, 0:30, 0:31, 1:01, 0:30, 0:20]
         );
@@ -184,7 +183,7 @@ mod tests {
     fn test_clamp_before_dispatch() {
         let train = trains::tram_m5::zingster_str_perower_platz(time!(8:13:00));
         assert_eq!(
-            train.interpolate_times(nodes::tram_m5()),
+            train.interpolate_times(simulation::fixtures::nodes::tram_m5()),
             times!(8:13:00, 0:00, 0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00)
         );
     }
@@ -193,7 +192,7 @@ mod tests {
     fn test_clamp_after_terminus() {
         let train = trains::bus_m82::weskammstr_waldsassener_str(time!(9:46:00));
         assert_eq!(
-            train.interpolate_times(nodes::bus_m82()),
+            train.interpolate_times(simulation::fixtures::nodes::bus_m82()),
             times![9:46:00, 0:00, 0:00, 0:15, 0:15, 0:00, 0:07, 0:07, 0:08, 0:07,
                 0:00, 0:00, 0:00, 0:00]
         );
@@ -203,7 +202,7 @@ mod tests {
     fn test_load() {
         let train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(8:13:00));
         assert_eq!(
-            train.load(Kind::Tram, &nodes::tram_12()),
+            train.load(Kind::Tram, &simulation::fixtures::nodes::tram_12()),
             simulation::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(
                 time!(8:13:00)
             )

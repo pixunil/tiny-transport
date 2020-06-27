@@ -106,7 +106,7 @@ mod tests {
     use approx::assert_relative_eq;
 
     use super::*;
-    use crate::fixtures::*;
+    use crate::fixtures::stations;
 
     #[test]
     fn test_station_kind_from_line_kinds() {

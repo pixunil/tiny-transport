@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use chrono::prelude::*;
+use chrono::NaiveDate;
 
 use zip::ZipArchive;
 
