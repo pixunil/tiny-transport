@@ -42,6 +42,8 @@ jobs:
       before_deploy:
         - rm wasm/www/wasm/.gitignore
       deploy:
+        on:
+          branch: main
         provider: pages:git
         edge: true
         token: $GITHUB_TOKEN
