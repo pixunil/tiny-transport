@@ -1,44 +1,17 @@
 import {Dataset, View, default as init} from "./wasm/gtfs_sim_wasm.js";
 
-function loadSource(url) {
-    return new Promise((resolve, reject) => {
-        let request = new XMLHttpRequest;
-        request.open("get", url);
-        if (url.endsWith(".bin")) {
-            request.responseType = "arraybuffer";
-        }
-        request.onload = () => {
-            if (200 <= request.status && request.status < 300) {
-                resolve(request.response);
-            } else {
-                reject({
-                    status: request.status,
-                    text: request.statusText,
-                });
-            }
-        };
-        request.onerror = () => {
-            reject({
-                status: request.status,
-                text: request.statusText,
-            });
-        };
-        request.send();
-    });
-}
-
 class ProgramInfo {
-    async setUp(gl, sources) {
+    async setUp(gl, assets) {
         this.gl = gl;
 
-        await this.loadProgram(sources);
+        await this.loadProgram(assets);
         this.fetchLocations();
     }
 
-    async loadProgram(sources) {
+    async loadProgram(assets) {
         const shaders = [
-            this.loadShader(this.gl.VERTEX_SHADER, await sources.vertex),
-            this.loadShader(this.gl.FRAGMENT_SHADER, await sources.fragment),
+            this.loadShader(this.gl.VERTEX_SHADER, await assets.vertex),
+            this.loadShader(this.gl.FRAGMENT_SHADER, await assets.fragment),
         ];
 
         this.program = this.gl.createProgram();
@@ -100,10 +73,10 @@ class Renderer {
         this.programInfo = new ProgramInfo();
     }
 
-    async setUp(gl, sources) {
+    async setUp(gl, assets) {
         this.gl = gl;
         await Promise.all([
-            this.programInfo.setUp(gl, sources),
+            this.programInfo.setUp(gl, assets),
             this.createBuffers(),
         ]);
     }
@@ -366,9 +339,9 @@ class Controller {
 
         await Promise.all([
             this.setUpModel(),
-            this.renderer.line.setUp(this.gl, sources.line),
-            this.renderer.train.setUp(this.gl, sources.train),
-            this.renderer.station.setUp(this.gl, sources.station),
+            this.renderer.line.setUp(this.gl, assets.line),
+            this.renderer.train.setUp(this.gl, assets.train),
+            this.renderer.station.setUp(this.gl, assets.station),
         ]);
         await Promise.all([
             this.renderer.line.fillBuffers(this.model),
@@ -388,8 +361,7 @@ class Controller {
     }
 
     async setUpModel() {
-        const data = new Uint8Array(await sources.data);
-        this.model = Dataset.parse(data);
+        this.model = Dataset.parse(await assets.data);
         this.model.update(14010);
     }
 
@@ -458,20 +430,42 @@ class Controller {
     }
 }
 
-const sources = {
+function fetchSource(url) {
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Could not fetch ${url}`);
+            }
+
+            return response.text();
+        });
+}
+
+function fetchBinary(url) {
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Could not fetch ${url}`);
+            }
+            return response.arrayBuffer();
+        })
+        .then(arrayBuffer => new Uint8Array(arrayBuffer));
+}
+
+const assets = {
     line: {
-        vertex: loadSource("shader/line.vert.glsl"),
-        fragment: loadSource("shader/line.frag.glsl"),
+        vertex: fetchSource("shader/line.vert.glsl"),
+        fragment: fetchSource("shader/line.frag.glsl"),
     },
     train: {
-        vertex: loadSource("shader/train.vert.glsl"),
-        fragment: loadSource("shader/train.frag.glsl"),
+        vertex: fetchSource("shader/train.vert.glsl"),
+        fragment: fetchSource("shader/train.frag.glsl"),
     },
     station: {
-        vertex: loadSource("shader/station.vert.glsl"),
-        fragment: loadSource("shader/station.frag.glsl"),
+        vertex: fetchSource("shader/station.vert.glsl"),
+        fragment: fetchSource("shader/station.frag.glsl"),
     },
-    data: loadSource("data.bin"),
+    data: fetchBinary("data.bin"),
 };
 
 const controller = new Controller();
