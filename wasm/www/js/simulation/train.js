@@ -52,7 +52,7 @@ export class TrainRenderer extends Renderer {
         this.gl.useProgram(this.programInfo.program);
 
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
-        this.gl.uniform2fv(this.uniformLocations.lineNamesShape, this.lineNamesTextureGenerator.shape);
+        this.gl.uniform2uiv(this.uniformLocations.lineNamesShape, this.lineNamesTextureGenerator.shape);
         this.gl.uniform1f(this.uniformLocations.lineNamesRatio, this.lineNamesTextureGenerator.ratio);
 
         this.gl.activeTexture(this.gl.TEXTURE0);
@@ -81,10 +81,9 @@ export class TrainRenderer extends Renderer {
         this.gl.enableVertexAttribArray(this.attributeLocations.extent);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.lineNumber);
-        this.gl.vertexAttribPointer(
+        this.gl.vertexAttribIPointer(
             this.attributeLocations.lineNumber,
-            1, this.gl.UNSIGNED_SHORT,
-            false, 0, 0);
+            1, this.gl.UNSIGNED_SHORT, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.lineNumber);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.side);

@@ -6,7 +6,7 @@ import {StationRenderer} from "./station.js";
 export class SimulationCanvas {
     constructor(canvas) {
         this.canvas = canvas;
-        this.gl = this.canvas.getContext("webgl", {alpha: false});
+        this.gl = this.canvas.getContext("webgl2", {alpha: false});
         this.resizeCanvasIfNecessary();
         this.clear();
         this.addControlListeners();

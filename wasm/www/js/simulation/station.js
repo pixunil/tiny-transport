@@ -32,10 +32,9 @@ export class StationRenderer extends Renderer {
         this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.type);
-        this.gl.vertexAttribPointer(
+        this.gl.vertexAttribIPointer(
             this.attributeLocations.type,
-            1, this.gl.UNSIGNED_BYTE,
-            false, 0, 0);
+            1, this.gl.UNSIGNED_BYTE, 0, 0);
         this.gl.enableVertexAttribArray(this.attributeLocations.type);
 
         this.gl.drawArrays(this.gl.POINTS, 0, this.count);
