@@ -1,8 +1,7 @@
 import {ProgramInfo} from "./program-info.js";
 
 export class Renderer {
-    constructor(view) {
-        this.view = view;
+    constructor() {
         this.programInfo = new ProgramInfo();
     }
 

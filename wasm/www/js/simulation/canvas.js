@@ -1,14 +1,12 @@
 import {View} from "../../wasm/gtfs_sim_wasm.js";
+import {Canvas} from "../base/canvas.js";
 import {LineRenderer} from "./line.js";
 import {TrainRenderer} from "./train.js";
 import {StationRenderer} from "./station.js";
 
-export class SimulationCanvas {
+export class SimulationCanvas extends Canvas {
     constructor(canvas) {
-        this.canvas = canvas;
-        this.gl = this.canvas.getContext("webgl2", {alpha: false});
-        this.resizeCanvasIfNecessary();
-        this.clear();
+        super(canvas);
         this.addControlListeners();
 
         this.view = new View(0.08, this.canvas.width, this.canvas.height);
@@ -42,16 +40,12 @@ export class SimulationCanvas {
         this.renderer.train.fillBuffers(this.model);
     }
 
-    resizeCanvasIfNecessary() {
-        if (this.canvas.width !== this.canvas.clientWidth || this.canvas.height !== this.canvas.clientHeight) {
-            this.canvas.width = this.canvas.clientWidth;
-            this.canvas.height = this.canvas.clientHeight;
-            this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    resizeCanvas() {
+        super.resizeCanvas();
 
-            if (this.view) {
-                this.view.resize(this.canvas.width, this.canvas.height);
-                this.view.viewProjection = this.view.calculateViewProjection();
-            }
+        if (this.view) {
+            this.view.resize(this.canvas.width, this.canvas.height);
+            this.view.viewProjection = this.view.calculateViewProjection();
         }
     }
 
@@ -83,13 +77,7 @@ export class SimulationCanvas {
     }
 
     draw() {
-        this.resizeCanvasIfNecessary();
-
-        this.gl.disable(this.gl.DEPTH_TEST);
-        this.gl.enable(this.gl.BLEND);
-        this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, this.gl.ZERO, this.gl.ONE);
-
-        this.clear();
+        super.draw();
         this.renderer.line.run();
         this.renderer.train.run();
         this.renderer.station.run();

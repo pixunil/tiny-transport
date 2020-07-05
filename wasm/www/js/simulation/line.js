@@ -1,6 +1,6 @@
-import {Renderer} from "../base/renderer.js";
+import {SimulationRenderer} from "./renderer.js";
 
-export class LineRenderer extends Renderer {
+export class LineRenderer extends SimulationRenderer {
     createBuffers() {
         this.buffers = {
             position: this.gl.createBuffer(),

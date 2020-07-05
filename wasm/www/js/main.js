@@ -1,4 +1,5 @@
 import {Dataset, default as init} from "../wasm/gtfs_sim_wasm.js";
+import {ClockCanvas} from "./clock/canvas.js";
 import {SimulationCanvas} from "./simulation/canvas.js";
 
 class Controller {
@@ -8,10 +9,12 @@ class Controller {
 
     async setUp() {
         await this.wasm;
-        this.simulationCanvas = new SimulationCanvas(document.querySelector("canvas"));
+        this.clockCanvas = new ClockCanvas(document.querySelector(".clock"));
+        this.simulationCanvas = new SimulationCanvas(document.querySelector(".simulation"));
 
         await Promise.all([
             this.setUpModel(),
+            this.clockCanvas.setUp(assets),
             this.simulationCanvas.setUp(assets),
         ]);
         await this.simulationCanvas.setUpWithModel(this.model);
@@ -22,11 +25,14 @@ class Controller {
 
     async setUpModel() {
         this.model = Dataset.parse(await assets.data);
-        this.model.update(14010);
+        const initialTimePassed = 14010;
+        this.model.update(initialTimePassed);
+        this.clockCanvas.update(initialTimePassed);
     }
 
     drawLoop(milliseconds) {
         this.update(milliseconds);
+        this.clockCanvas.draw();
         this.simulationCanvas.draw();
         requestAnimationFrame(milliseconds => this.drawLoop(milliseconds));
     }
@@ -37,6 +43,7 @@ class Controller {
         this.milliseconds = milliseconds;
         const timePassed = Math.floor(millisecondsPassed * speed / 1000);
         this.model.update(timePassed);
+        this.clockCanvas.update(timePassed);
         this.simulationCanvas.update();
     }
 }
@@ -64,6 +71,10 @@ function fetchBinary(url) {
 }
 
 const assets = {
+    clock: {
+        vertex: fetchSource("shader/clock.vert.glsl"),
+        fragment: fetchSource("shader/clock.frag.glsl"),
+    },
     line: {
         vertex: fetchSource("shader/line.vert.glsl"),
         fragment: fetchSource("shader/line.frag.glsl"),
