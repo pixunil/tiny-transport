@@ -38,13 +38,17 @@ class Controller {
     }
 
     update(milliseconds) {
-        const speed = parseInt(document.querySelector("[name=speed]:checked").value);
-        const millisecondsPassed = milliseconds - this.milliseconds;
-        this.milliseconds = milliseconds;
-        const timePassed = Math.floor(millisecondsPassed * speed / 1000);
-        this.model.update(timePassed);
-        this.clockCanvas.update(timePassed);
-        this.simulationCanvas.update();
+        const speed = parseInt(document.querySelector("[name=speed]:checked").value) / 1000;
+        if (speed === 0) {
+            this.milliseconds = milliseconds;
+        } else {
+            const millisecondsPassed = milliseconds - this.milliseconds;
+            const timePassed = Math.floor(millisecondsPassed * speed);
+            this.model.update(timePassed);
+            this.clockCanvas.update(timePassed);
+            this.simulationCanvas.update();
+            this.milliseconds += timePassed / speed;
+        }
     }
 }
 
