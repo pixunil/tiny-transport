@@ -21,23 +21,44 @@ aside {
     width: 100%;
 }
 
+.time-control {
+    display: flex;
+    justify-content: center;
+}
+
+.time-control input {
+    display: none;
+}
+
+.time-control label {
+    width: 2em;
+    cursor: pointer;
+}
+
+.time-control label:not(:first-of-type) {
+    margin-left: 1em;
+}
+
+.time-control svg {
+    display: block;
+    --color: #aaaaaa;
+    fill: var(--color);
+    stroke: var(--color);
+    stroke-width: 0.5;
+    stroke-linejoin: round;
+    transition: 0.2s fill, 0.2s stroke, 0.2s stroke-width;
+}
+
+.time-control label:hover svg {
+    --color: #888888;
+}
+
+.time-control input:checked + label svg {
+    stroke-width: 1;
+    --color: #000019;
+}
+
 .simulation {
     min-width: 0;
     flex: auto;
-}
-
-input[type=range] {
-    display: block;
-}
-
-input[type=range]::-moz-focus-outer {
-    border: 0;
-}
-
-input[type=range]::-moz-range-track, input[type=range]::-webkit-slider-runnable-track {
-    background: #eee;
-}
-
-input[type=range]::-moz-range-progress {
-    background: #66f;
 }

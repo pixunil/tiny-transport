@@ -38,7 +38,7 @@ class Controller {
     }
 
     update(milliseconds) {
-        const speed = parseInt(document.querySelector("input").value);
+        const speed = parseInt(document.querySelector("[name=speed]:checked").value);
         const millisecondsPassed = milliseconds - this.milliseconds;
         this.milliseconds = milliseconds;
         const timePassed = Math.floor(millisecondsPassed * speed / 1000);
