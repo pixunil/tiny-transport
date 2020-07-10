@@ -6,11 +6,9 @@ export class ClockRenderer extends Renderer {
         this.time = 0;
     }
 
-    createBuffers() {
-        this.buffers = {
-            position: this.gl.createBuffer(),
-        };
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
+    initializeBuffers() {
+        super.initializeBuffers();
+        this.createBuffer("position", this.gl.FLOAT, 2);
         const bufferData = new Float32Array([
             -1, +1,
             -1, -1,
@@ -25,7 +23,7 @@ export class ClockRenderer extends Renderer {
     }
 
     run() {
-        this.gl.useProgram(this.programInfo.program);
+        super.run();
 
         function angle(percentage) {
             return (percentage - 0.25) * -Math.PI * 2;
@@ -34,13 +32,6 @@ export class ClockRenderer extends Renderer {
         this.gl.uniform1f(this.programInfo.uniformLocations.size, this.gl.canvas.width / 2);
         this.gl.uniform1f(this.programInfo.uniformLocations.minuteAngle, angle(this.time / 3600));
         this.gl.uniform1f(this.programInfo.uniformLocations.hourAngle, angle(this.time / 3600 / 12));
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.vertexAttribPointer(
-            this.programInfo.attributeLocations.position,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.programInfo.attributeLocations.position);
 
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
     }

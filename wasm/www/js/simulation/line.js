@@ -1,10 +1,9 @@
 import {SimulationRenderer} from "./renderer.js";
 
 export class LineRenderer extends SimulationRenderer {
-    createBuffers() {
-        this.buffers = {
-            position: this.gl.createBuffer(),
-        }
+    initializeBuffers() {
+        super.initializeBuffers();
+        this.createBuffer("position", this.gl.FLOAT, 2);
     }
 
     fillBuffers(model) {
@@ -17,16 +16,9 @@ export class LineRenderer extends SimulationRenderer {
     }
 
     run() {
-        this.gl.useProgram(this.programInfo.program);
+        super.run();
 
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.position,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.position);
 
         let offset = 0;
         for (let line = 0; line < this.count; line++) {

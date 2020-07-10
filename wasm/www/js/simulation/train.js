@@ -1,14 +1,13 @@
 import {SimulationRenderer} from "./renderer.js";
 
 export class TrainRenderer extends SimulationRenderer {
-    createBuffers() {
-        this.buffers = {
-            position: this.gl.createBuffer(),
-            color: this.gl.createBuffer(),
-            extent: this.gl.createBuffer(),
-            lineNumber: this.gl.createBuffer(),
-            side: this.gl.createBuffer(),
-        }
+    initializeBuffers() {
+        super.initializeBuffers();
+        this.createBuffer("position", this.gl.FLOAT, 2);
+        this.createBuffer("color", this.gl.FLOAT, 3);
+        this.createBuffer("extent", this.gl.FLOAT, 2);
+        this.createBuffer("lineNumber", this.gl.UNSIGNED_SHORT, 1, this.gl.INT);
+        this.createBuffer("side", this.gl.UNSIGNED_BYTE, 2);
     }
 
     generateTextures(model) {
@@ -49,7 +48,7 @@ export class TrainRenderer extends SimulationRenderer {
     }
 
     run() {
-        this.gl.useProgram(this.programInfo.program);
+        super.run();
 
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
         this.gl.uniform2uiv(this.uniformLocations.lineNamesShape, this.lineNamesTextureGenerator.shape);
@@ -58,40 +57,6 @@ export class TrainRenderer extends SimulationRenderer {
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
         this.gl.uniform1i(this.uniformLocations.lineNames, 0);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.position,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.position);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.color);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.color,
-            3, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.color);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.extent);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.extent,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.extent);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.lineNumber);
-        this.gl.vertexAttribIPointer(
-            this.attributeLocations.lineNumber,
-            1, this.gl.UNSIGNED_SHORT, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.lineNumber);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.side);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.side,
-            2, this.gl.UNSIGNED_BYTE,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.side);
 
         this.gl.drawArrays(this.gl.TRIANGLES, 0, 6 * this.count);
     }

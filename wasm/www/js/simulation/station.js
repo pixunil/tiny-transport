@@ -1,11 +1,10 @@
 import {SimulationRenderer} from "./renderer.js";
 
 export class StationRenderer extends SimulationRenderer {
-    createBuffers() {
-        this.buffers = {
-            position: this.gl.createBuffer(),
-            type: this.gl.createBuffer(),
-        }
+    initializeBuffers() {
+        super.initializeBuffers();
+        this.createBuffer("position", this.gl.FLOAT, 2);
+        this.createBuffer("type", this.gl.UNSIGNED_BYTE, 1, this.gl.INT);
     }
 
     fillBuffers(model) {
@@ -19,23 +18,10 @@ export class StationRenderer extends SimulationRenderer {
     }
 
     run() {
-        this.gl.useProgram(this.programInfo.program);
+        super.run();
 
         this.gl.uniform1f(this.uniformLocations.scaling, this.view.scaling());
         this.gl.uniformMatrix4fv(this.uniformLocations.modelView, false, this.view.viewProjection);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.position);
-        this.gl.vertexAttribPointer(
-            this.attributeLocations.position,
-            2, this.gl.FLOAT,
-            false, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.position);
-
-        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers.type);
-        this.gl.vertexAttribIPointer(
-            this.attributeLocations.type,
-            1, this.gl.UNSIGNED_BYTE, 0, 0);
-        this.gl.enableVertexAttribArray(this.attributeLocations.type);
 
         this.gl.drawArrays(this.gl.POINTS, 0, this.count);
     }
