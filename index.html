@@ -4,15 +4,38 @@
         <meta charset="utf-8">
         <title>Gtfs-Sim</title>
         <link rel="stylesheet" href="style.css">
-        <script type="module" src="main.js"></script>
+        <script type="module" src="js/main.js"></script>
     </head>
     <body>
         <aside>
-            <label>
-                Speed
-                <input type="range" min="1" max="1000" value="100">
-            </label>
+            <canvas class="clock"></canvas>
+            <div class="time-control">
+                <input id="speed-0" type="radio" name="speed" value="0">
+                <label for="speed-0" title="Pause">
+                    <svg viewBox="-6 -6 12 12">
+                        <path d="M 3 -3.5 v 7 h -2 v -7 z M -1 -3.5 v 7 h -2 v -7 z"></path>
+                    </svg>
+                </label>
+                <input id="speed-1" type="radio" name="speed" value="60" checked>
+                <label for="speed-1" title="1x">
+                    <svg viewBox="-6 -6 12 12">
+                        <path d="M 3 0 l -6 -4 v 8 z"></path>
+                    </svg>
+                </label>
+                <input id="speed-2" type="radio" name="speed" value="300">
+                <label for="speed-2" title="5x">
+                    <svg viewBox="-6 -6 12 12">
+                        <path d="M 4 0 l -5 -4 v 2.4 l -3 -2.4 v 8 l 3 -2.4 v 2.4 z"></path>
+                    </svg>
+                </label>
+                <input id="speed-3" type="radio" name="speed" value="1200">
+                <label for="speed-3" title="20x">
+                    <svg viewBox="-6 -6 12 12">
+                        <path d="M 5.5 0 l -5 -4 v 2.4 l -3 -2.4 v 2.4 l -3 -2.4 v 8 l 3 -2.4 v 2.4 l 3 -2.4 v 2.4 z"></path>
+                    </svg>
+                </label>
+            </div>
         </aside>
-        <canvas></canvas>
+        <canvas class="simulation"></canvas>
     </body>
 </html>
