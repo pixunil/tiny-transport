@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 use std::error::Error;
-use std::ffi::OsStr;
 
 use clap::arg_enum;
 use itertools::Itertools;
@@ -161,13 +160,11 @@ impl Location {
 }
 
 pub(crate) fn inspect(
-    dataset: impl AsRef<OsStr>,
+    dataset: &ImportedDataset,
     line_name: &str,
     format: Format,
 ) -> Result<(), Box<dyn Error>> {
-    let imported = ImportedDataset::import(dataset)?;
-
-    let line = imported
+    let line = dataset
         .agencies()
         .filter(|agency| agency.name() == "Berliner Verkehrsbetriebe")
         .flat_map(|agency| agency.lines())

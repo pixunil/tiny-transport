@@ -27,7 +27,7 @@ To run the simulation, you need to:
 4. Open the page
 
 ```bash
-cargo run --release import import/data/vbb.bzip
+cargo run --release store --dataset import/data/vbb.bzip
 wasm-pack build wasm --target web --out-dir www/wasm
 python3 -m http.server 8917
 xdg-open http://localhost:8917/wasm/www

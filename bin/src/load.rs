@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-pub(crate) fn load(data: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
-    let mut file = File::open(data)?;
+pub(crate) fn load(binary: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
+    let mut file = File::open(binary)?;
     let mut data = Vec::new();
     file.read_to_end(&mut data)?;
     let dataset = bincode::deserialize::<storage::Dataset>(&data)

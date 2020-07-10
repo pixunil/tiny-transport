@@ -1,9 +1,12 @@
 use std::convert::TryInto;
 use std::error::Error;
-use std::fs::File;
+use std::fs::{self, File};
+use std::ops::Deref;
+use std::path::PathBuf;
 
 use chrono::NaiveDate;
 use clap::{clap_app, value_t};
+use rustyline::Editor;
 
 use import::profile::{DEFAULT_PROFILE_NAME, PROFILE_NAMES};
 use import::ImportedDataset;
@@ -22,64 +25,198 @@ fn validate_date(value: String) -> Result<(), String> {
         .map_err(|error| format!("{}, it must be in the format yyyy-mm-dd", error))
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let matches = clap_app!(gtfs_sim =>
-        (@subcommand compress =>
-            (about: "Compresses a dataset into a single .bzip archive")
-            (@arg DIRECTORY: +required "Path to gtfs directory which should be compressed")
-            (@arg ARCHIVE: +required "Path where the zipped archive should be created")
-        )
-        (@subcommand import =>
-            (about: "Imports a dataset and generates a binary export")
-            (@arg DATASET: +required "Path to gtfs dataset")
-            (@arg PROFILE: --profile +takes_value
-                possible_values(PROFILE_NAMES) default_value(DEFAULT_PROFILE_NAME)
-                "Profile used for importing")
-            (@arg DATE: --date +takes_value {validate_date} default_value("2019-08-26")
-                "Date in the format yyyy-mm-dd")
-        )
-        (@subcommand load =>
-            (about: "Loads a binary export to check for possible errors")
-            (@arg DATA: default_value("wasm/www/data.bin") "Path to imported data")
-        )
-        (@subcommand inspect =>
-            (about: "Imports a dataset and prints debug information for a single line")
-            (@arg DATASET: +required "Path to gtfs dataset")
-            (@arg LINE: +required "Line name to inspect")
-            (@arg FORMAT: --format +takes_value +case_insensitive
-                possible_values(&Format::variants()) default_value("import")
-                "Output format")
-        )
-    )
-    .get_matches();
+enum ImportedDatasetRef<'a> {
+    Temporary(ImportedDataset),
+    Stored(&'a ImportedDataset),
+}
 
-    match matches.subcommand() {
-        ("compress", Some(compress_matches)) => {
-            let directory = compress_matches.value_of_os("DIRECTORY").unwrap();
-            let archive = compress_matches.value_of_os("ARCHIVE").unwrap();
-            compress(directory, archive)
+impl<'a> Deref for ImportedDatasetRef<'a> {
+    type Target = ImportedDataset;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Temporary(dataset) => &dataset,
+            Self::Stored(dataset) => dataset,
         }
-        ("import", Some(import_matches)) => {
-            let dataset = import_matches.value_of_os("DATASET").unwrap();
-            let profile = import_matches.value_of("PROFILE").unwrap().try_into()?;
-            let date_format = import_matches.value_of("DATE").unwrap();
-            let date = NaiveDate::parse_from_str(date_format, "%F")?;
-            let imported = ImportedDataset::import(dataset)?;
-            let file = File::create("wasm/www/data.bin")?;
-            imported.store_into(file, profile, date)?;
-            Ok(())
-        }
-        ("load", Some(load_matches)) => {
-            let data = load_matches.value_of_os("DATA").unwrap();
-            load(data)
-        }
-        ("inspect", Some(inspect_matches)) => {
-            let dataset = inspect_matches.value_of_os("DATASET").unwrap();
-            let line_name = inspect_matches.value_of("LINE").unwrap();
-            let format = value_t!(inspect_matches, "FORMAT", Format).unwrap_or_else(|e| e.exit());
-            inspect(dataset, line_name, format)
-        }
-        ("", None) => Ok(()),
-        _ => unreachable!(),
     }
+}
+
+enum CommandRunner {
+    ProgramArguments,
+    Interactive { dataset: Option<ImportedDataset> },
+}
+
+impl CommandRunner {
+    fn program_arguments() -> Self {
+        Self::ProgramArguments
+    }
+
+    fn interactive(dataset: Option<ImportedDataset>) -> Self {
+        Self::Interactive { dataset }
+    }
+
+    fn build_app(&self) -> clap::App<'static, 'static> {
+        let is_dataset_available = match self {
+            Self::ProgramArguments => false,
+            Self::Interactive { dataset } => dataset.is_some(),
+        };
+        let app = clap_app!(gtfs_sim =>
+            (@subcommand compress =>
+                (about: "Compresses a dataset into a single .bzip archive")
+                (@arg directory: <DIRECTORY> "Path to gtfs directory which should be compressed")
+                (@arg archive: <ARCHIVE> "Path where the zipped archive should be created")
+            )
+            (@subcommand import =>
+                (about: "Imports a dataset")
+                (@arg dataset: <DATASET> "Path to gtfs dataset"))
+            (@subcommand inspect =>
+                (about: "Inspects the dataset")
+                (@arg dataset: --dataset [DATASET] required(!is_dataset_available)
+                    "Path to gtfs dataset")
+                (@arg line_name: <LINE> "Line name to inspect")
+                (@arg format: --format [FORMAT] +case_insensitive
+                    possible_values(&Format::variants()) default_value("import")
+                    "Output format")
+            )
+            (@subcommand store =>
+                (about: "Generates a binary export")
+                (@arg dataset: --dataset [DATASET] required(!is_dataset_available)
+                    "Path to gtfs dataset")
+                (@arg profile: --profile [PROFILE]
+                    possible_values(PROFILE_NAMES) default_value(DEFAULT_PROFILE_NAME)
+                    "Profile used for exporting")
+                (@arg date: --date [DATE] {validate_date} default_value("2019-08-26")
+                    "Date in the format yyyy-mm-dd"))
+            (@subcommand load =>
+                (about: "Loads a binary export to check for possible errors")
+                (@arg binary: [BINARY] default_value("wasm/www/data.bin") "Path to stored data")));
+
+        match self {
+            Self::Interactive { .. } => app
+                .setting(clap::AppSettings::NoBinaryName)
+                .setting(clap::AppSettings::DisableVersion),
+            _ => app,
+        }
+    }
+
+    fn history_path() -> PathBuf {
+        let mut path = dirs::data_dir().unwrap();
+        path.push("gtfs-sim");
+        fs::create_dir_all(&path).unwrap();
+        path.push("history.txt");
+        path
+    }
+
+    fn retrieve_dataset(
+        &self,
+        matches: &clap::ArgMatches,
+    ) -> Result<ImportedDatasetRef, Box<dyn Error>> {
+        if let Some(path) = matches.value_of_os("dataset") {
+            let dataset = ImportedDataset::import(path)?;
+            Ok(ImportedDatasetRef::Temporary(dataset))
+        } else {
+            match self {
+                Self::Interactive {
+                    dataset: Some(dataset),
+                } => Ok(ImportedDatasetRef::Stored(&dataset)),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn run(&mut self) {
+        match self {
+            Self::ProgramArguments => {
+                let app = self.build_app();
+                let matches = app.get_matches();
+                self.execute(matches)
+                    .unwrap_or_else(|error| println!("{}", error));
+            }
+            Self::Interactive { .. } => {
+                let mut editor = Editor::<()>::new();
+                let _ = editor.load_history(&Self::history_path());
+                loop {
+                    let app = self.build_app();
+                    let line = match editor.readline("> ") {
+                        Ok(line) => line,
+                        Err(_) => break,
+                    };
+                    let matches = app.get_matches_from_safe(line.split_whitespace());
+                    match matches {
+                        Ok(matches) => {
+                            editor.add_history_entry(line);
+                            self.execute(matches)
+                                .unwrap_or_else(|error| println!("{}", error));
+                        }
+                        Err(error) => {
+                            println!("{}", error);
+                        }
+                    }
+                }
+                let _ = editor.save_history(&Self::history_path());
+            }
+        }
+    }
+
+    fn execute(&mut self, matches: clap::ArgMatches) -> Result<(), Box<dyn Error>> {
+        match matches.subcommand() {
+            ("compress", Some(compress_matches)) => {
+                let directory = compress_matches.value_of_os("directory").unwrap();
+                let archive = compress_matches.value_of_os("archive").unwrap();
+                compress(directory, archive)
+            }
+            ("import", Some(import_matches)) => {
+                let path = import_matches.value_of_os("dataset").unwrap();
+                let imported_dataset = ImportedDataset::import(path)?;
+                match self {
+                    Self::ProgramArguments => {
+                        *self = Self::interactive(Some(imported_dataset));
+                        self.run();
+                    }
+                    Self::Interactive {
+                        ref mut dataset, ..
+                    } => {
+                        *dataset = Some(imported_dataset);
+                    }
+                }
+                Ok(())
+            }
+            ("store", Some(store_matches)) => {
+                let profile = store_matches.value_of("profile").unwrap().try_into()?;
+                let date_formatted = store_matches.value_of("date").unwrap();
+                let date = NaiveDate::parse_from_str(date_formatted, "%F")?;
+                let dataset = self.retrieve_dataset(store_matches)?;
+
+                let file = File::create("wasm/www/data.bin")?;
+                dataset.store_into(file, profile, date)?;
+                Ok(())
+            }
+            ("load", Some(load_matches)) => {
+                let binary = load_matches.value_of_os("binary").unwrap();
+                load(binary)
+            }
+            ("inspect", Some(inspect_matches)) => {
+                let line_name = inspect_matches.value_of("line_name").unwrap();
+                let format =
+                    value_t!(inspect_matches, "format", Format).unwrap_or_else(|e| e.exit());
+                let dataset = self.retrieve_dataset(&inspect_matches)?;
+                inspect(&dataset, line_name, format)
+            }
+            ("", None) => {
+                match self {
+                    Self::ProgramArguments => {
+                        *self = Self::interactive(None);
+                        self.run();
+                    }
+                    Self::Interactive { .. } => {}
+                }
+                Ok(())
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
+fn main() {
+    CommandRunner::program_arguments().run();
 }
