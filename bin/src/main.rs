@@ -141,7 +141,14 @@ impl CommandRunner {
                         Ok(line) => line,
                         Err(_) => break,
                     };
-                    let matches = app.get_matches_from_safe(line.split_whitespace());
+                    let arguments = match shlex::split(&line) {
+                        Some(arguments) => arguments,
+                        None => {
+                            println!("Erroneous input");
+                            continue;
+                        }
+                    };
+                    let matches = app.get_matches_from_safe(arguments);
                     match matches {
                         Ok(matches) => {
                             editor.add_history_entry(line);
