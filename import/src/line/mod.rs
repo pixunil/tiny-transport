@@ -13,4 +13,5 @@ use incomplete_line::IncompleteLine;
 use record::{LineColorRecord, LineRecord};
 
 pub(crate) use importer::Importer;
-pub(crate) use line::{Line, LineId};
+pub use line::Line;
+pub(crate) use line::LineId;

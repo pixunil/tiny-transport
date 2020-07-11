@@ -27,4 +27,4 @@ use trip::Trip;
 use trip_buffer::{TripBuffer, TripId};
 
 pub(crate) use importer::Importer;
-pub(crate) use route::Route;
+pub use route::Route;

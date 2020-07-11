@@ -13,12 +13,12 @@ use zip::ZipArchive;
 mod agency;
 pub mod coord;
 mod deserialize;
-mod line;
+pub mod line;
 mod location;
 pub mod profile;
 mod service;
 mod shape;
-mod trip;
+pub mod trip;
 mod utils;
 
 #[cfg(test)]

@@ -1,10 +1,14 @@
 use std::collections::HashSet;
 use std::error::Error;
+use std::fmt;
+use std::io::{self, Write};
 
 use clap::arg_enum;
 use itertools::Itertools;
 
 use import::coord::{project, project_back, transform, Point};
+use import::line::Line;
+use import::trip::Route;
 use import::ImportedDataset;
 use simulation::{Direction, Directions};
 
@@ -26,33 +30,6 @@ impl Format {
                 format!("{:6}, {:6}", transformed.x, transformed.y)
             }
         }
-    }
-
-    fn print_route_info(self, stop_locations: Vec<String>, shape: Vec<(f64, f64)>) {
-        if !stop_locations.is_empty() {
-            let termini = (
-                stop_locations.first().unwrap(),
-                stop_locations.last().unwrap(),
-            );
-            println!("{}_{}", termini.0, termini.1);
-        } else {
-            println!("‹no stop locations›");
-        }
-        println!("[{}]", stop_locations.iter().format(", "));
-        match self {
-            Self::Import => self.print_shape(shape),
-            Self::Storage | Self::Simulation => {}
-        }
-    }
-
-    fn print_shape(self, shape: Vec<(f64, f64)>) {
-        println!(
-            "[{}]",
-            shape
-                .iter()
-                .dedup()
-                .format_with("; ", |&point, f| f(&self.format_position(point)))
-        );
     }
 }
 
@@ -112,6 +89,38 @@ impl<T: Clone> DirectionVec<T> {
     }
 }
 
+struct ShapeDisplay(Vec<(f64, f64)>, Format);
+
+impl fmt::Display for ShapeDisplay {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        match self.1 {
+            Format::Import => write!(
+                formatter,
+                "[{}]",
+                self.0
+                    .iter()
+                    .dedup()
+                    .format_with("; ", |&point, f| f(&self.1.format_position(point)))
+            ),
+            Format::Simulation | Format::Storage => Ok(()),
+        }
+    }
+}
+
+struct StopLocationsDisplay(Vec<String>, Format);
+
+impl fmt::Display for StopLocationsDisplay {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        if !self.0.is_empty() {
+            let termini = (self.0.first().unwrap(), self.0.last().unwrap());
+            writeln!(formatter, "{}_{}", termini.0, termini.1)?;
+        } else {
+            writeln!(formatter, "‹no stop locations›")?;
+        }
+        write!(formatter, "[{}]", self.0.iter().format(", "))
+    }
+}
+
 #[derive(PartialEq)]
 struct Node {
     position: (f64, f64),
@@ -119,23 +128,26 @@ struct Node {
     location_identifier: Option<String>,
 }
 
-impl Node {
-    fn print(&self, format: Format) {
-        let direction_name = match self.in_directions {
+struct NodeDisplay(Node, Format);
+
+impl fmt::Display for NodeDisplay {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let direction_name = match self.0.in_directions {
             Directions::UpstreamOnly => "UpstreamOnly",
             Directions::DownstreamOnly => "DownstreamOnly",
             Directions::Both => "Both",
         };
-        print!(
+        write!(
+            formatter,
             "{}, {}",
-            format.format_position(self.position),
+            self.1.format_position(self.0.position),
             direction_name
-        );
-        if let Some(location_identifier) = &self.location_identifier {
+        )?;
+        if let Some(location_identifier) = &self.0.location_identifier {
             let padding = " ".repeat(14 - direction_name.len());
-            println!(",{} {};", padding, location_identifier);
+            write!(formatter, ",{} {};", padding, location_identifier)
         } else {
-            println!(";");
+            write!(formatter, ";")
         }
     }
 }
@@ -146,82 +158,116 @@ struct Location {
     identifier: String,
 }
 
-impl Location {
-    fn print(&self, format: Format) {
-        let padding = " ".repeat(36 - self.identifier.len().min(36));
-        println!(
+struct LocationDisplay(Location, Format);
+
+impl fmt::Display for LocationDisplay {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let padding = " ".repeat(36 - self.0.identifier.len().min(36));
+        write!(
+            formatter,
             "{}:{} {}, \"{}\";",
-            self.identifier,
+            self.0.identifier,
             padding,
-            format.format_position(self.position),
-            self.name,
-        );
+            self.1.format_position(self.0.position),
+            self.0.name,
+        )
     }
 }
 
-pub(crate) fn inspect(
-    dataset: &ImportedDataset,
-    line_name: &str,
+fn inspect_route(
+    output: &mut impl Write,
     format: Format,
-) -> Result<(), Box<dyn Error>> {
-    let line = dataset
-        .agencies()
-        .filter(|agency| agency.name() == "Berliner Verkehrsbetriebe")
-        .flat_map(|agency| agency.lines())
-        .find(|line| line.name() == line_name)
-        .ok_or_else(|| format!("No line with name {} found.", line_name))?;
+    route: &Route,
+    locations: &mut Vec<Location>,
+    location_identifiers: &mut HashSet<String>,
+) -> io::Result<()> {
+    let mut stop_locations = DirectionVec::new();
+    let mut shapes = DirectionVec::new();
+    let mut nodes = Vec::new();
 
+    for node in route.nodes() {
+        let mut location_identifier = None;
+
+        if let Some(location) = &node.location() {
+            let name = normalize_name(location.name());
+            let identifier = make_identifier(name);
+
+            if location_identifiers.insert(identifier.clone()) {
+                locations.push(Location {
+                    position: round_position(location.position()),
+                    name: name.to_string(),
+                    identifier: identifier.clone(),
+                });
+            }
+            stop_locations.push(node.in_directions(), identifier.clone());
+            location_identifier = Some(identifier);
+        }
+
+        let position = round_position(node.position());
+        nodes.push(Node {
+            position,
+            in_directions: node.in_directions(),
+            location_identifier,
+        });
+        shapes.push(node.in_directions(), position);
+    }
+
+    let stop_locations_display = StopLocationsDisplay(stop_locations.upstream, format);
+    writeln!(output, "{}", stop_locations_display)?;
+    writeln!(output, "{}", ShapeDisplay(shapes.upstream, format))?;
+    stop_locations.downstream.reverse();
+    shapes.downstream.reverse();
+    let stop_locations_display = StopLocationsDisplay(stop_locations.downstream, format);
+    writeln!(output, "{}", stop_locations_display)?;
+    writeln!(output, "{}", ShapeDisplay(shapes.downstream, format))?;
+
+    nodes.dedup();
+    for node in nodes {
+        writeln!(output, "{}", NodeDisplay(node, format))?;
+    }
+    Ok(())
+}
+
+fn inspect_line(output: &mut impl Write, format: Format, line: &Line) -> io::Result<()> {
     let mut locations = Vec::new();
     let mut location_identifiers = HashSet::new();
 
     for route in line.routes() {
-        let mut stop_locations = DirectionVec::new();
-        let mut shapes = DirectionVec::new();
-        let mut nodes = Vec::new();
-
-        for node in route.nodes() {
-            let mut location_identifier = None;
-
-            if let Some(location) = &node.location() {
-                let name = normalize_name(location.name());
-                let identifier = make_identifier(name);
-
-                if location_identifiers.insert(identifier.clone()) {
-                    locations.push(Location {
-                        position: round_position(location.position()),
-                        name: name.to_string(),
-                        identifier: identifier.clone(),
-                    });
-                }
-                stop_locations.push(node.in_directions(), identifier.clone());
-                location_identifier = Some(identifier);
-            }
-
-            let position = round_position(node.position());
-            nodes.push(Node {
-                position,
-                in_directions: node.in_directions(),
-                location_identifier,
-            });
-            shapes.push(node.in_directions(), position);
-        }
-
-        format.print_route_info(stop_locations.upstream, shapes.upstream);
-        stop_locations.downstream.reverse();
-        shapes.downstream.reverse();
-        format.print_route_info(stop_locations.downstream, shapes.downstream);
-
-        nodes.dedup();
-        for node in nodes {
-            node.print(format)
-        }
-
-        println!();
+        inspect_route(
+            output,
+            format,
+            route,
+            &mut locations,
+            &mut location_identifiers,
+        )?;
+        writeln!(output)?;
     }
 
     for location in locations {
-        location.print(format);
+        writeln!(output, "{}", LocationDisplay(location, format))?;
     }
+    Ok(())
+}
 
+pub(crate) fn inspect(
+    dataset: &ImportedDataset,
+    agency_name: Option<&str>,
+    line_name: &str,
+    format: Format,
+    output: &mut impl Write,
+) -> Result<(), Box<dyn Error>> {
+    let lines = dataset
+        .agencies()
+        .filter(|agency| match agency_name {
+            Some(agency_name) => agency.name().contains(agency_name),
+            None => true,
+        })
+        .flat_map(|agency| agency.lines())
+        .filter(|line| line.name() == line_name);
+
+    for line in lines {
+        inspect_line(output, format, line)?;
+        writeln!(output)?;
+    }
     Ok(())
 }

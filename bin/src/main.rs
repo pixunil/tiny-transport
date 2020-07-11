@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use std::error::Error;
 use std::fs::{self, File};
+use std::io::{self, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
 
@@ -73,10 +74,12 @@ impl CommandRunner {
                 (about: "Inspects the dataset")
                 (@arg dataset: --dataset [DATASET] required(!is_dataset_available)
                     "Path to gtfs dataset")
+                (@arg agency_name: --agency [AGENCY] "Filter after agency name")
                 (@arg line_name: <LINE> "Line name to inspect")
                 (@arg format: --format [FORMAT] +case_insensitive
                     possible_values(&Format::variants()) default_value("import")
                     "Output format")
+                (@arg output: --output [FILE] "Path to output file")
             )
             (@subcommand store =>
                 (about: "Generates a binary export")
@@ -204,10 +207,15 @@ impl CommandRunner {
             }
             ("inspect", Some(inspect_matches)) => {
                 let line_name = inspect_matches.value_of("line_name").unwrap();
+                let agency_name = inspect_matches.value_of("agency_name");
                 let format =
                     value_t!(inspect_matches, "format", Format).unwrap_or_else(|e| e.exit());
+                let mut output: Box<dyn Write> = match inspect_matches.value_of_os("output") {
+                    Some(path) => Box::new(File::create(path)?),
+                    None => Box::new(io::stdout()),
+                };
                 let dataset = self.retrieve_dataset(&inspect_matches)?;
-                inspect(&dataset, line_name, format)
+                inspect(&dataset, agency_name, line_name, format, &mut output)
             }
             ("", None) => {
                 match self {
