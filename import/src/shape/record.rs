@@ -14,11 +14,11 @@ pub(super) struct ShapeRecord {
 
 impl ShapeRecord {
     pub(super) fn import(self, shapes: &mut HashMap<ShapeId, Shape>) {
-        let waypoint = project(self.shape_pt_lat, self.shape_pt_lon);
+        let position = project(self.shape_pt_lat, self.shape_pt_lon);
         shapes
             .entry(self.shape_id)
-            .or_insert_with(Vec::new)
-            .push(waypoint)
+            .or_insert_with(Shape::new)
+            .add(position)
     }
 }
 
@@ -39,7 +39,7 @@ mod tests {
         assert_eq!(
             shapes,
             map! {
-                "1" => vec![project(52.526, 13.369)],
+                "1" => Shape::from(vec![project(52.526, 13.369)]),
             }
         );
     }

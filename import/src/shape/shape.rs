@@ -1,9 +1,64 @@
-use crate::coord::Point;
+use std::fmt;
+use std::iter;
+
+use crate::coord::{Point, PointDebug};
 use crate::create_id_type;
 
 create_id_type!(ShapeId);
 
-pub(crate) type Shape = Vec<Point>;
+#[derive(PartialEq, Clone)]
+pub(crate) struct Shape {
+    points: Vec<Point>,
+}
+
+impl Shape {
+    pub(super) fn new() -> Self {
+        Self { points: Vec::new() }
+    }
+
+    pub(super) fn add(&mut self, position: Point) {
+        self.points.push(position);
+    }
+
+    pub(crate) fn iter_count(&self, count: usize) -> impl Iterator<Item = Point> + '_ {
+        self.points
+            .iter()
+            .chain(
+                iter::repeat(self.points.last().unwrap())
+                    .take(count.saturating_sub(self.points.len())),
+            )
+            .copied()
+    }
+}
+
+impl From<Vec<Point>> for Shape {
+    fn from(value: Vec<Point>) -> Self {
+        Self { points: value }
+    }
+}
+
+impl IntoIterator for Shape {
+    type Item = Point;
+    type IntoIter = <Vec<Point> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.points.into_iter()
+    }
+}
+
+#[cfg(not(tarpaulin_include))]
+impl fmt::Debug for Shape {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter
+            .debug_list()
+            .entries(
+                self.points
+                    .iter()
+                    .map(|&position| PointDebug::new(position, 4)),
+            )
+            .finish()
+    }
+}
 
 #[cfg(test)]
 pub(crate) mod fixtures {
@@ -19,7 +74,9 @@ pub(crate) mod fixtures {
 
                     $(
                         pub(crate) fn $shape() -> Shape {
-                            vec![$(project($lat, $lon)),*]
+                            Shape {
+                                points: vec![$( project($lat, $lon) ),*],
+                            }
                         }
                     )*
 

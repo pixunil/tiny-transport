@@ -4,7 +4,6 @@ use std::rc::Rc;
 use ordered_float::NotNan;
 
 use super::{Node, Route, Trip};
-use crate::coord::Point;
 use crate::location::Location;
 use crate::shape::Shape;
 use itertools::Itertools;
@@ -118,8 +117,8 @@ impl RouteVariant {
         }
     }
 
-    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &[Point]) -> bool {
-        self.locations == locations && self.shape == shape
+    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &Shape) -> bool {
+        self.locations == locations && &self.shape == shape
     }
 
     pub(super) fn difference(&self, downstream: &Self) -> impl Ord {
@@ -158,12 +157,8 @@ impl RouteVariant {
     fn nodes(&self, direction: Direction) -> Vec<Node> {
         let mut nodes = self
             .shape
-            .iter()
-            .chain(
-                iter::repeat(self.shape.last().unwrap())
-                    .take(self.locations.len().saturating_sub(self.shape.len())),
-            )
-            .map(|waypoint| Node::new(*waypoint, direction.into()))
+            .iter_count(self.locations.len())
+            .map(|position| Node::new(position, direction.into()))
             .collect::<Vec<_>>();
 
         for candidate in StopCandidate::distribute_across(&nodes, &self.locations) {

@@ -35,7 +35,7 @@ impl Importer {
         for point in shape {
             smoother.add(point);
         }
-        smoother.points
+        smoother.finish()
     }
 }
 
@@ -104,6 +104,10 @@ impl PointSmoother {
         }
         while self.smooth_zigzag() {}
     }
+
+    fn finish(self) -> Shape {
+        Shape::from(self.points)
+    }
 }
 
 #[cfg(test)]
@@ -119,14 +123,20 @@ mod tests {
     fn test_remove_overlapping() {
         let mut shape = shape!(blue);
         shape.insert(3, shape[2]);
-        assert_eq!(Importer::smooth(shape), shape!(blue));
+        assert_eq!(
+            Importer::smooth(Shape::from(shape)),
+            Shape::from(shape!(blue))
+        );
     }
 
     #[test]
     fn test_remove_spike() {
         let mut shape = shape!(blue);
         shape.insert(3, project(13.392, 52.508));
-        assert_eq!(Importer::smooth(shape), shape!(blue));
+        assert_eq!(
+            Importer::smooth(Shape::from(shape)),
+            Shape::from(shape!(blue))
+        );
     }
 
     #[test]
@@ -134,7 +144,10 @@ mod tests {
         let mut shape = shape!(blue);
         shape.insert(3, project(13.386, 52.521));
         shape.insert(4, shape[2]);
-        assert_eq!(Importer::smooth(shape), shape!(blue));
+        assert_eq!(
+            Importer::smooth(Shape::from(shape)),
+            Shape::from(shape!(blue))
+        );
     }
 
     #[test]
@@ -144,7 +157,10 @@ mod tests {
         let offset = Vector2::new(0.0, 100.0);
         shape.insert(2, original + offset);
         shape.insert(3, original - offset);
-        assert_eq!(Importer::smooth(shape), shape!(blue));
+        assert_eq!(
+            Importer::smooth(Shape::from(shape)),
+            Shape::from(shape!(blue))
+        );
     }
 
     #[test]
@@ -164,8 +180,8 @@ mod tests {
         assert_eq!(
             Importer::import(&mut dataset).unwrap(),
             map! {
-                "1" => shape!(52.51, 13.37; 52.52, 13.37),
-                "2" => shape!(blue),
+                "1" => Shape::from(shape!(52.51, 13.37; 52.52, 13.37)),
+                "2" => Shape::from(shape!(blue)),
             }
         );
     }
