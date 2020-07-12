@@ -117,13 +117,13 @@ mod tests {
     use super::*;
     use crate::coord::project;
     use crate::{dataset, shape};
-    use test_utils::map;
+    use test_utils::{assert_eq_alternate, map};
 
     #[test]
     fn test_remove_overlapping() {
         let mut shape = shape!(blue);
         shape.insert(3, shape[2]);
-        assert_eq!(
+        assert_eq_alternate!(
             Importer::smooth(Shape::from(shape)),
             Shape::from(shape!(blue))
         );
@@ -133,7 +133,7 @@ mod tests {
     fn test_remove_spike() {
         let mut shape = shape!(blue);
         shape.insert(3, project(13.392, 52.508));
-        assert_eq!(
+        assert_eq_alternate!(
             Importer::smooth(Shape::from(shape)),
             Shape::from(shape!(blue))
         );
@@ -144,7 +144,7 @@ mod tests {
         let mut shape = shape!(blue);
         shape.insert(3, project(13.386, 52.521));
         shape.insert(4, shape[2]);
-        assert_eq!(
+        assert_eq_alternate!(
             Importer::smooth(Shape::from(shape)),
             Shape::from(shape!(blue))
         );
@@ -157,7 +157,7 @@ mod tests {
         let offset = Vector2::new(0.0, 100.0);
         shape.insert(2, original + offset);
         shape.insert(3, original - offset);
-        assert_eq!(
+        assert_eq_alternate!(
             Importer::smooth(Shape::from(shape)),
             Shape::from(shape!(blue))
         );
@@ -177,7 +177,7 @@ mod tests {
                 2,        52.523,       13.402
         );
 
-        assert_eq!(
+        assert_eq_alternate!(
             Importer::import(&mut dataset).unwrap(),
             map! {
                 "1" => Shape::from(shape!(52.51, 13.37; 52.52, 13.37)),

@@ -1,3 +1,22 @@
+/// Like `assert_eq!`, but uses `{:#?}` for printing the value on failure.
+#[macro_export]
+macro_rules! assert_eq_alternate {
+    ($left:expr, $right:expr $(,)?) => {{
+        match (&$left, &$right) {
+            (left_val, right_val) => {
+                if !(*left_val == *right_val) {
+                    panic!(
+                        r#"assertion failed: `(left == right)`
+  left: `{:#?}`,
+ right: `{:#?}`"#,
+                        &*left_val, &*right_val
+                    )
+                }
+            }
+        }
+    }};
+}
+
 #[macro_export]
 macro_rules! map {
     () => (

@@ -257,6 +257,7 @@ mod tests {
     use super::*;
     use crate::fixtures::{nodes, shapes, stop_locations};
     use simulation::Directions;
+    use test_utils::assert_eq_alternate;
 
     macro_rules! test_nodes {
         ($line:ident :: $route:ident, $direction:ident) => {{
@@ -270,13 +271,13 @@ mod tests {
             if Direction::$direction == Direction::Downstream {
                 expected_nodes.reverse();
             }
-            assert_eq!(variant.nodes(Direction::$direction), expected_nodes);
+            assert_eq_alternate!(variant.nodes(Direction::$direction), expected_nodes);
             variant
         }};
         ($line:ident :: { $upstream:ident, $downstream:ident }) => {{
             let upstream = test_nodes!($line::$upstream, Upstream);
             let downstream = test_nodes!($line::$downstream, $line::$upstream, Downstream);
-            assert_eq!(
+            assert_eq_alternate!(
                 upstream.merge_nodes(&downstream),
                 nodes::$line::$upstream(Directions::Both)
             );

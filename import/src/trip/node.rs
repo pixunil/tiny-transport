@@ -378,6 +378,7 @@ mod tests {
     use super::*;
     use crate::coord::project;
     use crate::fixtures::{locations, nodes};
+    use test_utils::assert_eq_alternate;
 
     #[test]
     fn test_getters() {
@@ -430,7 +431,7 @@ mod tests {
     #[test]
     fn test_store() {
         let mut linearizer = Linearizer::new();
-        assert_eq!(
+        assert_eq_alternate!(
             nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both)
                 .into_iter()
                 .map(|node| node.store(&mut linearizer))

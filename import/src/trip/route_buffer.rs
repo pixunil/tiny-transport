@@ -125,7 +125,7 @@ pub(crate) mod fixtures {
 mod tests {
     use super::*;
     use crate::fixtures::{route_buffers, route_variants, routes, shapes, stop_locations, trips};
-    use test_utils::time;
+    use test_utils::{assert_eq_alternate, time};
 
     #[test]
     fn test_create_first_upstream_variant() {
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn test_into_routes_same_terminus() {
         let buffer = route_buffers::tram_12::with_1_upstream_1_downstream();
-        assert_eq!(
+        assert_eq_alternate!(
             buffer.into_routes(),
             vec![routes::tram_12::oranienburger_tor_am_kupfergraben()]
         );
@@ -184,7 +184,7 @@ mod tests {
                 route_variants::tram_m10::warschauer_str_lueneburger_str(),
             ],
         };
-        assert_eq!(
+        assert_eq_alternate!(
             buffer.into_routes(),
             vec![
                 routes::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(),
