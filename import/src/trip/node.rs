@@ -4,7 +4,7 @@ use std::rc::Rc;
 use itertools::Itertools;
 use ordered_float::NotNan;
 
-use crate::coord::{debug_position, transform, Point};
+use crate::coord::{transform, Point, PointDebug};
 use crate::location::{Linearizer, Location};
 use simulation::{Direction, Directions};
 
@@ -89,7 +89,7 @@ impl Node {
 #[cfg(not(tarpaulin_include))]
 impl fmt::Debug for Node {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let position = debug_position(self.position, formatter.alternate());
+        let position = PointDebug::new(self.position, if formatter.alternate() { 6 } else { 3 });
         match &self.kind {
             Kind::Waypoint => formatter
                 .debug_struct("Waypoint")

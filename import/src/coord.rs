@@ -1,6 +1,7 @@
+use std::fmt;
+
 use geomorph::coord::Coord;
 use geomorph::utm::Utm;
-
 use na::Point2;
 
 pub type Point = Point2<f64>;
@@ -22,13 +23,31 @@ pub fn transform(point: Point) -> Point2<f32> {
     Point2::new(translated.x.round() as f32, -translated.y.round() as f32)
 }
 
+pub(crate) struct PointDebug {
+    position: Point,
+    precision: usize,
+}
+
 #[cfg(not(tarpaulin_include))]
-pub(crate) fn debug_position(position: Point, alternate: bool) -> String {
-    let (lat, lon) = project_back(position);
-    format!(
-        "({:.precision$}, {:.precision$})",
-        lat,
-        lon,
-        precision = if alternate { 6 } else { 3 }
-    )
+impl PointDebug {
+    pub(crate) fn new(position: Point, precision: usize) -> Self {
+        PointDebug {
+            position,
+            precision,
+        }
+    }
+}
+
+#[cfg(not(tarpaulin_include))]
+impl fmt::Debug for PointDebug {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let (lat, lon) = project_back(self.position);
+        write!(
+            formatter,
+            "({:.precision$}, {:.precision$})",
+            lat,
+            lon,
+            precision = self.precision
+        )
+    }
 }
