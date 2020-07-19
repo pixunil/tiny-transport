@@ -1,6 +1,7 @@
 mod importer;
 mod record;
 mod shape;
+mod smoother;
 
 #[cfg(test)]
 pub(crate) mod fixtures {
@@ -11,3 +12,4 @@ use record::ShapeRecord;
 
 pub(crate) use importer::Importer;
 pub(crate) use shape::{Shape, ShapeId};
+pub use smoother::Mode as SmoothMode;

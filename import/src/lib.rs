@@ -17,7 +17,7 @@ pub mod line;
 mod location;
 pub mod profile;
 mod service;
-mod shape;
+pub mod shape;
 pub mod trip;
 mod utils;
 
@@ -28,6 +28,7 @@ use crate::agency::Agency;
 use crate::line::Line;
 use crate::location::Linearizer;
 use crate::profile::Profile;
+use crate::shape::SmoothMode;
 use crate::utils::Dataset;
 
 pub struct ImportedDataset {
@@ -35,10 +36,13 @@ pub struct ImportedDataset {
 }
 
 impl ImportedDataset {
-    fn fetch(mut dataset: impl Dataset) -> Result<Self, Box<dyn Error>> {
+    fn fetch(
+        mut dataset: impl Dataset,
+        shape_smoothing: SmoothMode,
+    ) -> Result<Self, Box<dyn Error>> {
         let services = service::Importer::import(&mut dataset)?;
         let locations = location::Importer::import(&mut dataset)?;
-        let shapes = shape::Importer::import(&mut dataset)?;
+        let shapes = shape::Importer::import(&mut dataset, shape_smoothing)?;
         let line_importer = line::Importer::import(&mut dataset)?;
         let trip_importer = trip::Importer::new(
             &services,
@@ -53,15 +57,18 @@ impl ImportedDataset {
         Ok(Self { agencies })
     }
 
-    pub fn import(path: impl AsRef<OsStr>) -> Result<Self, Box<dyn Error>> {
+    pub fn import(
+        path: impl AsRef<OsStr>,
+        shape_smoothing: SmoothMode,
+    ) -> Result<Self, Box<dyn Error>> {
         let path = Path::new(&path);
         if path.is_dir() {
             let mut path = PathBuf::from(&path);
             path.push(".txt");
-            Self::fetch(path)
+            Self::fetch(path, shape_smoothing)
         } else {
             let archive = ZipArchive::new(File::open(&path)?)?;
-            Self::fetch(archive)
+            Self::fetch(archive, shape_smoothing)
         }
     }
 

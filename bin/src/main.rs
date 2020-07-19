@@ -10,6 +10,7 @@ use clap::{clap_app, value_t};
 use rustyline::Editor;
 
 use import::profile::{DEFAULT_PROFILE_NAME, PROFILE_NAMES};
+use import::shape::SmoothMode;
 use import::ImportedDataset;
 
 mod compress;
@@ -57,6 +58,9 @@ impl CommandRunner {
                 (about: "Imports a dataset")
                 (@setting TrailingVarArg)
                 (@arg dataset: <DATASET> "Path to gtfs dataset")
+                (@arg shape_smoothing: --("shape-smoothing") [MODE] +case_insensitive
+                    possible_values(&SmoothMode::variants()) default_value("full")
+                    "Smooth mode for processing shapes")
                 (@arg command: [COMMAND] +last +multiple "Command to run afterwards"))
             (@subcommand inspect =>
                 (about: "Inspects the imported dataset")
@@ -150,7 +154,8 @@ impl CommandRunner {
                     app.get_matches_from(command)
                 });
                 let path = import_matches.value_of_os("dataset").unwrap();
-                self.dataset = Some(ImportedDataset::import(path)?);
+                let shape_smoothing = value_t!(import_matches, "shape_smoothing", SmoothMode)?;
+                self.dataset = Some(ImportedDataset::import(path, shape_smoothing)?);
                 if let Some(command_matches) = command_matches {
                     return self.execute(command_matches);
                 }
