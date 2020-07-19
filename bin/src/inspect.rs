@@ -16,29 +16,45 @@ arg_enum! {
     #[derive(Debug, Clone, Copy)]
     pub enum Format {
         Import,
+        ImportLong,
         Storage,
         Simulation,
     }
 }
 
 impl Format {
+    fn round_position(self, position: Point) -> (f64, f64) {
+        fn round(value: f64, factor: f64) -> f64 {
+            (value * factor).round() / factor
+        }
+
+        let (lat, lon) = project_back(position);
+        match self {
+            Self::Import | Self::Storage | Self::Simulation => {
+                let factor = 1000.0;
+                (round(lat, factor), round(lon, factor))
+            }
+            Self::ImportLong => (lat, lon),
+        }
+    }
+
     fn format_position(self, (lat, lon): (f64, f64)) -> String {
         match self {
             Self::Import => format!("{:.3}, {:.3}", lat, lon),
+            Self::ImportLong => format!("{:.6}, {:.6}", lat, lon),
             Self::Storage | Self::Simulation => {
                 let transformed = transform(project(lat, lon));
                 format!("{:6}, {:6}", transformed.x, transformed.y)
             }
         }
     }
-}
 
-fn round_position(position: Point) -> (f64, f64) {
-    let (lat, lon) = project_back(position);
-    (
-        (lat * 1000.0).round() / 1000.0,
-        (lon * 1000.0).round() / 1000.0,
-    )
+    fn should_dedup(self) -> bool {
+        match self {
+            Self::Import | Self::Storage | Self::Simulation => true,
+            Self::ImportLong => false,
+        }
+    }
 }
 
 fn normalize_name(mut name: &str) -> &str {
@@ -100,6 +116,13 @@ impl fmt::Display for ShapeDisplay {
                 self.0
                     .iter()
                     .dedup()
+                    .format_with("; ", |&point, f| f(&self.1.format_position(point)))
+            ),
+            Format::ImportLong => write!(
+                formatter,
+                "[{}]",
+                self.0
+                    .iter()
                     .format_with("; ", |&point, f| f(&self.1.format_position(point)))
             ),
             Format::Simulation | Format::Storage => Ok(()),
@@ -207,7 +230,7 @@ impl<'a, W: Write> Inspector<'a, W> {
 
                 if location_identifiers.insert(identifier.clone()) {
                     locations.push(Location {
-                        position: round_position(location.position()),
+                        position: self.format.round_position(location.position()),
                         name: name.to_string(),
                         identifier: identifier.clone(),
                     });
@@ -216,7 +239,7 @@ impl<'a, W: Write> Inspector<'a, W> {
                 location_identifier = Some(identifier);
             }
 
-            let position = round_position(node.position());
+            let position = self.format.round_position(node.position());
             nodes.push(Node {
                 position,
                 in_directions: node.in_directions(),
@@ -232,7 +255,9 @@ impl<'a, W: Write> Inspector<'a, W> {
         self.write(StopLocationsDisplay(stop_locations.downstream, self.format))?;
         self.write(ShapeDisplay(shapes.downstream, self.format))?;
 
-        nodes.dedup();
+        if self.format.should_dedup() {
+            nodes.dedup();
+        }
         for node in nodes {
             self.write(NodeDisplay(node, self.format))?;
         }
