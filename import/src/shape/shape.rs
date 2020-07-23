@@ -29,6 +29,12 @@ impl Shape {
             )
             .copied()
     }
+
+    #[cfg(test)]
+    pub(in crate::shape) fn reversed(mut self) -> Self {
+        self.points.reverse();
+        self
+    }
 }
 
 impl From<Vec<Point>> for Shape {
@@ -54,7 +60,7 @@ impl fmt::Debug for Shape {
             .entries(
                 self.points
                     .iter()
-                    .map(|&position| PointDebug::new(position, 4)),
+                    .map(|&position| PointDebug::new(position, 6)),
             )
             .finish()
     }
