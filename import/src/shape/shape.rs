@@ -103,6 +103,14 @@ pub(crate) mod fixtures {
                 52.549, 13.388; 52.503, 13.469; 52.475, 13.366; 52.501, 13.283; 52.549, 13.388;
             ],
         },
+        u4: {
+            nollendorfplatz_innsbrucker_platz => [
+                52.500, 13.354; 52.496, 13.343; 52.489, 13.340; 52.483, 13.342; 52.478, 13.343;
+            ],
+            innsbrucker_platz_nollendorfplatz => [
+                52.478, 13.343; 52.483, 13.342; 52.489, 13.340; 52.496, 13.343; 52.500, 13.354;
+            ],
+        },
         tram_m10: {
             clara_jaschke_str_warschauer_str => [
                 52.525, 13.366; 52.526, 13.370; 52.529, 13.377; 52.530, 13.382; 52.532, 13.388;
@@ -169,23 +177,5 @@ pub(crate) mod fixtures {
                 52.421, 13.177; 52.421, 13.178; 52.422, 13.179; 52.422, 13.180; 52.422, 13.179; 52.422, 13.178;
             ],
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[macro_export]
-    macro_rules! shape {
-        ($($lat:expr, $lon:expr);*) => (
-            vec![$($crate::coord::project($lat, $lon)),*]
-        );
-        (blue) => (
-            $crate::shape!(52.526, 13.369; 52.523, 13.378; 52.520, 13.387; 52.521, 13.394; 52.523, 13.402)
-        );
-        ($shape:ident reversed) => ({
-            let mut shape = $crate::shape!($shape);
-            shape.reverse();
-            shape
-        });
     }
 }

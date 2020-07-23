@@ -37,7 +37,8 @@ impl Importer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{dataset, shape};
+    use crate::dataset;
+    use crate::fixtures::shapes;
     use test_utils::{assert_eq_alternate, map};
 
     #[test]
@@ -45,20 +46,23 @@ mod tests {
         let mut dataset = dataset!(
             shapes:
                 shape_id, shape_pt_lat, shape_pt_lon;
-                1,        52.51,        13.37;
-                1,        52.52,        13.37;
-                2,        52.526,       13.369;
-                2,        52.523,       13.378;
-                2,        52.520,       13.387;
-                2,        52.521,       13.394;
-                2,        52.523,       13.402
+                1,        52.500,       13.354;
+                2,        52.478,       13.343;
+                1,        52.496,       13.343;
+                1,        52.489,       13.340;
+                2,        52.483,       13.342;
+                2,        52.489,       13.340;
+                2,        52.496,       13.343;
+                1,        52.483,       13.342;
+                1,        52.478,       13.343;
+                2,        52.500,       13.354
         );
 
         assert_eq_alternate!(
             Importer::import(&mut dataset, Mode::Full).unwrap(),
             map! {
-                "1" => Shape::from(shape!(52.51, 13.37; 52.52, 13.37)),
-                "2" => Shape::from(shape!(blue)),
+                "1" => shapes::u4::nollendorfplatz_innsbrucker_platz(),
+                "2" => shapes::u4::innsbrucker_platz_nollendorfplatz(),
             }
         );
     }
