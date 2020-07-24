@@ -93,3 +93,45 @@ impl<'a> Importer<'a> {
         Ok(self.combine_into_routes(buffers))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dataset;
+    use crate::fixtures::{locations, routes, services, shapes};
+    use test_utils::{assert_eq_alternate, map};
+
+    #[test]
+    fn test_import_trip_buffers() {
+        let mut dataset = dataset!(
+            trips:
+                trip_id, route_id, service_id, shape_id,                        direction_id;
+                1,       tram_12,  mon_fri,    tram_12::oranienburger_tor_am_kupfergraben, 0;
+                2,       tram_12,  mon_fri,    tram_12::am_kupfergraben_oranienburger_tor, 1
+            stop_times:
+                trip_id, stop_id,                    arrival_time, departure_time;
+                1,       oranienburger_tor,          "9:02:00",    "9:02:00";
+                1,       friedrichstr,               "9:04:00",    "9:04:00";
+                1,       universitaetsstr,           "9:06:00",    "9:06:00";
+                1,       am_kupfergraben,            "9:07:00",    "9:07:00";
+                2,       am_kupfergraben,            "8:34:00",    "8:34:00";
+                2,       georgenstr_am_kupfergraben, "8:35:00",    "8:35:00";
+                2,       friedrichstr,               "8:38:00",    "8:38:00";
+                2,       oranienburger_tor,          "8:40:00",    "8:40:00"
+        );
+        let id_mapping = map! {
+            "tram_12" => 0,
+        };
+
+        let services = services::by_id();
+        let locations = locations::by_id();
+        let shapes = shapes::by_id();
+        let importer = Importer::new(&services, &locations, &shapes, &id_mapping, 1);
+        let routes = importer.import(&mut dataset).unwrap();
+        assert_eq!(routes.len(), 1);
+        assert_eq_alternate!(
+            routes[0],
+            vec![routes::tram_12::oranienburger_tor_am_kupfergraben()],
+        );
+    }
+}

@@ -70,13 +70,15 @@ impl fmt::Debug for Shape {
 pub(crate) mod fixtures {
     macro_rules! shapes {
         ($($line:ident: {$($shape:ident => [$($lat:expr, $lon:expr);* $(;)?]),* $(,)?}),* $(,)?) => (
+            use std::collections::HashMap;
+
+            use crate::shape::{Shape, ShapeId};
+            use test_utils::map;
+
             $(
                 pub(crate) mod $line {
-                    use std::collections::HashMap;
-
-                    use test_utils::map;
+                    use super::*;
                     use crate::coord::project;
-                    use crate::shape::{Shape, ShapeId};
 
                     $(
                         pub(crate) fn $shape() -> Shape {
@@ -94,6 +96,17 @@ pub(crate) mod fixtures {
                     }
                 }
             )*
+
+            pub(crate) fn by_id() -> HashMap<ShapeId, Shape> {
+                map! {
+                    $(
+                        $(
+                            format!("{}::{}", stringify!($line), stringify!($shape)).as_str()
+                            => $line::$shape(),
+                        )*
+                    )*
+                }
+            }
         );
     }
 
