@@ -49,7 +49,7 @@ impl ImportedDataset {
             &locations,
             &shapes,
             line_importer.id_mapping(),
-            line_importer.num_lines(),
+            line_importer.line_count(),
         );
         let routes = trip_importer.import(&mut dataset)?;
         let lines = line_importer.finish(routes)?;

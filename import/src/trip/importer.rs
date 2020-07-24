@@ -15,7 +15,7 @@ pub(crate) struct Importer<'a> {
     locations: &'a HashMap<LocationId, Rc<Location>>,
     shapes: &'a HashMap<ShapeId, Shape>,
     id_mapping: &'a HashMap<LineId, usize>,
-    num_lines: usize,
+    line_count: usize,
 }
 
 impl<'a> Importer<'a> {
@@ -24,14 +24,14 @@ impl<'a> Importer<'a> {
         locations: &'a HashMap<LocationId, Rc<Location>>,
         shapes: &'a HashMap<ShapeId, Shape>,
         id_mapping: &'a HashMap<LineId, usize>,
-        num_lines: usize,
+        line_count: usize,
     ) -> Importer<'a> {
         Importer {
             services,
             locations,
             shapes,
             id_mapping,
-            num_lines,
+            line_count,
         }
     }
 
@@ -67,7 +67,7 @@ impl<'a> Importer<'a> {
     fn combine_into_routes(&self, buffers: HashMap<TripId, TripBuffer>) -> Vec<Vec<Route>> {
         let mut action = Action::start("Assigning trips to their lines");
         let mut route_buffers = iter::repeat_with(RouteBuffer::new)
-            .take(self.num_lines)
+            .take(self.line_count)
             .collect();
 
         for (_, buffer) in action.wrap_iter(buffers) {

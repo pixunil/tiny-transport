@@ -55,7 +55,7 @@ impl Importer {
         &self.id_mapping
     }
 
-    pub(crate) fn num_lines(&self) -> usize {
+    pub(crate) fn line_count(&self) -> usize {
         self.incomplete_lines.len()
     }
 
@@ -79,22 +79,47 @@ impl Importer {
 mod tests {
     use super::*;
     use crate::dataset;
-    use crate::fixtures::lines;
-    use test_utils::map;
+    use crate::fixtures::{lines, routes};
+    use test_utils::{assert_eq_alternate, map};
 
     #[test]
-    fn test_deduplication() {
+    fn test_import() {
         let mut dataset = dataset!(
             routes:
                 route_id, agency_id, route_short_name, route_type;
-                1,        1,         "Blue Line",      109;
-                2,        1,         "Blue Line",      109
+                1,        1,         "S1",             109;
+                2,        1,         "S42",            109;
+                3,        2,         "U4",             400;
+                4,        2,         "12",             900
         );
 
         let importer = Importer::import_lines(&mut dataset).unwrap();
-        assert_eq!(
-            importer.id_mapping,
-            map! {
+        assert_eq!(importer.line_count(), 4);
+        assert_eq_alternate!(
+            importer.id_mapping(),
+            &map! {
+                "1" => 0,
+                "2" => 1,
+                "3" => 2,
+                "4" => 3,
+            }
+        );
+    }
+
+    #[test]
+    fn test_import_deduplication() {
+        let mut dataset = dataset!(
+            routes:
+                route_id, agency_id, route_short_name, route_type;
+                1,        1,         "S1",             109;
+                2,        1,         "S1",             109
+        );
+
+        let importer = Importer::import_lines(&mut dataset).unwrap();
+        assert_eq!(importer.line_count(), 1);
+        assert_eq_alternate!(
+            importer.id_mapping(),
+            &map! {
                 "1" => 0,
                 "2" => 0,
             }
@@ -102,22 +127,34 @@ mod tests {
     }
 
     #[test]
-    fn test_from_csv() {
+    fn test_finish() {
         let mut dataset = dataset!(
             routes:
                 route_id, agency_id, route_short_name, route_type;
-                1,        1,         "S42",            109;
-                2,        1,         "U4",             400
+                1,        1,         "S1",             109;
+                2,        1,         "S42",            109;
+                3,        2,         "U4",             400;
+                4,        2,         "12",             900
             colors:
                 line,         color;
+                "S1",         "#dc6ba6";
                 "S42",        "#cc6112";
                 "U4",         "#ffd900"
         );
 
         let importer = Importer::import(&mut dataset).unwrap();
-        let lines = importer.finish(vec![Vec::new(), Vec::new()]).unwrap();
-        assert_eq!(lines.len(), 1);
+        let lines = importer
+            .finish(vec![
+                vec![],
+                vec![],
+                vec![],
+                vec![routes::tram_12::oranienburger_tor_am_kupfergraben()],
+            ])
+            .unwrap();
+        assert_eq!(lines.len(), 2);
+        assert!(lines[&"1".into()].contains(&lines::s1()));
         assert!(lines[&"1".into()].contains(&lines::s42()));
-        assert!(lines[&"1".into()].contains(&lines::u4()));
+        assert!(lines[&"2".into()].contains(&lines::u4()));
+        assert!(lines[&"2".into()].contains(&lines::tram_12_with_route()));
     }
 }

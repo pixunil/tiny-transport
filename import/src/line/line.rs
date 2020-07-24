@@ -58,6 +58,7 @@ impl Line {
 #[cfg(test)]
 pub(crate) mod fixtures {
     use super::*;
+    use crate::fixtures::routes;
 
     macro_rules! lines {
         ($($line:ident: $name:expr, $kind:ident, $color:expr);* $(;)?) => (
@@ -75,16 +76,25 @@ pub(crate) mod fixtures {
     }
 
     lines! {
-        s42:                "S42",          SuburbanRailway,    (204, 97, 18);
-        u4:                 "U4",           UrbanRailway,       (255, 217, 0);
+        s1:                 "S1",           SuburbanRailway,    (220, 107, 166);
+        s42:                "S42",          SuburbanRailway,    (204,  97,  18);
+        u4:                 "U4",           UrbanRailway,       (255, 217,   0);
         tram_12:            "12",           Tram,               (136, 112, 171);
+    }
+
+    pub(crate) fn tram_12_with_route() -> Line {
+        let mut line = tram_12();
+        line.color = Kind::Tram.color();
+        line.routes
+            .push(routes::tram_12::oranienburger_tor_am_kupfergraben());
+        line
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures::{lines, routes};
+    use crate::fixtures::lines;
 
     #[test]
     fn test_getters() {
@@ -95,9 +105,7 @@ mod tests {
 
     #[test]
     fn test_store() {
-        let mut line = lines::tram_12();
-        line.color = Kind::Tram.color();
-        line.routes = vec![routes::tram_12::oranienburger_tor_am_kupfergraben()];
+        let line = lines::tram_12_with_route();
         let date = NaiveDate::from_ymd(2019, 1, 1);
         let mut linearizer = Linearizer::new();
         assert_eq!(
