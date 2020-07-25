@@ -42,10 +42,9 @@ impl Dataset {
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
-    use std::collections::HashMap;
-
     use super::*;
-    use crate::fixtures::{lines, stations};
+    use crate::fixtures::lines;
+    use crate::fixtures_with_ids;
 
     macro_rules! datasets {
         ( $( $dataset:ident => {
@@ -54,13 +53,9 @@ pub mod fixtures {
             } ),* $(,)? ) => (
             $(
                 pub fn $dataset() -> Dataset {
-                    let station_ids = vec![ $( stringify!($station)),* ]
-                        .into_iter()
-                        .enumerate()
-                        .map(|(i, identifier)| (identifier, i))
-                        .collect::<HashMap<_, _>>();
+                    let (stations, station_ids) = fixtures_with_ids!(stations::{$($station),*});
                     Dataset {
-                        stations: vec![ $( stations::$station() ),* ],
+                        stations,
                         lines: vec![ $( lines::$line(&station_ids) ),* ],
                     }
                 }

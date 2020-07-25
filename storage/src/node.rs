@@ -111,17 +111,17 @@ pub mod fixtures {
 #[cfg(test)]
 mod tests {
     use crate::fixtures::nodes;
-    use crate::stations_with_ids;
+    use crate::fixtures_with_ids;
 
     #[test]
     fn test_load() {
-        let (stations, station_ids) = stations_with_ids![
+        let (stations, station_ids) = fixtures_with_ids!(simulation::stations::{
             oranienburger_tor,
             friedrichstr,
             universitaetsstr,
             am_kupfergraben,
             georgenstr_am_kupfergraben,
-        ];
+        } with Rc);
 
         let nodes = nodes::tram_12(&station_ids);
         let expected = simulation::fixtures::nodes::tram_12();

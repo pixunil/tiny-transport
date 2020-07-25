@@ -19,4 +19,23 @@ pub mod fixtures {
     pub use crate::node::fixtures as nodes;
     pub use crate::station::fixtures as stations;
     pub use crate::train::fixtures as trains;
+
+    #[macro_export]
+    macro_rules! fixtures_with_ids {
+        (@ids { $( $name:ident ),* $(,)? }) => {{
+            vec![ $( stringify!($name) ),* ]
+                .into_iter()
+                .enumerate()
+                .map(|(i, identifier)| (identifier, i))
+                .collect::<std::collections::HashMap<_, _>>()
+        }};
+        ($kind:ident :: { $( $name:ident ),* $(,)? }) => {{
+            let fixtures = vec![ $( $crate::fixtures::$kind::$name() ),* ];
+            (fixtures, fixtures_with_ids!(@ids { $($name),* }))
+        }};
+        (simulation :: $kind:ident :: { $( $name:ident ),* $(,)? } with Rc) => {{
+            let fixtures = vec![ $( std::rc::Rc::new(simulation::fixtures::$kind::$name()) ),* ];
+            (fixtures, fixtures_with_ids!(@ids { $($name),* }))
+        }};
+    }
 }

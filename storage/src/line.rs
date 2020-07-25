@@ -109,7 +109,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::lines;
-    use crate::stations_with_ids;
+    use crate::fixtures_with_ids;
     use test_utils::map;
 
     #[test]
@@ -133,13 +133,13 @@ mod tests {
 
     #[test]
     fn test_load() {
-        let (stations, station_ids) = stations_with_ids![
+        let (stations, station_ids) = fixtures_with_ids!(simulation::stations::{
             oranienburger_tor,
             friedrichstr,
             universitaetsstr,
             am_kupfergraben,
             georgenstr_am_kupfergraben,
-        ];
+        } with Rc);
         let line = lines::tram_12(&station_ids);
         assert_eq!(line.load(&stations), simulation::fixtures::lines::tram_12());
     }
