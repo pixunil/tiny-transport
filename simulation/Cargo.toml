@@ -1,10 +1,10 @@
 [package]
-name = "gtfs-sim-simulation"
+name = "tiny-transport-simulation"
 version = "0.1.0"
 authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
 edition = "2018"
 description = "An experiment to render a minimalistic transport simulation with WebGL and Wasm."
-repository = "https://github.com/pixunil/gtfs-sim"
+repository = "https://github.com/pixunil/tiny-transport"
 license = "MIT"
 
 [features]
@@ -18,4 +18,4 @@ itertools = "0.9"
 na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
 serde = "1"
 serde_derive = "1"
-test_utils = { package = "gtfs-sim-test", path = "../test", optional = true }
+test_utils = { package = "tiny-transport-test", path = "../test", optional = true }

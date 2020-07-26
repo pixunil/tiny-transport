@@ -1,4 +1,4 @@
-# Gtfs-Simulator
+# Tiny Transport
 
 [![Build Status][travis-image]][travis-url]
 [![Code Coverage][codecov-image]][codecov-url]
@@ -33,10 +33,10 @@ python3 -m http.server 8917
 xdg-open http://localhost:8917/wasm/www
 ```
 
-[travis-image]: https://travis-ci.org/pixunil/gtfs-sim.svg?branch=main
-[travis-url]: https://travis-ci.org/pixunil/gtfs-sim
-[codecov-image]: https://codecov.io/gh/pixunil/gtfs-sim/branch/main/graph/badge.svg
-[codecov-url]: https://codecov.io/gh/pixunil/gtfs-sim
+[travis-image]: https://travis-ci.org/pixunil/tiny-transport.svg?branch=main
+[travis-url]: https://travis-ci.org/pixunil/tiny-transport
+[codecov-image]: https://codecov.io/gh/pixunil/tiny-transport/branch/main/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/pixunil/tiny-transport
 [vbb-data]: https://www.vbb.de/unsere-themen/vbbdigital/api-entwicklerinfos/datensaetze
 [install-rust]: https://www.rust-lang.org/tools/install
 [install-wasm-pack]: https://rustwasm.github.io/wasm-pack/installer/

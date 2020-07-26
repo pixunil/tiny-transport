@@ -11,7 +11,7 @@ os: linux
 
 script:
   - cargo build --workspace
-  - cargo test --workspace --exclude gtfs-sim-bin
+  - cargo test --workspace --exclude tiny-transport-bin
 
 jobs:
   include:

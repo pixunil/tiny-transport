@@ -1,10 +1,10 @@
 [package]
-name = "gtfs-sim-wasm"
+name = "tiny-transport-wasm"
 version = "0.1.0"
-authors = ["Jakob Stigloher <pixunil@gmx.de>"]
+authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
 edition = "2018"
 description = "Wasm binding of the simulation"
-repository = "https://github.com/pixunil/gtfs-sim"
+repository = "https://github.com/pixunil/tiny-transport"
 license = "MIT"
 
 [lib]
@@ -19,8 +19,8 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
 wasm-bindgen = "0.2"
 
-simulation = { package = "gtfs-sim-simulation", path = "../simulation" }
-storage = { package = "gtfs-sim-storage", path = "../storage" }
+simulation = { package = "tiny-transport-simulation", path = "../simulation" }
+storage = { package = "tiny-transport-storage", path = "../storage" }
 
 [dev-dependencies]
 approx = "0.3"

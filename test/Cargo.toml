@@ -1,8 +1,8 @@
 [package]
-name = "gtfs-sim-test"
+name = "tiny-transport-test"
 version = "0.1.0"
 authors = ["Jakob Stigloher <pixunil@posteo.eu>"]
 edition = "2018"
 description = "Provides test utilities"
-repository = "https://github.com/pixunil/gtfs-sim"
+repository = "https://github.com/pixunil/tiny-transport"
 license = "MIT"

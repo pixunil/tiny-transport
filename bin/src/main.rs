@@ -48,7 +48,7 @@ impl CommandRunner {
     }
 
     fn build_app(&self, interactive: bool) -> clap::App<'static, 'static> {
-        let app = clap_app!(gtfs_sim =>
+        let app = clap_app!(tiny_transport =>
             (@subcommand compress =>
                 (about: "Compresses a dataset into a single .bzip archive")
                 (@arg directory: <DIRECTORY> "Path to gtfs directory which should be compressed")
@@ -92,7 +92,7 @@ impl CommandRunner {
 
     fn history_path() -> PathBuf {
         let mut path = dirs::data_dir().unwrap();
-        path.push("gtfs-sim");
+        path.push("tiny-transport");
         fs::create_dir_all(&path).unwrap();
         path.push("history.txt");
         path
