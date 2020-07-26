@@ -1,4 +1,4 @@
-import {View} from "../../wasm/gtfs_sim_wasm.js";
+import {View} from "../../wasm/tiny_transport_wasm.js";
 import {Canvas} from "../base/canvas.js";
 import {LineRenderer} from "./line.js";
 import {TrainRenderer} from "./train.js";

@@ -1,10 +1,10 @@
-import {Dataset, default as init} from "../wasm/gtfs_sim_wasm.js";
+import {Dataset, default as init} from "../wasm/tiny_transport_wasm.js";
 import {ClockCanvas} from "./clock/canvas.js";
 import {SimulationCanvas} from "./simulation/canvas.js";
 
 class Controller {
     constructor() {
-        this.wasm = init("wasm/gtfs_sim_wasm_bg.wasm");
+        this.wasm = init("wasm/tiny_transport_wasm_bg.wasm");
     }
 
     async setUp() {

@@ -1,22 +1,22 @@
 {
-  "name": "gtfs-sim-wasm",
+  "name": "tiny-transport-wasm",
   "collaborators": [
-    "Jakob Stigloher <pixunil@gmx.de>"
+    "Jakob Stigloher <pixunil@posteo.eu>"
   ],
   "description": "Wasm binding of the simulation",
   "version": "0.1.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pixunil/gtfs-sim"
+    "url": "https://github.com/pixunil/tiny-transport"
   },
   "files": [
-    "gtfs_sim_wasm_bg.wasm",
-    "gtfs_sim_wasm.js",
-    "gtfs_sim_wasm.d.ts",
+    "tiny_transport_wasm_bg.wasm",
+    "tiny_transport_wasm.js",
+    "tiny_transport_wasm.d.ts",
     "LICENSE.md"
   ],
-  "module": "gtfs_sim_wasm.js",
-  "types": "gtfs_sim_wasm.d.ts",
+  "module": "tiny_transport_wasm.js",
+  "types": "tiny_transport_wasm.d.ts",
   "sideEffects": false
 }
