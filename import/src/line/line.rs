@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 
 use crate::create_id_type;
 use crate::location::Linearizer;
-use crate::trip::Route;
+use crate::trip::{Route, Scheduler};
 use simulation::line::Kind;
 use simulation::Color;
 
@@ -38,13 +38,18 @@ impl Line {
         self.routes.iter()
     }
 
-    pub(crate) fn store(&self, date: NaiveDate, linearizer: &mut Linearizer) -> storage::Line {
+    pub(crate) fn store(
+        &self,
+        date: NaiveDate,
+        linearizer: &mut Linearizer,
+        scheduler: &mut Scheduler,
+    ) -> storage::Line {
         let route = self
             .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
         let nodes = route.store_nodes(linearizer);
-        let trains = route.store_trains(date);
+        let trains = route.store_trains(date, scheduler);
         storage::Line::new(
             self.name.clone(),
             self.color.clone(),
@@ -93,8 +98,11 @@ pub(crate) mod fixtures {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::fixtures::lines;
+    use test_utils::map;
 
     #[test]
     fn test_getters() {
@@ -108,9 +116,14 @@ mod tests {
         let line = lines::tram_12_with_route();
         let date = NaiveDate::from_ymd(2019, 1, 1);
         let mut linearizer = Linearizer::new();
+        let mut scheduler = Scheduler::new();
+        let schedule_ids: HashMap<&str, usize> = map! {
+            "oranienburger_tor_am_kupfergraben" => 0,
+            "am_kupfergraben_oranienburger_tor" => 1,
+        };
         assert_eq!(
-            line.store(date, &mut linearizer),
-            storage::fixtures::lines::tram_12(&linearizer.location_ids())
+            line.store(date, &mut linearizer, &mut scheduler),
+            storage::fixtures::lines::tram_12(&linearizer.location_ids(), &schedule_ids)
         );
     }
 }

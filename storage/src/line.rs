@@ -3,6 +3,7 @@ use std::rc::Rc;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::node::Node;
+use crate::schedule::Schedule;
 use crate::train::Train;
 use simulation::line::Kind;
 use simulation::Color;
@@ -43,7 +44,11 @@ impl Line {
         }
     }
 
-    pub fn load(self, stations: &[Rc<simulation::Station>]) -> simulation::Line {
+    pub fn load(
+        self,
+        stations: &[Rc<simulation::Station>],
+        schedules: &[Schedule],
+    ) -> simulation::Line {
         let kind = self.kind;
         let nodes = self
             .nodes
@@ -53,7 +58,7 @@ impl Line {
         let trains = self
             .trains
             .into_iter()
-            .map(|train| train.load(kind, &nodes))
+            .map(|train| train.load(kind, &nodes, schedules))
             .collect();
 
         simulation::Line::new(self.name, self.color, kind, nodes, trains)
@@ -69,20 +74,23 @@ pub mod fixtures {
     use test_utils::time;
 
     macro_rules! lines {
-        (@trains $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {
-            $( trains::$line::$route(time!($($time),*)) ),*
+        (@trains $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?], $schedule_ids:expr) => {
+            $( trains::$line::$route(time!($($time),*), $schedule_ids) ),*
         };
         ($($line:ident: $name:literal, $kind:ident, $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt);* $(;)?) => {
             $(
-                pub fn $line<'a>(station_ids: &impl Index<&'a str, Output = usize>) -> Line {
+                pub fn $line<'a>(
+                    station_ids: &impl Index<&'a str, Output = usize>,
+                    schedule_ids: &impl Index<&'a str, Output = usize>,
+                ) -> Line {
                     Line {
                         name: $name.to_string(),
                         color: Kind::$kind.color(),
                         kind: Kind::$kind,
                         nodes: nodes::$line(station_ids),
                         trains: vec![
-                            lines!(@trains $line, $upstream, $upstream_times),
-                            lines!(@trains $line, $downstream, $downstream_times),
+                            lines!(@trains $line, $upstream, $upstream_times, schedule_ids),
+                            lines!(@trains $line, $downstream, $downstream_times, schedule_ids),
                         ],
                     }
                 }
@@ -121,8 +129,12 @@ mod tests {
             "am_kupfergraben" => 4,
             "georgenstr_am_kupfergraben" => 5,
         };
+        let schedule_ids: HashMap<&str, usize> = map! {
+            "oranienburger_tor_am_kupfergraben" => 0,
+            "am_kupfergraben_oranienburger_tor" => 1,
+        };
         let mut station_infos = vec![Vec::new(); 7];
-        let line = lines::tram_12(&station_ids);
+        let line = lines::tram_12(&station_ids, &schedule_ids);
         line.add_to_station_infos(&mut station_infos);
         let station_ids = station_ids.values().copied().collect::<Vec<_>>();
         for (station_id, station_info) in station_infos.into_iter().enumerate() {
@@ -140,7 +152,14 @@ mod tests {
             am_kupfergraben,
             georgenstr_am_kupfergraben,
         } with Rc);
-        let line = lines::tram_12(&station_ids);
-        assert_eq!(line.load(&stations), simulation::fixtures::lines::tram_12());
+        let (schedules, schedule_ids) = fixtures_with_ids!(schedules::{
+           oranienburger_tor_am_kupfergraben,
+           am_kupfergraben_oranienburger_tor,
+        });
+        let line = lines::tram_12(&station_ids, &schedule_ids);
+        assert_eq!(
+            line.load(&stations, &schedules),
+            simulation::fixtures::lines::tram_12()
+        );
     }
 }

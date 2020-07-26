@@ -32,12 +32,16 @@ impl Route {
             .collect()
     }
 
-    pub(crate) fn store_trains(&self, date: NaiveDate) -> Vec<storage::Train> {
-        let scheduler = Scheduler::new(&self.nodes);
+    pub(crate) fn store_trains(
+        &self,
+        date: NaiveDate,
+        scheduler: &mut Scheduler,
+    ) -> Vec<storage::Train> {
+        scheduler.update_weights(&self.nodes);
         self.trips
             .iter()
             .filter(|trip| trip.available_at(date))
-            .map(|trip| trip.store(&scheduler))
+            .map(|trip| trip.store(scheduler))
             .collect()
     }
 }

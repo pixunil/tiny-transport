@@ -33,6 +33,9 @@ macro_rules! map {
 
 #[macro_export]
 macro_rules! time {
+    (Duration; $( $(:)? $time:literal )*) => {
+        Duration::seconds(time!($($time),*))
+    };
     ($(:)? $minute:literal : $second:literal) => {
         time!(0, $minute, $second)
     };

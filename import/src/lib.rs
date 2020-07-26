@@ -29,6 +29,7 @@ use crate::line::Line;
 use crate::location::Linearizer;
 use crate::profile::Profile;
 use crate::shape::SmoothMode;
+use crate::trip::Scheduler;
 use crate::utils::Dataset;
 
 pub struct ImportedDataset {
@@ -78,10 +79,11 @@ impl ImportedDataset {
 
     fn store(&self, profile: Profile, date: NaiveDate) -> storage::Dataset {
         let mut linearizer = Linearizer::new();
+        let mut scheduler = Scheduler::new();
         let lines = profile
             .filter(self.agencies())
             .into_iter()
-            .map(|line| line.store(date, &mut linearizer))
+            .map(|line| line.store(date, &mut linearizer, &mut scheduler))
             .collect();
 
         let stations = linearizer
@@ -89,7 +91,7 @@ impl ImportedDataset {
             .map(|location| location.store())
             .collect();
 
-        storage::Dataset::new(stations, lines)
+        storage::Dataset::new(stations, scheduler.schedules(), lines)
     }
 
     pub fn store_into(

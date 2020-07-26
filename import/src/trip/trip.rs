@@ -30,9 +30,9 @@ impl Trip {
         self.direction
     }
 
-    pub(super) fn store(&self, scheduler: &Scheduler) -> storage::Train {
-        let durations = scheduler.process(self.direction, &self.durations);
-        storage::Train::new(self.direction, durations)
+    pub(super) fn store(&self, scheduler: &mut Scheduler) -> storage::Train {
+        let (start, schedule) = scheduler.process(self.direction, &self.durations);
+        storage::Train::new(self.direction, start, schedule)
     }
 
     pub(super) fn available_at(&self, date: NaiveDate) -> bool {
@@ -81,10 +81,12 @@ pub(crate) mod fixtures {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::fixtures::{nodes, trips};
     use simulation::Directions;
-    use test_utils::time;
+    use test_utils::{map, time};
 
     #[test]
     fn test_available_at() {
@@ -95,11 +97,15 @@ mod tests {
 
     #[test]
     fn test_store() {
+        let mut scheduler = Scheduler::new();
         let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::UpstreamOnly);
-        let scheduler = Scheduler::new(&nodes);
-        assert_eq!(
-            trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00)).store(&scheduler),
-            storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:01:40))
+        scheduler.update_weights(&nodes);
+        let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
+        let schedule_ids: HashMap<&str, usize> = map! {"oranienburger_tor_am_kupfergraben" => 0};
+        let expected = storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(
+            time!(9:01:40),
+            &schedule_ids,
         );
+        assert_eq!(trip.store(&mut scheduler), expected);
     }
 }

@@ -1,85 +1,30 @@
+use std::collections::HashMap;
+
 use chrono::Duration;
 use itertools::Itertools;
 
-use super::Node;
+use super::{Node, Schedule};
 use simulation::Direction;
 
 #[derive(Debug)]
-struct DrivingSegment<'a> {
-    duration: &'a mut u32,
-    weight: f64,
-}
-
-impl<'a> DrivingSegment<'a> {
-    fn add_duration(&mut self, delta: i32) {
-        *self.duration = (*self.duration as i32 + delta).max(1) as u32;
-    }
-}
-
-struct State<'a> {
-    offset: i32,
-    dispatch_time: &'a mut u32,
-    driving_before: Option<DrivingSegment<'a>>,
-    driving_after: Option<DrivingSegment<'a>>,
-}
-
-impl<'a> State<'a> {
-    const MAXIMUM_OFFSET_VALUE: i32 = 25;
-
-    fn new(dispatch_time: &'a mut u32) -> Self {
-        Self {
-            offset: 0,
-            dispatch_time,
-            driving_before: None,
-            driving_after: None,
-        }
-    }
-
-    fn step(&mut self, driving_segment: Option<DrivingSegment<'a>>) {
-        self.driving_before = self.driving_after.take();
-        self.driving_after = driving_segment;
-    }
-
-    fn subtract_stop_duration(&mut self, added_stop_duration: u32) {
-        match (&mut self.driving_before, &mut self.driving_after) {
-            (None, None) => unreachable!(),
-            (None, Some(_)) => *self.dispatch_time -= added_stop_duration,
-            (Some(driving_before), Some(driving_after)) => {
-                let delta_min =
-                    -Self::MAXIMUM_OFFSET_VALUE - self.offset - added_stop_duration as i32 / 2;
-                let delta_max = delta_min + 2 * Self::MAXIMUM_OFFSET_VALUE;
-
-                let factor_before = (*driving_after.duration as f64 - added_stop_duration as f64)
-                    * driving_before.weight;
-                let factor_after = *driving_before.duration as f64 * driving_after.weight;
-                let total_weight = driving_before.weight + driving_after.weight;
-                let delta = (((factor_before - factor_after) / total_weight) as i32)
-                    .max(delta_min)
-                    .min(delta_max);
-
-                driving_before.add_duration(delta);
-                driving_after.add_duration(-delta - added_stop_duration as i32);
-                self.offset += delta + added_stop_duration as i32 / 2;
-            }
-            (Some(_), None) => {}
-        }
-    }
-}
-
-#[derive(Debug)]
-pub(super) struct Scheduler {
+pub(crate) struct Scheduler {
     upstream_weights: Vec<f64>,
     downstream_weights: Vec<f64>,
+    schedules: HashMap<Schedule, usize>,
 }
 
 impl Scheduler {
-    const MINIMUM_STOP_DURATION: u32 = 20;
-
-    pub(super) fn new(nodes: &[Node]) -> Self {
+    pub(crate) fn new() -> Self {
         Self {
-            upstream_weights: Node::segment_weights(nodes, Direction::Upstream),
-            downstream_weights: Node::segment_weights(nodes, Direction::Downstream),
+            upstream_weights: Vec::new(),
+            downstream_weights: Vec::new(),
+            schedules: HashMap::new(),
         }
+    }
+
+    pub(super) fn update_weights(&mut self, nodes: &[Node]) {
+        self.upstream_weights = Node::segment_weights(nodes, Direction::Upstream);
+        self.downstream_weights = Node::segment_weights(nodes, Direction::Downstream);
     }
 
     fn weights(&self, direction: Direction) -> impl Iterator<Item = f64> + '_ {
@@ -89,42 +34,24 @@ impl Scheduler {
         }
     }
 
-    pub(in crate::trip) fn process(
-        &self,
-        direction: Direction,
-        durations: &[Duration],
-    ) -> Vec<u32> {
+    pub(super) fn process(&mut self, direction: Direction, durations: &[Duration]) -> (u32, usize) {
         let mut durations = durations
             .iter()
-            .map(|duration| duration.num_seconds() as u32)
-            .collect::<Vec<_>>();
+            .map(|duration| duration.num_seconds() as u32);
+        let start_time = durations.next().unwrap();
+        let mut schedule = Schedule::new(durations);
+        let start_time_offset = schedule.adjust_stop_durations(self.weights(direction));
+        let len = self.schedules.len();
+        let schedule_id = *self.schedules.entry(schedule).or_insert(len);
+        ((start_time as i32 + start_time_offset) as u32, schedule_id)
+    }
 
-        let added_stop_durations = durations
-            .iter_mut()
-            .skip(1)
-            .step_by(2)
-            .map(|duration| {
-                let missing_stop_duration = Self::MINIMUM_STOP_DURATION.saturating_sub(*duration);
-                *duration += missing_stop_duration;
-                missing_stop_duration
-            })
-            .collect::<Vec<_>>();
-
-        let mut iter = durations.iter_mut().step_by(2);
-        let dispatch_time = iter.next().unwrap();
-        let mut driving_segments = iter
-            .zip_eq(self.weights(direction))
-            .map(|(duration, weight)| DrivingSegment { duration, weight });
-
-        let mut state = State::new(dispatch_time);
-        for added_stop_duration in added_stop_durations {
-            state.step(driving_segments.next());
-            if added_stop_duration > 0 {
-                state.subtract_stop_duration(added_stop_duration);
-            }
-        }
-
-        durations
+    pub(crate) fn schedules(self) -> Vec<storage::Schedule> {
+        self.schedules
+            .into_iter()
+            .sorted_by_key(|(_, schedule_id)| *schedule_id)
+            .map(|(schedule, _)| schedule.store())
+            .collect()
     }
 }
 
@@ -133,38 +60,38 @@ mod tests {
     use super::*;
     use crate::fixtures::nodes;
     use simulation::Directions;
-    use test_utils::times;
+    use test_utils::{time, times};
 
     #[test]
-    fn test_sufficient_stop_times() {
-        let durations = times!(Duration; 7:24:54, 0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30);
+    fn test_single_schedule() {
+        let mut scheduler = Scheduler::new();
         let nodes = nodes::s3::hackescher_markt_bellevue(Directions::Both);
-        let scheduler = Scheduler::new(&nodes);
+        scheduler.update_weights(&nodes);
+        let durations = times!(Duration; 7:24:54, 0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30);
+        let (start_time, schedule_id) = scheduler.process(Direction::Upstream, &durations);
+        assert_eq!(start_time, time!(7:24:54));
+        assert_eq!(schedule_id, 0);
         assert_eq!(
-            scheduler.process(Direction::Upstream, &durations),
-            times!(7:24:54, 0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30)
-        )
-    }
-
-    #[test]
-    fn test_no_stop_times_upstream() {
-        let durations = times!(Duration; 9:02:00, 0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00);
-        let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both);
-        let scheduler = Scheduler::new(&nodes);
-        assert_eq!(
-            scheduler.process(Direction::Upstream, &durations),
-            times!(9:01:40, 0:20, 2:15, 0:20, 1:05, 0:20, 1:00, 0:20)
+            scheduler.schedules(),
+            vec![storage::fixtures::schedules::hackescher_markt_bellevue()]
         );
     }
 
     #[test]
-    fn test_no_stop_times_downstream() {
-        let durations = times!(Duration; 8:34:00, 0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00);
+    fn test_reuse_schedule() {
+        let mut scheduler = Scheduler::new();
         let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both);
-        let scheduler = Scheduler::new(&nodes);
+        scheduler.update_weights(&nodes);
+        let mut durations = times!(Duration; 9:02:00, 0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00);
+        let (start_time_a, schedule_id_a) = scheduler.process(Direction::Upstream, &durations);
+        durations[0] = time!(Duration; 9:12:00);
+        let (start_time_b, schedule_id_b) = scheduler.process(Direction::Upstream, &durations);
+        assert_eq!(start_time_a, time!(9:01:40));
+        assert_eq!(start_time_b, time!(9:11:40));
+        assert_eq!(schedule_id_a, schedule_id_b);
         assert_eq!(
-            scheduler.process(Direction::Downstream, &durations),
-            times!(8:33:40, 0:20, 1:15, 0:20, 1:33, 0:20, 2:32, 0:20)
+            scheduler.schedules(),
+            vec![storage::fixtures::schedules::oranienburger_tor_am_kupfergraben()]
         );
     }
 }
