@@ -1,8 +1,5 @@
 use std::iter;
-use std::ops::Deref;
 use std::rc::Rc;
-
-use na::Point2;
 
 use crate::line::Line;
 use crate::station::Station;
@@ -24,6 +21,10 @@ impl Dataset {
         }
     }
 
+    pub fn station(&self, index: usize) -> &Station {
+        self.stations[index].as_ref()
+    }
+
     pub fn station_count(&self) -> usize {
         self.stations.len()
     }
@@ -42,13 +43,6 @@ impl Dataset {
             station.fill_type_buffer(&mut buffer);
         }
         buffer
-    }
-
-    pub fn find_station(&self, position: Point2<f32>) -> Option<&Station> {
-        self.stations
-            .iter()
-            .find(|station| station.contains(position))
-            .map(|station| station.deref())
     }
 
     pub fn line_count(&self) -> usize {
@@ -188,11 +182,12 @@ pub mod fixtures {
 
 #[cfg(test)]
 mod tests {
-    use crate::fixtures::datasets;
+    use crate::fixtures::{datasets, stations};
 
     #[test]
     fn test_static_data() {
         let dataset = datasets::tram_12();
+        assert_eq!(dataset.station(0), &stations::oranienburger_tor());
         assert_eq!(dataset.station_count(), 5);
         assert_eq!(dataset.station_positions().len(), 2 * 5);
         assert_eq!(dataset.station_types().len(), 5);

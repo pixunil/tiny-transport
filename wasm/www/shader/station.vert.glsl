@@ -3,13 +3,16 @@
 uniform float u_scaling;
 uniform mat4 u_modelView;
 
+in mediump uint v_id;
 in vec2 v_position;
 in lowp uint v_type;
 
+flat out mediump uint f_id;
 flat out lowp uint f_type;
 out float f_size;
 
 void main() {
+    f_id = v_id;
     f_type = v_type;
     if (f_type <= 1U) {
         f_size = u_scaling * 60.0;

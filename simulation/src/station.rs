@@ -22,10 +22,6 @@ impl Station {
         &self.name
     }
 
-    pub fn contains(&self, position: Point2<f32>) -> bool {
-        na::distance(&self.position, &position) <= 45.0
-    }
-
     pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>) {
         buffer.extend(self.position.iter())
     }
@@ -126,37 +122,6 @@ mod tests {
     fn test_getters() {
         let station = stations::hauptbahnhof();
         assert_eq!(station.name(), "Hauptbahnhof");
-    }
-
-    #[test]
-    fn test_station_contains_center() {
-        let station = stations::hauptbahnhof();
-        assert!(station.contains(Point2::new(-1385.0, -1812.0)));
-    }
-
-    #[test]
-    fn test_station_contains_border() {
-        let station = stations::hauptbahnhof();
-        for &position in &[
-            Point2::new(-1340.0, -1812.0),
-            Point2::new(-1385.0, -1768.0),
-            Point2::new(-1430.0, -1812.0),
-            Point2::new(-1385.0, -1857.0),
-        ] {
-            assert!(station.contains(position));
-        }
-    }
-
-    #[test]
-    fn test_station_excludes_outside() {
-        let station = stations::hauptbahnhof();
-        for &position in &[
-            Point2::new(-1340.0, -1768.0),
-            Point2::new(-1335.0, -1812.0),
-            Point2::new(-1385.0, -1763.0),
-        ] {
-            assert!(!station.contains(position));
-        }
     }
 
     #[test]

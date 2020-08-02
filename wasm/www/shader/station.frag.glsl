@@ -2,10 +2,12 @@
 
 precision mediump float;
 
+flat in mediump uint f_id;
 flat in lowp uint f_type;
 in float f_size;
 
-out vec4 o_color;
+layout(location = 0) out vec4 o_color;
+layout(location = 1) out mediump uint o_id;
 
 const float margin = 2.0;
 
@@ -37,5 +39,9 @@ void main() {
         color = mix(interchangeInner, interchangeOuter, radius - innerRadius);
         alpha = 1.0 - (radius - outerRadius);
     }
+    if (alpha <= 0.0) {
+        discard;
+    }
     o_color = vec4(color, alpha);
+    o_id = f_id;
 }

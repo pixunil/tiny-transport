@@ -1,7 +1,4 @@
-use na::Point2;
 use wasm_bindgen::prelude::*;
-
-use crate::view::View;
 
 #[wasm_bindgen]
 pub struct Dataset {
@@ -21,12 +18,9 @@ impl Dataset {
         self.inner.update(time_passed)
     }
 
-    #[wasm_bindgen(js_name = findStation)]
-    pub fn find_station(&self, view: &View, x: f32, y: f32) -> Option<String> {
-        let position = view.unproject(Point2::new(x, y));
-        self.inner
-            .find_station(position)
-            .map(|station| station.name().to_string())
+    #[wasm_bindgen(js_name = stationName)]
+    pub fn station_name(&self, index: usize) -> String {
+        self.inner.station(index).name().to_string()
     }
 }
 
@@ -46,19 +40,32 @@ macro_rules! delegate {
 
 delegate! {
     pub fn station_count(&self) -> usize; [stationCount]
-        pub fn station_positions(&self) -> Vec<f32>; [stationPositions]
-        pub fn station_types(&self) -> Vec<u8>; [stationTypes]
+    pub fn station_positions(&self) -> Vec<f32>; [stationPositions]
+    pub fn station_types(&self) -> Vec<u8>; [stationTypes]
 
-        pub fn line_count(&self) -> usize; [lineCount]
-        pub fn line_colors(&self) -> Vec<f32>; [lineColors]
-        pub fn line_vertices_sizes(&self) -> Vec<usize>; [lineVerticesSizes]
-        pub fn line_vertices(&self) -> Vec<f32>; [lineVertices]
-        pub fn line_names(&self) -> String; [lineNames]
+    pub fn line_count(&self) -> usize; [lineCount]
+    pub fn line_colors(&self) -> Vec<f32>; [lineColors]
+    pub fn line_vertices_sizes(&self) -> Vec<usize>; [lineVerticesSizes]
+    pub fn line_vertices(&self) -> Vec<f32>; [lineVertices]
+    pub fn line_names(&self) -> String; [lineNames]
 
-        pub fn train_count(&self) -> usize; [trainCount]
-        pub fn train_vertices(&self) -> Vec<f32>; [trainVertices]
-        pub fn train_colors(&self) -> Vec<f32>; [trainColors]
-        pub fn train_line_numbers(&self) -> Vec<u16>; [trainLineNumbers]
-        pub fn train_sides(&self) -> Vec<u8>; [trainSides]
-        pub fn train_extents(&self) -> Vec<f32>; [trainExtents]
+    pub fn train_count(&self) -> usize; [trainCount]
+    pub fn train_vertices(&self) -> Vec<f32>; [trainVertices]
+    pub fn train_colors(&self) -> Vec<f32>; [trainColors]
+    pub fn train_line_numbers(&self) -> Vec<u16>; [trainLineNumbers]
+    pub fn train_sides(&self) -> Vec<u8>; [trainSides]
+    pub fn train_extents(&self) -> Vec<f32>; [trainExtents]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_station_name() {
+        let dataset = Dataset {
+            inner: simulation::fixtures::datasets::tram_12(),
+        };
+        assert_eq!(dataset.station_name(0), "Oranienburger Tor");
+    }
 }
