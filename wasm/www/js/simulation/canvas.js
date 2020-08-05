@@ -1,5 +1,6 @@
 import {View} from "../../wasm/tiny_transport_wasm.js";
 import {Canvas} from "../base/canvas.js";
+import {Framebuffer} from "../base/framebuffer.js";
 import {LineRenderer} from "./line.js";
 import {TrainRenderer} from "./train.js";
 import {StationRenderer} from "./station.js";
@@ -24,35 +25,23 @@ export class SimulationCanvas extends Canvas {
             this.renderer.line.setUp(this.gl, assets.line),
             this.renderer.train.setUp(this.gl, assets.train),
             this.renderer.station.setUp(this.gl, assets.station),
-            this.setUpFramebuffer(),
+            this.setUpFramebuffers(),
         ]);
     }
 
-    setUpFramebuffer() {
-        this.renderbuffers = {
-            color: this.gl.createRenderbuffer(),
-            id: this.gl.createRenderbuffer(),
-        };
-
-        this.resizeRenderbuffers();
-
-        this.framebuffer = this.gl.createFramebuffer();
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
-
-        this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.RENDERBUFFER, this.renderbuffers.color);
-        this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT1, this.gl.RENDERBUFFER, this.renderbuffers.id);
-
-        if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
-            throw new Error("incomplete framebuffer");
-        }
-    }
-
-    resizeRenderbuffers() {
-        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.renderbuffers.color);
-        this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.RGBA8, this.canvas.width, this.canvas.height);
-
-        this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.renderbuffers.id);
-        this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.R16UI, this.canvas.width, this.canvas.height);
+    setUpFramebuffers() {
+        this.framebuffers = new Map();
+        this.framebuffers.set("color", new Framebuffer(this.gl, [{
+            name: "color",
+            type: this.gl.RGB8,
+        }], this.canvas.width, this.canvas.height, 16));
+        this.framebuffers.set("color-id", new Framebuffer(this.gl, [{
+            name: "color",
+            type: this.gl.RGB8,
+        }, {
+            name: "id",
+            type: this.gl.R16UI,
+        }], this.canvas.width, this.canvas.height));
     }
 
     async setUpWithModel(model) {
@@ -75,16 +64,21 @@ export class SimulationCanvas extends Canvas {
             this.view.resize(this.canvas.width, this.canvas.height);
             this.view.viewProjection = this.view.calculateViewProjection();
         }
-        if (this.renderbuffers) {
-            this.resizeRenderbuffers();
+        if (this.framebuffers) {
+            for (const framebuffer of this.framebuffers.values()) {
+                framebuffer.resize(this.canvas.width, this.canvas.height);
+            }
         }
     }
 
     addControlListeners() {
         this.canvas.addEventListener("mousemove", event => {
-            const x = event.clientX - this.canvas.offsetLeft;
-            const y = this.canvas.height - (event.clientY - this.canvas.offsetTop);
-            this.pickObject(x, y);
+            if (this.framebuffers) {
+                const x = event.clientX - this.canvas.offsetLeft;
+                const y = this.canvas.height - (event.clientY - this.canvas.offsetTop);
+                const id = this.framebuffers.get("color-id").pick("id", x, y);
+                this.updateTooltip(id);
+            }
             if (event.buttons) {
                 this.view.scroll(event.movementX, event.movementY);
                 this.view.viewProjection = this.view.calculateViewProjection();
@@ -95,17 +89,6 @@ export class SimulationCanvas extends Canvas {
             this.view.zoom(scaling, event.clientX - this.canvas.offsetLeft, event.clientY - this.canvas.offsetTop);
             this.view.viewProjection = this.view.calculateViewProjection();
         });
-    }
-
-    pickObject(x, y) {
-        const data = new Uint32Array(4);
-
-        this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.framebuffer);
-        this.gl.readBuffer(this.gl.COLOR_ATTACHMENT1);
-        this.gl.readPixels(x, y, 1, 1, this.gl.RGBA_INTEGER, this.gl.UNSIGNED_INT, data, 0);
-        this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, null);
-
-        this.updateTooltip(data[0]);
     }
 
     updateTooltip(id) {
@@ -119,35 +102,23 @@ export class SimulationCanvas extends Canvas {
     }
 
     clear() {
-        if (!this.renderbuffers) {
-            return;
-        }
-
-        this.gl.clearBufferfv(this.gl.COLOR, 0, [0.9, 0.95, 0.95, 1.0]);
-        this.gl.clearBufferuiv(this.gl.COLOR, 1, [0, 0, 0, 0]);
+        this.gl.clearColor(0.9, 0.95, 0.95, 1.0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
     draw() {
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
         super.draw();
-        this.gl.drawBuffers([
-            this.gl.COLOR_ATTACHMENT0,
-        ]);
+        this.framebuffers.get("color").bind(["color"]);
+        this.framebuffers.get("color").clear("color", [0.9, 0.95, 0.95, 1.0])
         this.renderer.line.run();
         this.renderer.train.run();
-        this.gl.drawBuffers([
-            this.gl.COLOR_ATTACHMENT0,
-            this.gl.COLOR_ATTACHMENT1,
-        ]);
+        this.framebuffers.get("color").blit(this.framebuffers.get("color-id"), "color", ["color"]);
+
+
+        this.framebuffers.get("color-id").bind(["color", "id"]);
+        this.framebuffers.get("color-id").clear("id", [0, 0, 0, 0]);
         this.renderer.station.run();
-        this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.framebuffer);
-        this.gl.bindFramebuffer(this.gl.DRAW_FRAMEBUFFER, null);
-        this.gl.readBuffer(this.gl.COLOR_ATTACHMENT0);
-        this.gl.blitFramebuffer(
-            0, 0, this.canvas.width, this.canvas.height,
-            0, 0, this.canvas.width, this.canvas.height,
-            this.gl.COLOR_BUFFER_BIT, this.gl.NEAREST,
-        );
+        this.framebuffers.get("color-id").blit(null, "color", []);
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 }
