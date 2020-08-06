@@ -117,8 +117,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::lines;
-    use crate::fixtures_with_ids;
-    use test_utils::map;
+    use test_utils::{fixtures_with_ids, map};
 
     #[test]
     fn test_add_tram_to_station_infos() {

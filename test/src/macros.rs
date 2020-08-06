@@ -89,3 +89,22 @@ macro_rules! times {
         ]
     }};
 }
+
+#[macro_export]
+macro_rules! fixtures_with_ids {
+    (@ids { $( $name:ident ),* $(,)? }) => {{
+        vec![ $( stringify!($name) ),* ]
+            .into_iter()
+            .enumerate()
+            .map(|(i, identifier)| (identifier, i))
+            .collect::<std::collections::HashMap<_, _>>()
+    }};
+    ($kind:ident :: { $( $name:ident ),* $(,)? }) => {{
+        let fixtures = vec![ $( crate::fixtures::$kind::$name() ),* ];
+        (fixtures, fixtures_with_ids!(@ids { $($name),* }))
+    }};
+    ($crate_name:ident :: $kind:ident :: { $( $name:ident ),* $(,)? } with Rc) => {{
+        let fixtures = vec![ $( std::rc::Rc::new($crate_name::fixtures::$kind::$name()) ),* ];
+        (fixtures, fixtures_with_ids!(@ids { $($name),* }))
+    }};
+}

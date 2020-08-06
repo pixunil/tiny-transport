@@ -111,7 +111,7 @@ pub mod fixtures {
 #[cfg(test)]
 mod tests {
     use crate::fixtures::nodes;
-    use crate::fixtures_with_ids;
+    use test_utils::fixtures_with_ids;
 
     #[test]
     fn test_load() {
