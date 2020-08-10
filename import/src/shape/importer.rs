@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use super::smoother::Mode;
-use super::{Shape, ShapeId, ShapeRecord};
+use super::{Segmenter, Shape, ShapeId, ShapeRecord};
 use crate::utils::Action;
 use crate::utils::Dataset;
 
@@ -30,7 +30,19 @@ impl Importer {
                 .collect();
             action.complete("Smoothed shapes");
         }
-        Ok(shapes)
+
+        let mut segmenter = Segmenter::new();
+        let mut action = Action::start("Segmenting shapes");
+        for (id, buffer) in action.wrap_iter(shapes) {
+            segmenter.segment(id, buffer);
+        }
+        let shapes = segmenter.finish();
+        action.complete(&format!(
+            "Segmented shapes into {} segments",
+            shapes.segments.len()
+        ));
+
+        Ok(shapes.glue_together())
     }
 }
 
