@@ -245,10 +245,8 @@ pub(crate) mod fixtures {
             oranienburger_tor_am_kupfergraben: [
                 52.525, 13.388, Both,           oranienburger_tor;
                 52.524, 13.388, Both;
-                52.522, 13.388, DownstreamOnly;
                 52.521, 13.388, Both;
                 52.520, 13.388, Both,           friedrichstr;
-                52.519, 13.388, UpstreamOnly;
                 52.519, 13.389, Both;
                 52.519, 13.390, Both;
                 52.519, 13.391, UpstreamOnly;
@@ -270,20 +268,17 @@ pub(crate) mod fixtures {
                 52.507, 13.379, UpstreamOnly;
                 52.507, 13.379, DownstreamOnly, abgeordnetenhaus;
                 52.508, 13.378, Both;
-                52.508, 13.377, DownstreamOnly;
                 52.509, 13.377, Both,           potsdamer_platz_bus_stresemannstr;
                 52.510, 13.377, Both,           potsdamer_platz_vossstr;
                 52.511, 13.377, Both;
                 52.512, 13.377, Both;
                 52.512, 13.376, Both;
                 52.512, 13.374, Both;
-                52.511, 13.374, DownstreamOnly;
                 52.511, 13.372, Both;
                 52.511, 13.371, Both;
                 52.512, 13.371, Both;
                 52.513, 13.371, Both;
-                52.514, 13.371, UpstreamOnly;
-                52.514, 13.370, DownstreamOnly;
+                52.514, 13.371, Both;
                 52.516, 13.371, Both;
                 52.518, 13.372, UpstreamOnly;
                 52.519, 13.372, UpstreamOnly;
@@ -382,7 +377,7 @@ mod tests {
 
     #[test]
     fn test_getters() {
-        let node = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both).remove(4);
+        let node = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both).remove(3);
         assert_eq!(node.position(), project(52.520, 13.388));
         assert_eq!(node.location(), Some(&Rc::new(locations::friedrichstr())));
         assert_eq!(node.in_directions(), Directions::Both);
@@ -390,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_distance_to() {
-        let node = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both).remove(4);
+        let node = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both).remove(3);
         assert_relative_eq!(
             node.distance_to(&locations::friedrichstr()).into_inner(),
             67.86,
@@ -404,7 +399,7 @@ mod tests {
         node.make_stop(Rc::new(locations::friedrichstr()));
         assert_eq!(
             node,
-            nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both)[4]
+            nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both)[3]
         );
     }
 
@@ -412,16 +407,16 @@ mod tests {
     fn test_merge() {
         let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben;
         let mut upstream_node = nodes(Directions::UpstreamOnly).remove(3);
-        let downstream_node = nodes(Directions::DownstreamOnly).remove(4);
+        let downstream_node = nodes(Directions::DownstreamOnly).remove(3);
         assert!(upstream_node.can_be_merged(&downstream_node));
         upstream_node.merge(downstream_node);
-        assert_eq!(upstream_node, nodes(Directions::Both)[4])
+        assert_eq!(upstream_node, nodes(Directions::Both)[3])
     }
 
     #[test]
     fn test_can_not_be_merged() {
         let upstream_node =
-            nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::UpstreamOnly).remove(4);
+            nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::UpstreamOnly).remove(3);
         let mut downstream_node = Node::new(project(52.520, 13.388), Directions::DownstreamOnly);
         assert!(!upstream_node.can_be_merged(&downstream_node));
         downstream_node.make_stop(Rc::new(locations::oranienburger_tor()));

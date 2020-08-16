@@ -89,10 +89,8 @@ pub mod fixtures {
         tram_12:
                -98,  -1671, Both,           oranienburger_tor;
               -101,  -1560, Both;
-              -106,  -1338, DownstreamOnly;
               -108,  -1226, Both;
               -111,  -1115, Both,           friedrichstr;
-              -113,  -1004, UpstreamOnly;
                -46,  -1003, Both;
                 22,  -1001, Both;
                 90,   -999, UpstreamOnly;
@@ -111,10 +109,8 @@ pub mod fixtures {
              -2963,  10838, Both,           lichterfelder_ring_waldsassener_str;
              -2966,  10949, Both;
              -2968,  11061, Both;
-             -2900,  11062, DownstreamOnly;
              -2903,  11173, Both;
              -2906,  11285, Both,           waldsassener_str;
-             -2976,  11394, UpstreamOnly;
              -2906,  11285, Both;
              -2906,  11285, Both;
     }
@@ -127,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_getters() {
-        let node = nodes::tram_12().remove(4);
+        let node = nodes::tram_12().remove(3);
         assert_eq!(node.position(), Point2::new(-111.0, -1115.0));
         assert!(node.is_stop());
         assert!(node.allows(Direction::Upstream));

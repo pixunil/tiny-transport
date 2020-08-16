@@ -157,8 +157,8 @@ mod tests {
             trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:01:40), &schedule_ids);
         assert_eq!(
             train.interpolate_times(simulation::fixtures::nodes::tram_12(), &schedules),
-            times![9:01:40, 0:20, 0:27, 1:21, 0:27, 0:20, 0:19, 0:11, 0:12, 0:12,
-                0:12, 0:20, 1:00, 0:20]
+            times![9:01:40, 0:20, 0:27, 1:21, 0:27, 0:20, 0:25, 0:13, 0:13, 0:13,
+                0:20, 1:00, 0:20]
         );
     }
 
@@ -172,7 +172,7 @@ mod tests {
         assert_eq!(
             train.interpolate_times(simulation::fixtures::nodes::tram_12(), &schedules),
             times![8:33:40, 0:20, 0:19, 0:22, 0:12, 0:22, 0:20, 0:25, 0:12, 0:20,
-                0:12, 0:24, 0:20, 0:30, 0:31, 1:01, 0:30, 0:20]
+                0:12, 0:24, 0:20, 0:30, 1:31, 0:30, 0:20]
         );
     }
 
@@ -197,7 +197,7 @@ mod tests {
         assert_eq!(
             train.interpolate_times(simulation::fixtures::nodes::bus_m82(), &schedules),
             times![9:46:00, 0:00, 0:00, 0:15, 0:15, 0:00, 0:14, 0:14, 0:17, 0:14,
-                0:00, 0:00, 0:00, 0:00]
+                0:00, 0:00, 0:00]
         );
     }
 

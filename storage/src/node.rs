@@ -90,10 +90,8 @@ pub mod fixtures {
         tram_12:
                -98,  -1671, Both,           oranienburger_tor;
               -101,  -1560, Both;
-              -106,  -1338, DownstreamOnly;
               -108,  -1226, Both;
               -111,  -1115, Both,           friedrichstr;
-              -113,  -1004, UpstreamOnly;
                -46,  -1003, Both;
                 22,  -1001, Both;
                 90,   -999, UpstreamOnly;

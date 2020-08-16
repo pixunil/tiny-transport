@@ -176,14 +176,14 @@ pub mod fixtures {
         },
         tram_12: Tram, {
             oranienburger_tor_am_kupfergraben => Upstream,
-            [0:20, 0:27, 1:21, 0:27, 0:20, 0:19, 0:11, 0:12, 0:12, 0:12, 0:20, 1:00, 0:20];
+            [0:20, 0:27, 1:21, 0:27, 0:20, 0:25, 0:13, 0:13, 0:13, 0:20, 1:00, 0:20];
             am_kupfergraben_oranienburger_tor => Downstream,
             [0:20, 0:19, 0:22, 0:12, 0:22, 0:20, 0:25, 0:12, 0:20, 0:12, 0:24, 0:20, 0:30,
-                0:31, 1:01, 0:30, 0:20];
+                1:31, 0:30, 0:20];
         },
         bus_m82: Bus, {
             weskammstr_waldsassener_str => Upstream,
-            [0:00, 0:00, 0:15, 0:15, 0:00, 0:07, 0:07, 0:08, 0:07, 0:00, 0:00, 0:00, 0:00];
+            [0:00, 0:00, 0:15, 0:15, 0:00, 0:07, 0:07, 0:08, 0:07, 0:00, 0:00, 0:00];
         },
     }
 }
@@ -237,14 +237,14 @@ mod tests {
     fn test_upstream_ignores_downstream_only() {
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         train.update(time!(9:06:22), &nodes::tram_12());
-        assert_eq!(train.state, TrainState::Driving { from: 9, to: 16 });
+        assert_eq!(train.state, TrainState::Driving { from: 7, to: 14 });
     }
 
     #[test]
     fn test_downstream_ignores_upstream_only() {
         let mut train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
         train.update(time!(8:36:45), &nodes::tram_12());
-        assert_eq!(train.state, TrainState::Driving { from: 10, to: 7 });
+        assert_eq!(train.state, TrainState::Driving { from: 8, to: 5 });
     }
 
     #[test]
@@ -267,9 +267,9 @@ mod tests {
     #[test]
     fn test_nodes_after_terminus() {
         let mut train = trains::bus_m82::weskammstr_waldsassener_str(time!(9:46:00));
-        train.durations[13] = 30;
+        train.durations[12] = 30;
         train.update(time!(9:47:00), &nodes::bus_m82());
-        assert_eq!(train.state, TrainState::Driving { from: 10, to: 11 });
+        assert_eq!(train.state, TrainState::Driving { from: 8, to: 9 });
         assert!(train.is_active());
     }
 
