@@ -191,6 +191,7 @@ pub(crate) mod fixtures {
         tram_m10: {
             clara_jaschke_str_warschauer_str: [
                 52.525, 13.366, UpstreamOnly,   clara_jaschke_str;
+                52.526, 13.367, UpstreamOnly;
                 52.523, 13.362, DownstreamOnly, lueneburger_str;
                 52.524, 13.363, DownstreamOnly, lesser_ury_weg;
                 52.526, 13.370, Both,           hauptbahnhof;
@@ -220,6 +221,7 @@ pub(crate) mod fixtures {
             ],
             clara_jaschke_str_landsberger_allee_petersburger_str: [
                 52.525, 13.366, UpstreamOnly,   clara_jaschke_str;
+                52.526, 13.367, UpstreamOnly;
                 52.523, 13.362, DownstreamOnly, lueneburger_str;
                 52.524, 13.363, DownstreamOnly, lesser_ury_weg;
                 52.526, 13.370, Both,           hauptbahnhof;

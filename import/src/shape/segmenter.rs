@@ -316,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reverse_shape() {
+    fn test_reversed_shape() {
         test_segmentation!(
             [
                 u4::nollendorfplatz_innsbrucker_platz => [
@@ -351,7 +351,7 @@ mod tests {
     }
 
     #[test]
-    fn test_split_reversed_shape() {
+    fn test_reversed_shape_with_different_endpoint() {
         test_segmentation!(
             [
                 tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str => [
@@ -365,6 +365,34 @@ mod tests {
                 clara_jaschke_str_hauptbahnhof,
                 hauptbahnhof_landsberger_allee_petersburger_str,
                 hauptbahnhof_lueneburger_str,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_different_endpoint_and_split() {
+        test_segmentation!(
+            [
+                tram_m10::clara_jaschke_str_warschauer_str => [
+                    0,  Forward; 3,  Forward; 5, Forward; 1, Forward;
+                ],
+                tram_m10::warschauer_str_lueneburger_str => [
+                    1, Backward; 2,  Forward; 5, Backward; 3, Backward; 4,  Forward;
+                ],
+                tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str => [
+                    0,  Forward; 3,  Forward;
+                ],
+                tram_m10::landsberger_allee_petersburger_str_lueneburger_str => [
+                    3, Backward; 4,  Forward;
+                ],
+            ],
+            [
+                clara_jaschke_str_hauptbahnhof,
+                warschauer_str,
+                revaler_str,
+                hauptbahnhof_landsberger_allee_petersburger_str,
+                hauptbahnhof_lueneburger_str,
+                landsberger_allee_petersburger_str_revaler_str,
             ]
         );
     }
