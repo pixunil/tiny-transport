@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use chrono::Duration;
@@ -7,7 +6,7 @@ use super::{RouteBuffer, Trip};
 use crate::create_id_type;
 use crate::location::Location;
 use crate::service::Service;
-use crate::shape::{Shape, ShapeId};
+use crate::shape::{ShapeId, Shapes};
 use simulation::Direction;
 
 create_id_type!(TripId);
@@ -65,15 +64,15 @@ impl TripBuffer {
         durations
     }
 
-    pub(super) fn create_and_place_trip(
+    pub(super) fn create_and_place_trip<'a>(
         self,
-        shapes: &HashMap<ShapeId, Shape>,
-        route_buffers: &mut Vec<RouteBuffer>,
+        shapes: &'a Shapes,
+        route_buffers: &mut Vec<RouteBuffer<'a>>,
     ) {
         let durations = self.durations();
         let trip = Trip::new(self.direction, self.service, durations);
         let route_buffer = &mut route_buffers[self.line_id];
-        route_buffer.add_trip(self.locations, &shapes[&self.shape_id], trip);
+        route_buffer.add_trip(self.locations, shapes.bind(&self.shape_id), trip);
     }
 }
 
@@ -100,7 +99,7 @@ pub(crate) mod fixtures {
                             TripBuffer {
                                 line_id: $line_id,
                                 service: Rc::new(services::$service()),
-                                shape_id: stringify!($shape).into(),
+                                shape_id: format!("{}::{}", stringify!($line), stringify!($shape)).as_str().into(),
                                 direction: Direction::$direction,
                                 locations: stop_locations::$line::$trip(),
                                 arrivals: times!(Duration; +start, $arrival_times),
@@ -132,7 +131,7 @@ pub(crate) mod fixtures {
 mod tests {
     use super::*;
     use crate::fixtures::{locations, route_buffers, shapes, trip_buffers};
-    use test_utils::{time, times};
+    use test_utils::{assert_eq_alternate, time, times};
 
     #[test]
     fn test_add_stop() {
@@ -161,33 +160,39 @@ mod tests {
 
     #[test]
     fn test_create_route_with_upstream_buffer() {
+        let shapes = shapes::tram_12::by_id();
         let mut route_buffers = vec![RouteBuffer::new()];
         let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        buffer.create_and_place_trip(&shapes::tram_12::by_id(), &mut route_buffers);
-        assert_eq!(route_buffers[0], route_buffers::tram_12::with_1_upstream());
+        buffer.create_and_place_trip(&shapes, &mut route_buffers);
+        assert_eq_alternate!(
+            route_buffers[0],
+            route_buffers::tram_12::with_1_upstream(&shapes)
+        );
     }
 
     #[test]
     fn test_create_route_with_downstream_buffer() {
+        let shapes = shapes::tram_12::by_id();
         let mut route_buffers = vec![RouteBuffer::new()];
         let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
-        buffer.create_and_place_trip(&shapes::tram_12::by_id(), &mut route_buffers);
-        assert_eq!(
+        buffer.create_and_place_trip(&shapes, &mut route_buffers);
+        assert_eq_alternate!(
             route_buffers[0],
-            route_buffers::tram_12::with_1_downstream()
+            route_buffers::tram_12::with_1_downstream(&shapes)
         );
     }
 
     #[test]
     fn test_add_trips_to_route() {
+        let shapes = shapes::tram_12::by_id();
         let mut route_buffers = vec![RouteBuffer::new()];
         let buffer = trip_buffers::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        buffer.create_and_place_trip(&shapes::tram_12::by_id(), &mut route_buffers);
+        buffer.create_and_place_trip(&shapes, &mut route_buffers);
         let buffer = trip_buffers::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
-        buffer.create_and_place_trip(&shapes::tram_12::by_id(), &mut route_buffers);
-        assert_eq!(
+        buffer.create_and_place_trip(&shapes, &mut route_buffers);
+        assert_eq_alternate!(
             route_buffers[0],
-            route_buffers::tram_12::with_1_upstream_1_downstream()
+            route_buffers::tram_12::with_1_upstream_1_downstream(&shapes)
         );
     }
 }

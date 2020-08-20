@@ -6,12 +6,12 @@ use crate::shape::Shape;
 use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
-pub(super) struct RouteBuffer {
-    upstream: Vec<RouteVariant>,
-    downstream: Vec<RouteVariant>,
+pub(super) struct RouteBuffer<'a> {
+    upstream: Vec<RouteVariant<'a>>,
+    downstream: Vec<RouteVariant<'a>>,
 }
 
-impl RouteBuffer {
+impl<'a> RouteBuffer<'a> {
     pub(super) fn new() -> Self {
         Self {
             upstream: Vec::new(),
@@ -19,21 +19,21 @@ impl RouteBuffer {
         }
     }
 
-    pub(super) fn add_trip(&mut self, locations: Vec<Rc<Location>>, shape: &Shape, trip: Trip) {
+    pub(super) fn add_trip(&mut self, locations: Vec<Rc<Location>>, shape: Shape<'a>, trip: Trip) {
         let variants = match trip.direction() {
             Direction::Upstream => &mut self.upstream,
             Direction::Downstream => &mut self.downstream,
         };
         let variant = variants
             .iter_mut()
-            .find(|variant| variant.matches(&locations, shape));
+            .find(|variant| variant.matches(&locations, &shape));
 
         match variant {
             Some(variant) => {
                 variant.add_trip(trip);
             }
             None => {
-                let mut variant = RouteVariant::new(locations, shape.clone());
+                let mut variant = RouteVariant::new(locations, shape);
                 variant.add_trip(trip);
                 variants.push(variant);
             }
@@ -96,13 +96,18 @@ pub(crate) mod fixtures {
             $(
                 pub(in crate::trip) mod $line {
                     use crate::fixtures::route_variants;
+                    use crate::shape::Shapes;
                     use crate::trip::route_buffer::*;
 
                     $(
-                        pub(in crate::trip) fn $route() -> RouteBuffer {
+                        pub(in crate::trip) fn $route(shapes: &Shapes) -> RouteBuffer {
                             RouteBuffer {
-                                upstream: vec![$(route_variants::$line::$upstream()),*],
-                                downstream: vec![$(route_variants::$line::$downstream()),*],
+                                upstream: vec![$(
+                                    route_variants::$line::$upstream(&shapes)
+                                ),*],
+                                downstream: vec![$(
+                                    route_variants::$line::$downstream(&shapes)
+                                ),*],
                             }
                         }
                     )*
@@ -129,43 +134,47 @@ mod tests {
 
     #[test]
     fn test_create_first_upstream_variant() {
+        let shapes = shapes::by_id();
         let mut buffer = RouteBuffer::new();
         let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         buffer.add_trip(
             stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
-            &shapes::tram_12::oranienburger_tor_am_kupfergraben(),
+            shapes.bind(&"tram_12::oranienburger_tor_am_kupfergraben".into()),
             trip,
         );
-        assert_eq!(buffer, route_buffers::tram_12::with_1_upstream());
+        assert_eq!(buffer, route_buffers::tram_12::with_1_upstream(&shapes));
     }
 
     #[test]
     fn test_create_first_downstream_variant() {
+        let shapes = shapes::by_id();
         let mut buffer = RouteBuffer::new();
         let trip = trips::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
         buffer.add_trip(
             stop_locations::tram_12::am_kupfergraben_oranienburger_tor(),
-            &shapes::tram_12::am_kupfergraben_oranienburger_tor(),
+            shapes.bind(&"tram_12::am_kupfergraben_oranienburger_tor".into()),
             trip,
         );
-        assert_eq!(buffer, route_buffers::tram_12::with_1_downstream());
+        assert_eq!(buffer, route_buffers::tram_12::with_1_downstream(&shapes));
     }
 
     #[test]
     fn test_append_to_upstream_variant() {
-        let mut buffer = route_buffers::tram_12::with_1_upstream();
+        let shapes = shapes::by_id();
+        let mut buffer = route_buffers::tram_12::with_1_upstream(&shapes);
         let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:12:00));
         buffer.add_trip(
             stop_locations::tram_12::oranienburger_tor_am_kupfergraben(),
-            &shapes::tram_12::oranienburger_tor_am_kupfergraben(),
+            shapes.bind(&"tram_12::oranienburger_tor_am_kupfergraben".into()),
             trip,
         );
-        assert_eq!(buffer, route_buffers::tram_12::with_2_upstream());
+        assert_eq!(buffer, route_buffers::tram_12::with_2_upstream(&shapes));
     }
 
     #[test]
     fn test_into_routes_same_terminus() {
-        let buffer = route_buffers::tram_12::with_1_upstream_1_downstream();
+        let shapes = shapes::by_id();
+        let buffer = route_buffers::tram_12::with_1_upstream_1_downstream(&shapes);
         assert_eq_alternate!(
             buffer.into_routes(),
             vec![routes::tram_12::oranienburger_tor_am_kupfergraben()]
@@ -174,14 +183,19 @@ mod tests {
 
     #[test]
     fn test_into_routes_different_terminus() {
+        let shapes = shapes::by_id();
         let buffer = RouteBuffer {
             upstream: vec![
-                route_variants::tram_m10::clara_jaschke_str_warschauer_str(),
-                route_variants::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(),
+                route_variants::tram_m10::clara_jaschke_str_warschauer_str(&shapes),
+                route_variants::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(
+                    &shapes,
+                ),
             ],
             downstream: vec![
-                route_variants::tram_m10::landsberger_allee_petersburger_str_lueneburger_str(),
-                route_variants::tram_m10::warschauer_str_lueneburger_str(),
+                route_variants::tram_m10::landsberger_allee_petersburger_str_lueneburger_str(
+                    &shapes,
+                ),
+                route_variants::tram_m10::warschauer_str_lueneburger_str(&shapes),
             ],
         };
         assert_eq_alternate!(

@@ -1,44 +1,27 @@
+mod buffer;
 mod importer;
 mod record;
 mod segment;
-mod segmented_shape;
 mod segmenter;
 mod shape;
+mod shapes;
 mod smoother;
 
 #[cfg(test)]
 pub(crate) mod fixtures {
+    pub(crate) use super::buffer::fixtures as shape_buffers;
     pub(crate) use super::segment::fixtures as segments;
     pub(crate) use super::shape::fixtures as shapes;
 }
 
+use buffer::Buffer;
 use record::ShapeRecord;
 use segment::Segment;
-use segmented_shape::{Order, SegmentRef, SegmentedShape};
 use segmenter::Segmenter;
+use shape::{Order, SegmentRef, SegmentedShape};
 
+pub(crate) use buffer::ShapeId;
 pub(crate) use importer::Importer;
-pub(crate) use shape::{Shape, ShapeId};
+pub(crate) use shape::Shape;
+pub(crate) use shapes::Shapes;
 pub use smoother::Mode as SmoothMode;
-
-use std::collections::HashMap;
-
-#[derive(Debug, PartialEq)]
-pub(crate) struct Shapes {
-    shapes: HashMap<ShapeId, SegmentedShape>,
-    segments: Vec<Segment>,
-}
-
-impl Shapes {
-    pub(super) fn new(shapes: HashMap<ShapeId, SegmentedShape>, segments: Vec<Segment>) -> Self {
-        Self { shapes, segments }
-    }
-
-    pub(crate) fn glue_together(self) -> HashMap<ShapeId, Shape> {
-        let segments = &self.segments;
-        self.shapes
-            .into_iter()
-            .map(|(id, shape)| (id, shape.glue(segments)))
-            .collect()
-    }
-}

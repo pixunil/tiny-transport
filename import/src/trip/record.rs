@@ -65,14 +65,14 @@ impl StopRecord {
 mod tests {
     use super::*;
     use crate::fixtures::{locations, services, trip_buffers};
-    use test_utils::{map, time};
+    use test_utils::{assert_eq_alternate, map, time};
 
     fn u4_trip_record() -> TripRecord {
         TripRecord {
             trip_id: "u4_0".into(),
             route_id: "u4".into(),
             service_id: "mon_fri".into(),
-            shape_id: "u4".into(),
+            shape_id: "u4::u4".into(),
             direction_id: Direction::Upstream,
         }
     }
@@ -85,7 +85,7 @@ mod tests {
         };
         let mut buffers = HashMap::new();
         record.import(&id_mapping, &services::by_id(), &mut buffers);
-        assert_eq!(
+        assert_eq_alternate!(
             buffers,
             map! {
                 "u4_0" => trip_buffers::u4::empty(time!(0:00)),
@@ -106,7 +106,7 @@ mod tests {
         let mut buffers = HashMap::new();
         first.import(&id_mapping, &services::by_id(), &mut buffers);
         second.import(&id_mapping, &services::by_id(), &mut buffers);
-        assert_eq!(
+        assert_eq_alternate!(
             buffers,
             map! {
                 "u4_0" => trip_buffers::u4::empty(time!(0:00)),
@@ -158,7 +158,7 @@ mod tests {
             record.import(&locations::by_id(), &mut buffers);
         }
 
-        assert_eq!(
+        assert_eq_alternate!(
             buffers,
             map! {
                 "u4_0" => trip_buffers::u4::nollendorfplatz_innsbrucker_platz(time!(4:36:00)),

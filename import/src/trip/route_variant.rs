@@ -102,14 +102,14 @@ impl StopCandidate {
 }
 
 #[derive(Debug, PartialEq)]
-pub(super) struct RouteVariant {
+pub(super) struct RouteVariant<'a> {
     locations: Vec<Rc<Location>>,
-    shape: Shape,
+    shape: Shape<'a>,
     trips: Vec<Trip>,
 }
 
-impl RouteVariant {
-    pub(super) fn new(locations: Vec<Rc<Location>>, shape: Shape) -> Self {
+impl<'a> RouteVariant<'a> {
+    pub(super) fn new(locations: Vec<Rc<Location>>, shape: Shape<'a>) -> Self {
         Self {
             locations,
             shape,
@@ -117,7 +117,7 @@ impl RouteVariant {
         }
     }
 
-    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &Shape) -> bool {
+    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &Shape<'a>) -> bool {
         self.locations == locations && &self.shape == shape
     }
 
@@ -216,14 +216,16 @@ pub(crate) mod fixtures {
         ),* $(,)?) => (
             $(
                 pub(in crate::trip) mod $line {
-                    use crate::fixtures::{shapes, stop_locations};
+                    use crate::fixtures::stop_locations;
+                    use crate::shape::Shapes;
                     use crate::trip::route_variant::*;
 
                     $(
-                        pub(in crate::trip) fn $name() -> RouteVariant {
+                        pub(in crate::trip) fn $name(shapes: &Shapes) -> RouteVariant {
+                            let id = format!("{}::{}", stringify!($line), stringify!($route));
                             RouteVariant {
                                 locations: stop_locations::$line::$route(),
-                                shape: shapes::$line::$route(),
+                                shape: shapes.bind(&id.as_str().into()),
                                 trips: route_variants!(@trips $line, $route, $times),
                             }
                         }
@@ -256,16 +258,15 @@ pub(crate) mod fixtures {
 mod tests {
     use super::*;
     use crate::fixtures::{nodes, shapes, stop_locations};
+    use crate::shape::ShapeId;
     use simulation::Directions;
     use test_utils::assert_eq_alternate;
 
     macro_rules! test_nodes {
-        ($line:ident :: $route:ident, $direction:ident) => {{
-            test_nodes!($line::$route, $line::$route, $direction)
-        }};
-        ($line:ident :: $route:ident, $line_nodes:ident :: $nodes:ident, $direction:ident) => {{
-            let variant =
-                RouteVariant::new(stop_locations::$line::$route(), shapes::$line::$route());
+        (@single $shapes:expr, $line:ident :: $route:ident, $line_nodes:ident :: $nodes:ident, $direction:ident) => {{
+            let id =
+                ShapeId::from(format!("{}::{}", stringify!($line), stringify!($route)).as_str());
+            let variant = RouteVariant::new(stop_locations::$line::$route(), $shapes.bind(&id));
             let directions = Directions::from(Direction::$direction);
             let mut expected_nodes = nodes::$line_nodes::$nodes(directions);
             if Direction::$direction == Direction::Downstream {
@@ -274,9 +275,14 @@ mod tests {
             assert_eq_alternate!(variant.nodes(Direction::$direction), expected_nodes);
             variant
         }};
+        ($line:ident :: $route:ident, $direction:ident) => {{
+            let shapes = shapes::by_id();
+            test_nodes!(@single shapes, $line::$route, $line::$route, $direction)
+        }};
         ($line:ident :: { $upstream:ident, $downstream:ident }) => {{
-            let upstream = test_nodes!($line::$upstream, Upstream);
-            let downstream = test_nodes!($line::$downstream, $line::$upstream, Downstream);
+            let shapes = shapes::by_id();
+            let upstream = test_nodes!(@single shapes, $line::$upstream, $line::$upstream, Upstream);
+            let downstream = test_nodes!(@single shapes, $line::$downstream, $line::$upstream, Downstream);
             assert_eq_alternate!(
                 upstream.merge_nodes(&downstream),
                 nodes::$line::$upstream(Directions::Both)

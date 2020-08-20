@@ -2,47 +2,57 @@ use std::collections::HashMap;
 use std::error::Error;
 
 use super::smoother::Mode;
-use super::{Segmenter, Shape, ShapeId, ShapeRecord};
+use super::{Buffer, Segmenter, ShapeId, ShapeRecord, Shapes};
 use crate::utils::Action;
 use crate::utils::Dataset;
 
 pub(crate) struct Importer;
 
 impl Importer {
-    pub(crate) fn import(
+    pub(crate) fn import(dataset: &mut impl Dataset, mode: Mode) -> Result<Shapes, Box<dyn Error>> {
+        let buffers =
+            Self::read_into_buffers(dataset).map(|buffers| Self::smooth(buffers, mode))?;
+        Ok(Self::segment(buffers))
+    }
+
+    fn read_into_buffers(
         dataset: &mut impl Dataset,
-        mode: Mode,
-    ) -> Result<HashMap<ShapeId, Shape>, Box<dyn Error>> {
-        let mut shapes = HashMap::new();
+    ) -> Result<HashMap<ShapeId, Buffer>, Box<dyn Error>> {
+        let mut buffers = HashMap::new();
 
         let action = Action::start("Importing shapes");
         for result in action.read_csv(dataset, "shapes.txt")? {
             let record: ShapeRecord = result?;
-            record.import(&mut shapes);
+            record.import(&mut buffers);
         }
-        action.complete(&format!("Imported {} shapes", shapes.len()));
+        action.complete(&format!("Imported {} shapes", buffers.len()));
+        Ok(buffers)
+    }
 
+    fn smooth(mut buffers: HashMap<ShapeId, Buffer>, mode: Mode) -> HashMap<ShapeId, Buffer> {
         if mode != Mode::Off {
             let mut action = Action::start("Smoothing shapes");
-            shapes = action
-                .wrap_iter(shapes)
-                .map(|(id, shape)| (id, mode.smooth(shape)))
+            buffers = action
+                .wrap_iter(buffers)
+                .map(|(id, buffer)| (id, mode.smooth(buffer)))
                 .collect();
             action.complete("Smoothed shapes");
         }
+        buffers
+    }
 
+    fn segment(buffers: HashMap<ShapeId, Buffer>) -> Shapes {
         let mut segmenter = Segmenter::new();
         let mut action = Action::start("Segmenting shapes");
-        for (id, buffer) in action.wrap_iter(shapes) {
+        for (id, buffer) in action.wrap_iter(buffers) {
             segmenter.segment(id, buffer);
         }
         let shapes = segmenter.finish();
         action.complete(&format!(
             "Segmented shapes into {} segments",
-            shapes.segments.len()
+            shapes.segment_count()
         ));
-
-        Ok(shapes.glue_together())
+        shapes
     }
 }
 
@@ -50,31 +60,32 @@ impl Importer {
 mod tests {
     use super::*;
     use crate::dataset;
-    use crate::fixtures::shapes;
+    use crate::fixtures::shape_buffers;
     use test_utils::{assert_eq_alternate, map};
 
     #[test]
-    fn test_from_csv() {
+    fn test_read_into_buffers() {
         let mut dataset = dataset!(
             shapes:
-                shape_id, shape_pt_lat, shape_pt_lon;
-                1,        52.500,       13.354;
-                2,        52.478,       13.343;
-                1,        52.496,       13.343;
-                1,        52.489,       13.340;
-                2,        52.483,       13.342;
-                2,        52.489,       13.340;
-                2,        52.496,       13.343;
-                1,        52.483,       13.342;
-                1,        52.478,       13.343;
-                2,        52.500,       13.354
+                shape_id,                                       shape_pt_lat, shape_pt_lon;
+                "u4::nollendorfplatz_innsbrucker_platz",        52.500,       13.354;
+                "u4::innsbrucker_platz_nollendorfplatz",        52.478,       13.343;
+                "u4::nollendorfplatz_innsbrucker_platz",        52.496,       13.343;
+                "u4::nollendorfplatz_innsbrucker_platz",        52.489,       13.340;
+                "u4::innsbrucker_platz_nollendorfplatz",        52.483,       13.342;
+                "u4::innsbrucker_platz_nollendorfplatz",        52.489,       13.340;
+                "u4::innsbrucker_platz_nollendorfplatz",        52.496,       13.343;
+                "u4::nollendorfplatz_innsbrucker_platz",        52.483,       13.342;
+                "u4::nollendorfplatz_innsbrucker_platz",        52.478,       13.343;
+                "u4::innsbrucker_platz_nollendorfplatz",        52.500,       13.354
         );
-
         assert_eq_alternate!(
-            Importer::import(&mut dataset, Mode::Full).unwrap(),
+            Importer::read_into_buffers(&mut dataset).unwrap(),
             map! {
-                "1" => shapes::u4::nollendorfplatz_innsbrucker_platz(),
-                "2" => shapes::u4::innsbrucker_platz_nollendorfplatz(),
+                "u4::nollendorfplatz_innsbrucker_platz"
+                    => shape_buffers::u4::nollendorfplatz_innsbrucker_platz(),
+                "u4::innsbrucker_platz_nollendorfplatz"
+                    => shape_buffers::u4::innsbrucker_platz_nollendorfplatz(),
             }
         );
     }

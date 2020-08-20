@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde_derive::Deserialize;
 
-use super::{Shape, ShapeId};
+use super::{Buffer, ShapeId};
 use crate::coord::project;
 
 #[derive(Debug, Deserialize)]
@@ -13,11 +13,11 @@ pub(super) struct ShapeRecord {
 }
 
 impl ShapeRecord {
-    pub(super) fn import(self, shapes: &mut HashMap<ShapeId, Shape>) {
+    pub(super) fn import(self, shapes: &mut HashMap<ShapeId, Buffer>) {
         let position = project(self.shape_pt_lat, self.shape_pt_lon);
         shapes
             .entry(self.shape_id)
-            .or_insert_with(Shape::new)
+            .or_insert_with(Buffer::new)
             .add(position)
     }
 }
@@ -39,7 +39,7 @@ mod tests {
         assert_eq!(
             shapes,
             map! {
-                "1" => Shape::from(vec![project(52.526, 13.369)]),
+                "1" => Buffer::from(vec![project(52.526, 13.369)]),
             }
         );
     }

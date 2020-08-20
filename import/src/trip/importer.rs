@@ -7,13 +7,13 @@ use super::{Route, RouteBuffer, StopRecord, TripBuffer, TripId, TripRecord};
 use crate::line::LineId;
 use crate::location::{Location, LocationId};
 use crate::service::{Service, ServiceId};
-use crate::shape::{Shape, ShapeId};
+use crate::shape::Shapes;
 use crate::utils::{Action, Dataset};
 
 pub(crate) struct Importer<'a> {
     services: &'a HashMap<ServiceId, Rc<Service>>,
     locations: &'a HashMap<LocationId, Rc<Location>>,
-    shapes: &'a HashMap<ShapeId, Shape>,
+    shapes: &'a Shapes,
     id_mapping: &'a HashMap<LineId, usize>,
     line_count: usize,
 }
@@ -22,7 +22,7 @@ impl<'a> Importer<'a> {
     pub(crate) fn new(
         services: &'a HashMap<ServiceId, Rc<Service>>,
         locations: &'a HashMap<LocationId, Rc<Location>>,
-        shapes: &'a HashMap<ShapeId, Shape>,
+        shapes: &'a Shapes,
         id_mapping: &'a HashMap<LineId, usize>,
         line_count: usize,
     ) -> Importer<'a> {

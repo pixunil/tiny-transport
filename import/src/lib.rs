@@ -43,12 +43,12 @@ impl ImportedDataset {
     ) -> Result<Self, Box<dyn Error>> {
         let services = service::Importer::import(&mut dataset)?;
         let locations = location::Importer::import(&mut dataset)?;
-        let shapes = shape::Importer::import(&mut dataset, shape_smoothing)?;
+        let mut shapes = shape::Importer::import(&mut dataset, shape_smoothing)?;
         let line_importer = line::Importer::import(&mut dataset)?;
         let trip_importer = trip::Importer::new(
             &services,
             &locations,
-            &shapes,
+            &mut shapes,
             line_importer.id_mapping(),
             line_importer.line_count(),
         );

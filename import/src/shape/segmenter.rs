@@ -4,7 +4,7 @@ use std::ops::Range;
 
 use ordered_float::NotNan;
 
-use super::{Order, Segment, SegmentRef, SegmentedShape, Shape, ShapeId, Shapes};
+use super::{Buffer, Order, Segment, SegmentRef, SegmentedShape, ShapeId, Shapes};
 use crate::coord::Point;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -243,7 +243,7 @@ impl Segmenter {
             .unwrap_or(&[])
     }
 
-    pub(super) fn segment(&mut self, id: ShapeId, buffer: Shape) {
+    pub(super) fn segment(&mut self, id: ShapeId, buffer: Buffer) {
         let mut current_shape = SegmentedShape::new();
         let mut state = State::new();
         for point in buffer {
@@ -264,7 +264,7 @@ impl Segmenter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shape::fixtures::{segments, shapes};
+    use crate::fixtures::{segments, shape_buffers};
     use test_utils::{assert_eq_alternate, map};
 
     macro_rules! test_segmentation {
@@ -281,22 +281,22 @@ mod tests {
             $(
                 segmenter.segment(
                     format!("{}::{}", stringify!($line), stringify!($shape)).as_str().into(),
-                    shapes::$line::$shape(),
+                    shape_buffers::$line::$shape(),
                 );
             )*
             assert_eq_alternate!(
                 segmenter.finish(),
-                Shapes {
-                    segments: vec![ $( segments::$segment() ),* ],
-                    shapes: map! {
+                Shapes::new(
+                    map! {
                         $(
                             format!("{}::{}", stringify!($line), stringify!($shape)).as_str() =>
                             vec![
                                 $( SegmentRef::new($index, Order::$order) ),*
                             ].into()
                         ),*
-                    }
-                }
+                    },
+                    vec![ $( segments::$segment() ),* ],
+                )
             );
         }};
     }

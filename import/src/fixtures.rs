@@ -2,7 +2,7 @@ pub(crate) use crate::agency::fixtures::agencies;
 pub(crate) use crate::line::fixtures::{incomplete_lines, lines};
 pub(crate) use crate::location::fixtures::locations;
 pub(crate) use crate::service::fixtures::services;
-pub(crate) use crate::shape::fixtures::shapes;
+pub(crate) use crate::shape::fixtures::{segments, shape_buffers, shapes};
 pub(crate) use crate::trip::fixtures::{
     nodes, route_buffers, route_variants, routes, trip_buffers, trips,
 };

@@ -266,9 +266,8 @@ pub(crate) mod fixtures {
             anhalter_bahnhof_hauptbahnhof: [
                 52.505, 13.382, Both,           anhalter_bahnhof;
                 52.506, 13.380, Both;
-                52.507, 13.380, UpstreamOnly,   abgeordnetenhaus;
-                52.507, 13.379, UpstreamOnly;
-                52.507, 13.379, DownstreamOnly, abgeordnetenhaus;
+                52.507, 13.380, Both,           abgeordnetenhaus;
+                52.507, 13.379, Both;
                 52.508, 13.378, Both;
                 52.509, 13.377, Both,           potsdamer_platz_bus_stresemannstr;
                 52.510, 13.377, Both,           potsdamer_platz_vossstr;

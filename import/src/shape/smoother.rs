@@ -3,7 +3,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::coord::Point;
-use crate::shape::Shape;
+use crate::shape::Buffer;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Mode {
@@ -13,7 +13,7 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub(super) fn smooth(self, shape: Shape) -> Shape {
+    pub(super) fn smooth(self, shape: Buffer) -> Buffer {
         let mut smoother = Smoother::new(self);
         for position in shape {
             smoother.add(position);
@@ -162,10 +162,10 @@ impl Smoother {
         }
     }
 
-    fn finish(mut self) -> Shape {
+    fn finish(mut self) -> Buffer {
         self.correct_reversed_part(self.points.len().saturating_sub(3));
         self.correct_reversed_part(self.points.len().saturating_sub(2));
-        Shape::from(self.points)
+        Buffer::from(self.points)
     }
 }
 
@@ -175,20 +175,24 @@ mod tests {
         (@fixtures $name:ident,
             { $( $variant:ident : [ $( $lat:expr, $lon:expr );* $(;)? ] ),* $(,)? }
         ) => {
-            pub(crate) mod $name {
+            pub(in crate::shape) mod $name {
                 use crate::coord::project;
-                use crate::shape::Shape;
+                use crate::shape::Buffer;
 
                 $(
-                    pub(crate) fn $variant() -> Shape {
-                        Shape::from(vec![$( project($lat, $lon) ),*])
+                    pub(in crate::shape) fn $variant() -> Buffer {
+                        Buffer::from(vec![$( project($lat, $lon) ),*])
                     }
                 )*
                 test_smoothing!(@aliases [ $( $variant ),* ]);
             }
         };
-        (@aliases [unprocessed, deduplicated]) => { pub(crate) fn corrected() -> Shape { deduplicated() } };
-        (@aliases [unprocessed, corrected]) => { pub(crate) fn deduplicated() -> Shape { unprocessed() } };
+        (@aliases [unprocessed, deduplicated]) => {
+            pub(in crate::shape) fn corrected() -> Buffer { deduplicated() }
+        };
+        (@aliases [unprocessed, corrected]) => {
+            pub(in crate::shape) fn deduplicated() -> Buffer { unprocessed() }
+        };
         (@aliases [unprocessed, deduplicated, corrected]) => {};
         (@tests $name:ident, $mode:ident, $expected:ident) => {
             mod $name {
