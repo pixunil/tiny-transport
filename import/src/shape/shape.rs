@@ -128,14 +128,14 @@ pub(crate) mod fixtures {
             }
         ),* $(,)?) => {
             use crate::shape::Shapes;
-            use test_utils::{fixtures_with_ids, map};
+            use test_utils::{fixtures_with_ids, join, map};
 
             $(
                 pub(crate) mod $line {
                     use std::ops::Index;
 
                     use crate::shape::{SegmentedShape, SegmentRef, Order, Shapes};
-                    use test_utils::{fixtures_with_ids, map};
+                    use test_utils::{fixtures_with_ids, join, map};
 
                     $(
                         pub(crate) fn $shape<'a>(
@@ -155,8 +155,7 @@ pub(crate) mod fixtures {
                             fixtures_with_ids!(segments::{ $( $( $segment, )* )* });
                         let segmented_shapes = map!{
                             $(
-                                format!("{}::{}", stringify!($line), stringify!($shape)).as_str()
-                                    => $shape(&segment_ids),
+                                join!($line, $shape) => $shape(&segment_ids),
                             )*
                         };
                         Shapes::new(segmented_shapes, segments)
@@ -170,8 +169,7 @@ pub(crate) mod fixtures {
                 let segmented_shapes = map!{
                     $(
                         $(
-                            format!("{}::{}", stringify!($line), stringify!($shape)).as_str()
-                                => $line::$shape(&segment_ids),
+                            join!($line, $shape) => $line::$shape(&segment_ids),
                         )*
                     )*
                 };

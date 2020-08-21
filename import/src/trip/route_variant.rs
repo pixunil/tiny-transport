@@ -219,13 +219,13 @@ pub(crate) mod fixtures {
                     use crate::fixtures::stop_locations;
                     use crate::shape::Shapes;
                     use crate::trip::route_variant::*;
+                    use test_utils::join;
 
                     $(
                         pub(in crate::trip) fn $name(shapes: &Shapes) -> RouteVariant {
-                            let id = format!("{}::{}", stringify!($line), stringify!($route));
                             RouteVariant {
                                 locations: stop_locations::$line::$route(),
-                                shape: shapes.bind(&id.as_str().into()),
+                                shape: shapes.bind(&join!($line, $route).into()),
                                 trips: route_variants!(@trips $line, $route, $times),
                             }
                         }
@@ -260,12 +260,11 @@ mod tests {
     use crate::fixtures::{nodes, shapes, stop_locations};
     use crate::shape::ShapeId;
     use simulation::Directions;
-    use test_utils::assert_eq_alternate;
+    use test_utils::{assert_eq_alternate, join};
 
     macro_rules! test_nodes {
         (@single $shapes:expr, $line:ident :: $route:ident, $line_nodes:ident :: $nodes:ident, $direction:ident) => {{
-            let id =
-                ShapeId::from(format!("{}::{}", stringify!($line), stringify!($route)).as_str());
+            let id = ShapeId::from(join!($line, $route));
             let variant = RouteVariant::new(stop_locations::$line::$route(), $shapes.bind(&id));
             let directions = Directions::from(Direction::$direction);
             let mut expected_nodes = nodes::$line_nodes::$nodes(directions);

@@ -92,14 +92,14 @@ pub(crate) mod fixtures {
                     use simulation::Direction;
                     use crate::fixtures::{services, stop_locations};
                     use crate::trip::trip_buffer::*;
-                    use test_utils::times;
+                    use test_utils::{join, times};
 
                     $(
                         pub(in crate::trip) fn $trip(start: i64) -> TripBuffer {
                             TripBuffer {
                                 line_id: $line_id,
                                 service: Rc::new(services::$service()),
-                                shape_id: format!("{}::{}", stringify!($line), stringify!($shape)).as_str().into(),
+                                shape_id: join!($line, $shape).into(),
                                 direction: Direction::$direction,
                                 locations: stop_locations::$line::$trip(),
                                 arrivals: times!(Duration; +start, $arrival_times),

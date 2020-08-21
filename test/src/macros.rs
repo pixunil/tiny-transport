@@ -1,3 +1,10 @@
+#[macro_export]
+macro_rules! join {
+    ($first:expr $( , $following:expr )* $(,)?) => {
+        concat!(stringify!($first) $( , "::", join!($following) ),*)
+    };
+}
+
 /// Like `assert_eq!`, but uses `{:#?}` for printing the value on failure.
 #[macro_export]
 macro_rules! assert_eq_alternate {

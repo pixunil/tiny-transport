@@ -265,7 +265,7 @@ impl Segmenter {
 mod tests {
     use super::*;
     use crate::fixtures::{segments, shape_buffers};
-    use test_utils::{assert_eq_alternate, map};
+    use test_utils::{assert_eq_alternate, join, map};
 
     macro_rules! test_segmentation {
         ([
@@ -280,7 +280,7 @@ mod tests {
             let mut segmenter = Segmenter::new();
             $(
                 segmenter.segment(
-                    format!("{}::{}", stringify!($line), stringify!($shape)).as_str().into(),
+                    join!($line, $shape).into(),
                     shape_buffers::$line::$shape(),
                 );
             )*
@@ -289,7 +289,7 @@ mod tests {
                 Shapes::new(
                     map! {
                         $(
-                            format!("{}::{}", stringify!($line), stringify!($shape)).as_str() =>
+                            join!($line, $shape) =>
                             vec![
                                 $( SegmentRef::new($index, Order::$order) ),*
                             ].into()
