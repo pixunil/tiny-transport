@@ -33,8 +33,8 @@ python3 -m http.server 8917
 xdg-open http://localhost:8917/wasm/www
 ```
 
-[travis-image]: https://travis-ci.org/pixunil/tiny-transport.svg?branch=main
-[travis-url]: https://travis-ci.org/pixunil/tiny-transport
+[travis-image]: https://travis-ci.com/pixunil/tiny-transport.svg?branch=main
+[travis-url]: https://travis-ci.com/pixunil/tiny-transport
 [codecov-image]: https://codecov.io/gh/pixunil/tiny-transport/branch/main/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/pixunil/tiny-transport
 [vbb-data]: https://www.vbb.de/unsere-themen/vbbdigital/api-entwicklerinfos/datensaetze
