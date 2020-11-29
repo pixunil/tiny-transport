@@ -78,7 +78,7 @@ impl<'a> Importer<'a> {
         let mut action = Action::start("Merging trips into routes");
         let routes = action
             .wrap_iter(route_buffers)
-            .map(|route_buffer| route_buffer.into_routes())
+            .map(|route_buffer| route_buffer.into_routes(self.shapes.segments()))
             .collect();
         action.complete("Merged trips into routes");
         routes

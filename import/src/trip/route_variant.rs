@@ -5,7 +5,7 @@ use ordered_float::NotNan;
 
 use super::{Node, Route, Trip};
 use crate::location::Location;
-use crate::shape::Shape;
+use crate::shape::{Segment, SegmentedShape};
 use itertools::Itertools;
 use simulation::Direction;
 
@@ -102,14 +102,14 @@ impl StopCandidate {
 }
 
 #[derive(Debug, PartialEq)]
-pub(super) struct RouteVariant<'a> {
+pub(super) struct RouteVariant {
     locations: Vec<Rc<Location>>,
-    shape: Shape<'a>,
+    shape: SegmentedShape,
     trips: Vec<Trip>,
 }
 
-impl<'a> RouteVariant<'a> {
-    pub(super) fn new(locations: Vec<Rc<Location>>, shape: Shape<'a>) -> Self {
+impl RouteVariant {
+    pub(super) fn new(locations: Vec<Rc<Location>>, shape: SegmentedShape) -> Self {
         Self {
             locations,
             shape,
@@ -117,7 +117,7 @@ impl<'a> RouteVariant<'a> {
         }
     }
 
-    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &Shape<'a>) -> bool {
+    pub(super) fn matches(&self, locations: &[Rc<Location>], shape: &SegmentedShape) -> bool {
         self.locations == locations && &self.shape == shape
     }
 
@@ -154,9 +154,10 @@ impl<'a> RouteVariant<'a> {
         self.trips.push(trip);
     }
 
-    fn nodes(&self, direction: Direction) -> Vec<Node> {
+    fn nodes(&self, segments: &[Segment], direction: Direction) -> Vec<Node> {
         let mut nodes = self
             .shape
+            .bind(segments)
             .iter_count(self.locations.len())
             .map(|position| Node::new(position, direction.into()))
             .collect::<Vec<_>>();
@@ -168,21 +169,21 @@ impl<'a> RouteVariant<'a> {
         nodes
     }
 
-    pub(super) fn single(self, direction: Direction) -> Route {
-        Route::new(self.nodes(direction), self.trips)
+    pub(super) fn single(self, segments: &[Segment], direction: Direction) -> Route {
+        Route::new(self.nodes(segments, direction), self.trips)
     }
 
-    pub(super) fn merge(mut self, mut downstream: Self) -> Route {
-        let nodes = self.merge_nodes(&downstream);
+    pub(super) fn merge(mut self, segments: &[Segment], mut downstream: Self) -> Route {
+        let nodes = self.merge_nodes(segments, &downstream);
         self.trips.append(&mut downstream.trips);
         Route::new(nodes, self.trips)
     }
 
-    fn merge_nodes(&self, downstream: &Self) -> Vec<Node> {
-        let mut downstream_nodes = downstream.nodes(Direction::Downstream);
+    fn merge_nodes(&self, segments: &[Segment], downstream: &Self) -> Vec<Node> {
+        let mut downstream_nodes = downstream.nodes(segments, Direction::Downstream);
         let mut nodes = Vec::new();
 
-        for mut node in self.nodes(Direction::Upstream) {
+        for mut node in self.nodes(segments, Direction::Upstream) {
             let merge_candidate = downstream_nodes
                 .iter()
                 .rposition(|downstream| node.can_be_merged(&downstream));
@@ -225,7 +226,7 @@ pub(crate) mod fixtures {
                         pub(in crate::trip) fn $name(shapes: &Shapes) -> RouteVariant {
                             RouteVariant {
                                 locations: stop_locations::$line::$route(),
-                                shape: shapes.bind(&join!($line, $route).into()),
+                                shape: shapes[&join!($line, $route).into()].clone(),
                                 trips: route_variants!(@trips $line, $route, $times),
                             }
                         }
@@ -265,13 +266,13 @@ mod tests {
     macro_rules! test_nodes {
         (@single $shapes:expr, $line:ident :: $route:ident, $line_nodes:ident :: $nodes:ident, $direction:ident) => {{
             let id = ShapeId::from(join!($line, $route));
-            let variant = RouteVariant::new(stop_locations::$line::$route(), $shapes.bind(&id));
+            let variant = RouteVariant::new(stop_locations::$line::$route(), $shapes[&id].clone());
             let directions = Directions::from(Direction::$direction);
             let mut expected_nodes = nodes::$line_nodes::$nodes(directions);
             if Direction::$direction == Direction::Downstream {
                 expected_nodes.reverse();
             }
-            assert_eq_alternate!(variant.nodes(Direction::$direction), expected_nodes);
+            assert_eq_alternate!(variant.nodes($shapes.segments(), Direction::$direction), expected_nodes);
             variant
         }};
         ($line:ident :: $route:ident, $direction:ident) => {{
@@ -283,7 +284,7 @@ mod tests {
             let upstream = test_nodes!(@single shapes, $line::$upstream, $line::$upstream, Upstream);
             let downstream = test_nodes!(@single shapes, $line::$downstream, $line::$upstream, Downstream);
             assert_eq_alternate!(
-                upstream.merge_nodes(&downstream),
+                upstream.merge_nodes(shapes.segments(), &downstream),
                 nodes::$line::$upstream(Directions::Both)
             );
         }};

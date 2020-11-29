@@ -64,15 +64,21 @@ impl TripBuffer {
         durations
     }
 
-    pub(super) fn create_and_place_trip<'a>(
+    pub(super) fn create_and_place_trip(
         self,
-        shapes: &'a Shapes,
-        route_buffers: &mut Vec<RouteBuffer<'a>>,
+        shapes: &Shapes,
+        route_buffers: &mut Vec<RouteBuffer>,
     ) {
         let durations = self.durations();
-        let trip = Trip::new(self.direction, self.service, durations);
         let route_buffer = &mut route_buffers[self.line_id];
-        route_buffer.add_trip(self.locations, shapes.bind(&self.shape_id), trip);
+        let variant = route_buffer.retrieve_or_create_variant(
+            self.locations,
+            shapes,
+            self.shape_id,
+            self.direction,
+        );
+        let trip = Trip::new(self.direction, self.service, durations);
+        variant.add_trip(trip);
     }
 }
 

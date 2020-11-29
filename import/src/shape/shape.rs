@@ -74,7 +74,7 @@ impl SegmentedShape {
         }
     }
 
-    pub(super) fn bind<'a>(&'a self, segments: &'a [Segment]) -> Shape<'a> {
+    pub(crate) fn bind<'a>(&'a self, segments: &'a [Segment]) -> Shape<'a> {
         Shape {
             segments,
             segmented_shape: self,

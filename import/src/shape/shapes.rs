@@ -1,6 +1,7 @@
 use std::collections::HashMap;
+use std::ops::Index;
 
-use crate::shape::{Segment, SegmentedShape, Shape, ShapeId};
+use crate::shape::{Segment, SegmentedShape, ShapeId};
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Shapes {
@@ -13,12 +14,20 @@ impl Shapes {
         Self { shapes, segments }
     }
 
+    pub(crate) fn segments(&self) -> &[Segment] {
+        &self.segments
+    }
+
     pub(super) fn segment_count(&self) -> usize {
         self.segments.len()
     }
+}
 
-    pub(crate) fn bind(&self, id: &ShapeId) -> Shape {
-        self.shapes[id].bind(&self.segments)
+impl<'a> Index<&'a ShapeId> for Shapes {
+    type Output = SegmentedShape;
+
+    fn index(&self, id: &'a ShapeId) -> &Self::Output {
+        &self.shapes[id]
     }
 }
 
