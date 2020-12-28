@@ -80,7 +80,7 @@ mod tests {
     use super::*;
     use crate::dataset;
     use crate::fixtures::{lines, paths, routes};
-    use test_utils::{assert_eq_alternate, map};
+    use common::{assert_eq_alternate, map};
 
     #[test]
     fn test_import() {

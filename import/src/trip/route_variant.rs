@@ -70,7 +70,7 @@ pub(crate) mod fixtures {
         (@trips $line:ident, $route:ident, []) => { vec![] };
         (@trips $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {{
             use crate::fixtures::trips;
-            use test_utils::time;
+            use common::time;
             vec![ $( trips::$line::$route(time!($($time),*)) ),* ]
         }};
         ($(
@@ -85,7 +85,7 @@ pub(crate) mod fixtures {
                     use crate::fixtures::stop_locations;
                     use crate::shape::Shapes;
                     use crate::trip::route_variant::*;
-                    use test_utils::join;
+                    use common::join;
 
                     $(
                         pub(in crate::trip) fn $name(shapes: &Shapes) -> RouteVariant {

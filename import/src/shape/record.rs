@@ -25,7 +25,7 @@ impl ShapeRecord {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_utils::map;
+    use common::map;
 
     #[test]
     fn test_import() {

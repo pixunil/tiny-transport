@@ -132,7 +132,7 @@ impl Schedule {
 mod tests {
     use super::*;
     use crate::fixtures::paths;
-    use test_utils::{time, times};
+    use common::{time, times};
 
     #[test]
     fn test_sufficient_stop_times() {

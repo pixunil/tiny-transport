@@ -198,7 +198,7 @@ mod tests {
             mod $name {
                 use super::super::fixtures::$name as variants;
                 use crate::shape::smoother::Mode;
-                use test_utils::assert_eq_alternate;
+                use common::assert_eq_alternate;
 
                 #[test]
                 fn upstream() {

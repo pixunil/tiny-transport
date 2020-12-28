@@ -33,7 +33,7 @@ pub mod fixtures {
     use itertools::Itertools;
 
     use super::*;
-    use test_utils::times;
+    use common::times;
 
     macro_rules! schedules {
         ($( $schedule:ident : [$( $( $(:)? $time:literal )* ),* ] ),* $(,)?) => (

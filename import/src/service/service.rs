@@ -47,10 +47,11 @@ impl Service {
 
 #[cfg(test)]
 pub(crate) mod fixtures {
-    use super::*;
     use std::collections::HashMap;
     use std::rc::Rc;
-    use test_utils::map;
+
+    use super::*;
+    use common::map;
 
     macro_rules! services {
         ($($service:ident: $start:expr, $end:expr, $weekdays:expr);* $(;)?) => (

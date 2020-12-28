@@ -265,7 +265,7 @@ impl Segmenter {
 mod tests {
     use super::*;
     use crate::fixtures::{segments, shape_buffers};
-    use test_utils::{assert_eq_alternate, join, map};
+    use common::{assert_eq_alternate, join, map};
 
     macro_rules! test_segmentation {
         ([

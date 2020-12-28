@@ -268,7 +268,7 @@ mod tests {
     use super::*;
     use crate::fixtures::{locations, path_segments, paths, shapes, stop_locations};
     use crate::shape::ShapeId;
-    use test_utils::{assert_eq_alternate, join};
+    use common::{assert_eq_alternate, join};
 
     #[test]
     fn test_distance_to() {

@@ -106,7 +106,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::{lines, paths};
-    use test_utils::map;
+    use common::map;
 
     #[test]
     fn test_getters() {

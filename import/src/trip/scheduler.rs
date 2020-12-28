@@ -49,7 +49,7 @@ impl Scheduler {
 mod tests {
     use super::*;
     use crate::fixtures::paths;
-    use test_utils::{time, times};
+    use common::{time, times};
 
     #[test]
     fn test_single_schedule() {

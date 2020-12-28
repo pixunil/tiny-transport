@@ -72,7 +72,7 @@ pub(crate) mod fixtures {
 
                     use crate::shape::Order;
                     use crate::path::{SegmentedPath, SegmentRef, Segment};
-                    use test_utils::fixtures_with_ids;
+                    use common::fixtures_with_ids;
 
                     $(
                         pub(crate) fn $path<'a>(

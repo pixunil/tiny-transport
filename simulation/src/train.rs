@@ -141,7 +141,7 @@ pub mod fixtures {
             $(
                 pub mod $train {
                     use crate::train::*;
-                    use test_utils::times;
+                    use common::times;
 
                     $(
                         pub fn $route(start: u32) -> Train {
@@ -194,7 +194,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::{nodes, trains};
-    use test_utils::time;
+    use common::time;
 
     fn segment_vector(nodes: &[Node], from: usize, to: usize) -> Vector2<f32> {
         (nodes[to].position() - nodes[from].position()).normalize()

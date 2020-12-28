@@ -58,7 +58,7 @@ pub(crate) mod fixtures {
         (@trips $line:ident, $route:ident, []) => { vec![] };
         (@trips $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?]) => {{
             use crate::fixtures::trips;
-            use test_utils::time;
+            use common::time;
             vec![ $( trips::$line::$route(time!($($time),*)) ),* ]
         }};
         ($( $line:ident : { $( $route:ident: $times:tt );* $(;)? } ),* $(,)?) => {

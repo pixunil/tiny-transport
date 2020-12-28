@@ -51,7 +51,7 @@ impl Dataset {
 pub mod fixtures {
     use super::*;
     use crate::fixtures::lines;
-    use test_utils::fixtures_with_ids;
+    use common::fixtures_with_ids;
 
     macro_rules! datasets {
         ( $( $dataset:ident => {

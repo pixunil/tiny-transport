@@ -146,7 +146,7 @@ pub mod fixtures {
 mod tests {
     use super::*;
     use crate::fixtures::trains;
-    use test_utils::{fixtures_with_ids, time, times};
+    use common::{fixtures_with_ids, time, times};
 
     #[test]
     fn test_time_interpolation_upstream() {

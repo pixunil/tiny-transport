@@ -98,7 +98,7 @@ pub(crate) mod fixtures {
                     use simulation::Direction;
                     use crate::fixtures::{services, stop_locations};
                     use crate::trip::trip_buffer::*;
-                    use test_utils::{join, times};
+                    use common::{join, times};
 
                     $(
                         pub(in crate::trip) fn $trip(start: i64) -> TripBuffer {
@@ -137,7 +137,7 @@ pub(crate) mod fixtures {
 mod tests {
     use super::*;
     use crate::fixtures::{locations, route_buffers, shapes, trip_buffers};
-    use test_utils::{assert_eq_alternate, time, times};
+    use common::{assert_eq_alternate, time, times};
 
     #[test]
     fn test_add_stop() {

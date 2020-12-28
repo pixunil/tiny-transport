@@ -132,7 +132,7 @@ impl Line {
 pub mod fixtures {
     use super::*;
     use crate::fixtures::{nodes, trains};
-    use test_utils::time;
+    use common::time;
 
     macro_rules! lines {
         (@trains $line:ident, $route:ident, [ $( $( $(:)? $time:literal )* ),* ]) => {
@@ -178,7 +178,7 @@ mod tests {
     use crate::direction::Directions;
     use crate::fixtures::{lines, nodes};
     use crate::node::Kind as NodeKind;
-    use test_utils::time;
+    use common::time;
 
     #[test]
     fn test_getters() {

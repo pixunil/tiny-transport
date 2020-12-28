@@ -36,7 +36,7 @@ mod tests {
     use super::*;
     use crate::dataset;
     use crate::fixtures::locations;
-    use test_utils::map;
+    use common::map;
 
     #[test]
     fn test_station_with_parent() {

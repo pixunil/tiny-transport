@@ -102,7 +102,7 @@ pub(crate) mod fixtures {
 mod tests {
     use super::*;
     use crate::fixtures::{paths, route_buffers, route_variants, routes, shapes, stop_locations};
-    use test_utils::assert_eq_alternate;
+    use common::assert_eq_alternate;
 
     #[test]
     fn test_create_first_upstream_variant() {

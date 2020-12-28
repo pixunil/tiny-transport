@@ -152,14 +152,14 @@ pub(crate) mod fixtures {
             }
         ),* $(,)?) => {
             use crate::shape::Shapes;
-            use test_utils::{fixtures_with_ids, join, map};
+            use common::{fixtures_with_ids, join, map};
 
             $(
                 pub(crate) mod $line {
                     use std::ops::Index;
 
                     use crate::shape::{SegmentedShape, SegmentRef, Order, Shapes};
-                    use test_utils::{fixtures_with_ids, join, map};
+                    use common::{fixtures_with_ids, join, map};
 
                     $(
                         pub(crate) fn $shape<'a>(
@@ -273,7 +273,7 @@ pub(crate) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_utils::assert_eq_alternate;
+    use common::assert_eq_alternate;
 
     #[test]
     fn test_segment_split_forward() {

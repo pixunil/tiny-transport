@@ -53,7 +53,7 @@ pub(crate) mod fixtures {
                     use simulation::Direction;
                     use crate::fixtures::services;
                     use crate::trip::trip::*;
-                    use test_utils::times;
+                    use common::times;
 
                     $(
                         pub(in crate::trip) fn $trip(start: i64) -> Trip {
@@ -85,7 +85,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::{paths, trips};
-    use test_utils::{map, time};
+    use common::{map, time};
 
     #[test]
     fn test_available_at() {

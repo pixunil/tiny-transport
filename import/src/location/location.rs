@@ -55,7 +55,7 @@ pub(crate) mod fixtures {
 
     use super::*;
     use crate::coord::project;
-    use test_utils::map;
+    use common::map;
 
     macro_rules! locations {
         ($($location:ident: $lat:expr, $lon:expr, $name:expr);* $(;)?) => (

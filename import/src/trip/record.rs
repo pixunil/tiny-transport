@@ -65,7 +65,7 @@ impl StopRecord {
 mod tests {
     use super::*;
     use crate::fixtures::{locations, services, trip_buffers};
-    use test_utils::{assert_eq_alternate, map, time};
+    use common::{assert_eq_alternate, map, time};
 
     fn u4_trip_record() -> TripRecord {
         TripRecord {

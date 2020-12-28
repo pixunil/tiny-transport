@@ -74,7 +74,7 @@ mod tests {
     use super::*;
     use crate::coord::project;
     use crate::fixtures::{locations, paths};
-    use test_utils::assert_eq_alternate;
+    use common::assert_eq_alternate;
 
     #[test]
     fn test_getters() {

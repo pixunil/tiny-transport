@@ -71,7 +71,7 @@ pub mod fixtures {
 
     use super::*;
     use crate::fixtures::{nodes, trains};
-    use test_utils::time;
+    use common::time;
 
     macro_rules! lines {
         (@trains $line:ident, $route:ident, [$( $( $(:)? $time:literal )* ),* $(,)?], $schedule_ids:expr) => {
@@ -117,7 +117,7 @@ mod tests {
 
     use super::*;
     use crate::fixtures::lines;
-    use test_utils::{fixtures_with_ids, map};
+    use common::{fixtures_with_ids, map};
 
     #[test]
     fn test_add_tram_to_station_infos() {

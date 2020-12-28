@@ -33,4 +33,4 @@ storage = { package = "tiny-transport-storage", path = "../storage", features = 
 [dev-dependencies]
 serde_test = "1"
 
-test_utils = { package = "tiny-transport-test", path = "../test" }
+common = { package = "tiny-transport-common", path = "../common" }
