@@ -1,3 +1,4 @@
+use crate::location::Linearizer;
 use crate::path::Node;
 
 #[derive(Debug, PartialEq)]
@@ -12,6 +13,15 @@ impl Segment {
 
     pub(crate) fn nodes(&self) -> &[Node] {
         &self.nodes
+    }
+
+    pub(super) fn store(&self, linearizer: &mut Linearizer) -> storage::Segment {
+        let nodes = self
+            .nodes
+            .iter()
+            .map(|node| node.store(linearizer))
+            .collect();
+        storage::Segment::new(nodes)
     }
 }
 
@@ -258,5 +268,20 @@ pub(crate) mod fixtures {
             52.422, 13.179;
             52.422, 13.178;
         ],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::fixtures::path_segments;
+
+    #[test]
+    fn test_store() {
+        let mut linearizer = Linearizer::new();
+        assert_eq!(
+            path_segments::oranienburger_tor_friedrichstr().store(&mut linearizer),
+            storage::fixtures::segments::oranienburger_tor_friedrichstr(&linearizer.location_ids())
+        );
     }
 }

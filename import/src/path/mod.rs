@@ -1,3 +1,4 @@
+mod index_map;
 mod node;
 mod path;
 mod placer;
@@ -11,6 +12,7 @@ pub(crate) mod fixtures {
 
 use path::SegmentRef;
 
+pub(crate) use index_map::IndexMap;
 pub(crate) use node::Node;
 pub(crate) use path::SegmentedPath;
 pub(crate) use placer::StopPlacer;

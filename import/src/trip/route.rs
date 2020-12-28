@@ -1,7 +1,6 @@
 use chrono::NaiveDate;
 
 use super::{Scheduler, Trip};
-use crate::location::Linearizer;
 use crate::path::{Segment, SegmentedPath};
 
 #[derive(Debug, PartialEq)]
@@ -24,17 +23,6 @@ impl Route {
             .iter()
             .filter(|trip| trip.available_at(date))
             .count()
-    }
-
-    pub(crate) fn store_nodes(
-        &self,
-        segments: &[Segment],
-        linearizer: &mut Linearizer,
-    ) -> Vec<storage::Node> {
-        self.path
-            .nodes(segments)
-            .map(|node| node.store(linearizer))
-            .collect()
     }
 
     pub(crate) fn store_trains(

@@ -6,3 +6,7 @@ edition = "2018"
 description = "Provides common utilities"
 repository = "https://github.com/pixunil/tiny-transport"
 license = "MIT"
+
+[dependencies]
+serde = "1"
+serde_derive = "1"

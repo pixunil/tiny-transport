@@ -1,7 +1,6 @@
 use itertools::Itertools;
 
-use crate::path::Node;
-use crate::path::Segment;
+use crate::path::{IndexMap, Node, Segment};
 use common::Order;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -16,6 +15,10 @@ impl SegmentRef {
             segment_index,
             order,
         }
+    }
+
+    fn store(&self, index_map: &mut IndexMap) -> storage::SegmentRef {
+        storage::SegmentRef::new(index_map.retrieve(self.segment_index), self.order)
     }
 }
 
@@ -35,6 +38,15 @@ impl SegmentedPath {
             .tuple_windows()
             .map(|(before, after)| na::distance(&before.position(), &after.position()))
             .collect()
+    }
+
+    pub(crate) fn store(&self, index_map: &mut IndexMap) -> storage::SegmentedPath {
+        let segment_refs = self
+            .segments
+            .iter()
+            .map(|segment_ref| segment_ref.store(index_map))
+            .collect();
+        storage::SegmentedPath::new(segment_refs)
     }
 
     pub fn nodes<'a>(&self, segments: &'a [Segment]) -> impl Iterator<Item = &'a Node> {
@@ -156,5 +168,31 @@ pub(crate) mod fixtures {
                 wannsee_heckeshorn_wannsee,                                 Forward;
             ],
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+    use crate::fixtures::paths;
+    use common::map;
+
+    #[test]
+    fn test_store() {
+        let segment_ids: HashMap<&str, usize> = map! {
+            "oranienburger_tor_friedrichstr" => 5,
+            "universitaetsstr_am_kupfergraben" => 4,
+        };
+        let path = paths::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids);
+        let segment_ids: HashMap<&str, usize> = map! {
+            "oranienburger_tor_friedrichstr" => 0,
+            "universitaetsstr_am_kupfergraben" => 1,
+        };
+        let mut index_map = IndexMap::new();
+        let expected =
+            storage::fixtures::paths::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids);
+        assert_eq!(path.store(&mut index_map), expected);
     }
 }

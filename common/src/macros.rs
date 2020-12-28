@@ -106,17 +106,20 @@ macro_rules! fixtures_with_ids {
             .map(|(i, identifier)| (identifier, i))
             .collect::<std::collections::HashMap<_, _>>()
     }};
-    ($kind:ident :: { $( $name:ident ),* $(,)? }) => {{
+    ($kind:ident :: { $( $name:ident ),* $(,)? }, $args:tt) => {{
         let mut ids = std::collections::HashMap::new();
         let mut fixtures = Vec::new();
         $(
             ids.entry(stringify!($name)).or_insert_with(|| {
-                fixtures.push(crate::fixtures::$kind::$name());
+                fixtures.push(crate::fixtures::$kind::$name $args);
                 fixtures.len() - 1
             });
         )*
 
         (fixtures, ids)
+    }};
+    ($kind:ident :: { $( $name:ident ),* $(,)? }) => {{
+        fixtures_with_ids!($kind :: { $( $name ),* }, ())
     }};
     ($crate_name:ident :: $kind:ident :: { $( $name:ident ),* $(,)? } with Rc) => {{
         let fixtures = vec![ $( std::rc::Rc::new($crate_name::fixtures::$kind::$name()) ),* ];

@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use crate::coord::{transform, Point, PointDebug};
 use crate::location::{Linearizer, Location};
-use simulation::Directions;
 
 #[derive(PartialEq)]
 pub struct Node {
@@ -41,7 +40,7 @@ impl Node {
             },
         };
         let position = transform(self.position);
-        storage::Node::new(position, kind, Directions::Both)
+        storage::Node::new(position, kind)
     }
 }
 
@@ -73,8 +72,7 @@ pub(crate) enum Kind {
 mod tests {
     use super::*;
     use crate::coord::project;
-    use crate::fixtures::{locations, paths};
-    use common::assert_eq_alternate;
+    use crate::fixtures::locations;
 
     #[test]
     fn test_getters() {
@@ -87,19 +85,5 @@ mod tests {
         };
         assert_eq!(node.position(), project(52.520, 13.388));
         assert_eq!(node.location(), Some(&location));
-    }
-
-    #[test]
-    #[ignore]
-    fn test_store() {
-        let (segments, segment_ids) = paths::tram_12::segments();
-        let mut linearizer = Linearizer::new();
-        assert_eq_alternate!(
-            paths::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids)
-                .nodes(&segments)
-                .map(|node| node.store(&mut linearizer))
-                .collect::<Vec<_>>(),
-            storage::fixtures::nodes::tram_12(&linearizer.location_ids())
-        );
     }
 }

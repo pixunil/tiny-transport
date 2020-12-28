@@ -28,7 +28,7 @@ mod fixtures;
 use crate::agency::Agency;
 use crate::line::Line;
 use crate::location::Linearizer;
-use crate::path::Segment;
+use crate::path::{IndexMap, Segment};
 use crate::profile::Profile;
 use crate::shape::SmoothMode;
 use crate::trip::Scheduler;
@@ -85,20 +85,22 @@ impl ImportedDataset {
     }
 
     fn store(&self, profile: Profile, date: NaiveDate) -> storage::Dataset {
-        let mut linearizer = Linearizer::new();
+        let mut index_map = IndexMap::new();
         let mut scheduler = Scheduler::new();
         let lines = profile
             .filter(self.agencies())
             .into_iter()
-            .map(|line| line.store(date, &self.segments, &mut linearizer, &mut scheduler))
+            .map(|line| line.store(date, &self.segments, &mut index_map, &mut scheduler))
             .collect();
 
+        let mut linearizer = Linearizer::new();
+        let segments = index_map.store_segments(&self.segments, &mut linearizer);
         let stations = linearizer
             .into_iter()
             .map(|location| location.store())
             .collect();
 
-        storage::Dataset::new(stations, scheduler.schedules(), lines)
+        storage::Dataset::new(stations, segments, scheduler.schedules(), lines)
     }
 
     pub fn store_into(

@@ -1,8 +1,7 @@
 use chrono::NaiveDate;
 
 use crate::create_id_type;
-use crate::location::Linearizer;
-use crate::path::Segment;
+use crate::path::{IndexMap, Segment};
 use crate::trip::{Route, Scheduler};
 use simulation::line::Kind;
 use simulation::Color;
@@ -43,20 +42,20 @@ impl Line {
         &self,
         date: NaiveDate,
         segments: &[Segment],
-        linearizer: &mut Linearizer,
+        index_map: &mut IndexMap,
         scheduler: &mut Scheduler,
     ) -> storage::Line {
         let route = self
             .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
-        let nodes = route.store_nodes(segments, linearizer);
+        let path = route.path().store(index_map);
         let trains = route.store_trains(date, segments, scheduler);
         storage::Line::new(
             self.name.clone(),
             self.color.clone(),
             self.kind,
-            nodes,
+            path,
             trains,
         )
     }
@@ -116,20 +115,23 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_store() {
         let (segments, segment_ids) = paths::tram_12::segments();
         let line = lines::tram_12_with_route(&segment_ids);
         let date = NaiveDate::from_ymd(2019, 1, 1);
-        let mut linearizer = Linearizer::new();
+        let mut index_map = IndexMap::new();
         let mut scheduler = Scheduler::new();
+        let segment_ids: HashMap<&str, usize> = map! {
+            "oranienburger_tor_friedrichstr" => 0,
+            "universitaetsstr_am_kupfergraben" => 1,
+        };
         let schedule_ids: HashMap<&str, usize> = map! {
             "oranienburger_tor_am_kupfergraben" => 0,
             "am_kupfergraben_oranienburger_tor" => 1,
         };
         assert_eq!(
-            line.store(date, &segments, &mut linearizer, &mut scheduler),
-            storage::fixtures::lines::tram_12(&linearizer.location_ids(), &schedule_ids)
+            line.store(date, &segments, &mut index_map, &mut scheduler),
+            storage::fixtures::lines::tram_12(&segment_ids, &schedule_ids)
         );
     }
 }
