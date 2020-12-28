@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::path::Node;
 use crate::path::Segment;
-use crate::shape::Order;
+use common::Order;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(super) struct SegmentRef {
@@ -70,9 +70,8 @@ pub(crate) mod fixtures {
                     use std::collections::HashMap;
                     use std::ops::Index;
 
-                    use crate::shape::Order;
                     use crate::path::{SegmentedPath, SegmentRef, Segment};
-                    use common::fixtures_with_ids;
+                    use common::{fixtures_with_ids, Order};
 
                     $(
                         pub(crate) fn $path<'a>(

@@ -27,10 +27,9 @@ serde = "1"
 serde_derive = "1"
 zip = { version = "0.5", default-features = false, features = ["deflate", "bzip2"] }
 
+common = { package = "tiny-transport-common", path = "../common" }
 simulation = { package = "tiny-transport-simulation", path = "../simulation" }
 storage = { package = "tiny-transport-storage", path = "../storage", features = ["fixtures"] }
 
 [dev-dependencies]
 serde_test = "1"
-
-common = { package = "tiny-transport-common", path = "../common" }

@@ -1,13 +1,8 @@
 use crate::coord::Point;
 use crate::shape::Segment;
+use common::Order;
 
 use itertools::Itertools;
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(crate) enum Order {
-    Forward,
-    Backward,
-}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub(crate) struct SegmentRef {
@@ -158,8 +153,8 @@ pub(crate) mod fixtures {
                 pub(crate) mod $line {
                     use std::ops::Index;
 
-                    use crate::shape::{SegmentedShape, SegmentRef, Order, Shapes};
-                    use common::{fixtures_with_ids, join, map};
+                    use crate::shape::{SegmentedShape, SegmentRef, Shapes};
+                    use common::{fixtures_with_ids, join, map, Order};
 
                     $(
                         pub(crate) fn $shape<'a>(

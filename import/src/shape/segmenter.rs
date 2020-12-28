@@ -4,8 +4,9 @@ use std::ops::Range;
 
 use ordered_float::NotNan;
 
-use super::{Buffer, Order, Segment, SegmentRef, SegmentedShape, ShapeId, Shapes};
+use super::{Buffer, Segment, SegmentRef, SegmentedShape, ShapeId, Shapes};
 use crate::coord::Point;
+use common::Order;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 struct HashablePoint(NotNan<f64>, NotNan<f64>);

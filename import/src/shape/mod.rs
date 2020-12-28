@@ -21,7 +21,6 @@ use segmenter::Segmenter;
 pub(crate) use buffer::ShapeId;
 pub(crate) use importer::Importer;
 pub(crate) use segment::Segment;
-pub(crate) use shape::Order;
 pub(crate) use shape::PointRef;
 pub(crate) use shape::SegmentRef;
 pub(crate) use shape::SegmentedShape;
