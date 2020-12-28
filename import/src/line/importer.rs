@@ -79,7 +79,7 @@ impl Importer {
 mod tests {
     use super::*;
     use crate::dataset;
-    use crate::fixtures::{lines, routes};
+    use crate::fixtures::{lines, paths, routes};
     use test_utils::{assert_eq_alternate, map};
 
     #[test]
@@ -143,18 +143,21 @@ mod tests {
         );
 
         let importer = Importer::import(&mut dataset).unwrap();
+        let (_, segment_ids) = paths::tram_12::segments();
         let lines = importer
             .finish(vec![
                 vec![],
                 vec![],
                 vec![],
-                vec![routes::tram_12::oranienburger_tor_am_kupfergraben()],
+                vec![routes::tram_12::oranienburger_tor_am_kupfergraben(
+                    &segment_ids,
+                )],
             ])
             .unwrap();
         assert_eq!(lines.len(), 2);
         assert!(lines[&"1".into()].contains(&lines::s1()));
         assert!(lines[&"1".into()].contains(&lines::s42()));
         assert!(lines[&"2".into()].contains(&lines::u4()));
-        assert!(lines[&"2".into()].contains(&lines::tram_12_with_route()));
+        assert!(lines[&"2".into()].contains(&lines::tram_12_with_route(&segment_ids)));
     }
 }

@@ -31,7 +31,7 @@ impl Trip {
     }
 
     pub(super) fn store(&self, scheduler: &mut Scheduler) -> storage::Train {
-        let (start, schedule) = scheduler.process(self.direction, &self.durations);
+        let (start, schedule) = scheduler.process(&self.durations);
         storage::Train::new(self.direction, start, schedule)
     }
 
@@ -84,8 +84,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::fixtures::{nodes, trips};
-    use simulation::Directions;
+    use crate::fixtures::{paths, trips};
     use test_utils::{map, time};
 
     #[test]
@@ -98,8 +97,9 @@ mod tests {
     #[test]
     fn test_store() {
         let mut scheduler = Scheduler::new();
-        let nodes = nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::UpstreamOnly);
-        scheduler.update_weights(&nodes);
+        let (segments, segment_ids) = paths::tram_12::segments();
+        let path = paths::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids);
+        scheduler.update_weights(&path, &segments);
         let trip = trips::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         let schedule_ids: HashMap<&str, usize> = map! {"oranienburger_tor_am_kupfergraben" => 0};
         let expected = storage::fixtures::trains::tram_12::oranienburger_tor_am_kupfergraben(

@@ -15,6 +15,7 @@ pub mod coord;
 mod deserialize;
 pub mod line;
 mod location;
+pub mod path;
 pub mod profile;
 mod service;
 pub mod shape;
@@ -27,6 +28,7 @@ mod fixtures;
 use crate::agency::Agency;
 use crate::line::Line;
 use crate::location::Linearizer;
+use crate::path::Segment;
 use crate::profile::Profile;
 use crate::shape::SmoothMode;
 use crate::trip::Scheduler;
@@ -34,6 +36,7 @@ use crate::utils::Dataset;
 
 pub struct ImportedDataset {
     agencies: Vec<Agency>,
+    segments: Vec<Segment>,
 }
 
 impl ImportedDataset {
@@ -52,10 +55,10 @@ impl ImportedDataset {
             line_importer.id_mapping(),
             line_importer.line_count(),
         );
-        let routes = trip_importer.import(&mut dataset)?;
+        let (routes, segments) = trip_importer.import(&mut dataset)?;
         let lines = line_importer.finish(routes)?;
         let agencies = agency::Importer::import(&mut dataset, lines)?;
-        Ok(Self { agencies })
+        Ok(Self { agencies, segments })
     }
 
     pub fn import(
@@ -77,13 +80,17 @@ impl ImportedDataset {
         self.agencies.iter()
     }
 
+    pub fn segments(&self) -> &[Segment] {
+        &self.segments
+    }
+
     fn store(&self, profile: Profile, date: NaiveDate) -> storage::Dataset {
         let mut linearizer = Linearizer::new();
         let mut scheduler = Scheduler::new();
         let lines = profile
             .filter(self.agencies())
             .into_iter()
-            .map(|line| line.store(date, &mut linearizer, &mut scheduler))
+            .map(|line| line.store(date, &self.segments, &mut linearizer, &mut scheduler))
             .collect();
 
         let stations = linearizer

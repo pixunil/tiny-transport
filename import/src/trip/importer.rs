@@ -6,6 +6,7 @@ use std::rc::Rc;
 use super::{Route, RouteBuffer, StopRecord, TripBuffer, TripId, TripRecord};
 use crate::line::LineId;
 use crate::location::{Location, LocationId};
+use crate::path::{Segment, StopPlacer};
 use crate::service::{Service, ServiceId};
 use crate::shape::Shapes;
 use crate::utils::{Action, Dataset};
@@ -64,7 +65,10 @@ impl<'a> Importer<'a> {
         Ok(())
     }
 
-    fn combine_into_routes(&self, buffers: HashMap<TripId, TripBuffer>) -> Vec<Vec<Route>> {
+    fn combine_into_routes(
+        &self,
+        buffers: HashMap<TripId, TripBuffer>,
+    ) -> (Vec<Vec<Route>>, Vec<Segment>) {
         let mut action = Action::start("Assigning trips to their lines");
         let mut route_buffers = iter::repeat_with(RouteBuffer::new)
             .take(self.line_count)
@@ -75,19 +79,20 @@ impl<'a> Importer<'a> {
         }
         action.complete("Assigned trips to their lines");
 
+        let mut placer = StopPlacer::new(self.shapes.segments());
         let mut action = Action::start("Merging trips into routes");
         let routes = action
             .wrap_iter(route_buffers)
-            .map(|route_buffer| route_buffer.into_routes(self.shapes.segments()))
+            .map(|route_buffer| route_buffer.into_routes(&mut placer))
             .collect();
         action.complete("Merged trips into routes");
-        routes
+        (routes, placer.finish())
     }
 
     pub(crate) fn import(
         self,
         dataset: &mut impl Dataset,
-    ) -> Result<Vec<Vec<Route>>, Box<dyn Error>> {
+    ) -> Result<(Vec<Vec<Route>>, Vec<Segment>), Box<dyn Error>> {
         let mut buffers = self.import_trip_buffers(dataset)?;
         self.add_trip_stops(dataset, &mut buffers)?;
         Ok(self.combine_into_routes(buffers))
@@ -98,7 +103,7 @@ impl<'a> Importer<'a> {
 mod tests {
     use super::*;
     use crate::dataset;
-    use crate::fixtures::{locations, routes, services, shapes};
+    use crate::fixtures::{locations, paths, routes, services, shapes};
     use test_utils::{assert_eq_alternate, map};
 
     #[test]
@@ -127,11 +132,16 @@ mod tests {
         let locations = locations::by_id();
         let shapes = shapes::by_id();
         let importer = Importer::new(&services, &locations, &shapes, &id_mapping, 1);
-        let routes = importer.import(&mut dataset).unwrap();
+        let (routes, actual_segments) = importer.import(&mut dataset).unwrap();
+        let (segments, segment_ids) = paths::tram_12::segments();
         assert_eq!(routes.len(), 1);
         assert_eq_alternate!(
             routes[0],
-            vec![routes::tram_12::oranienburger_tor_am_kupfergraben()],
+            vec![
+                routes::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids),
+                routes::tram_12::am_kupfergraben_oranienburger_tor(&segment_ids)
+            ],
         );
+        assert_eq_alternate!(actual_segments, segments);
     }
 }

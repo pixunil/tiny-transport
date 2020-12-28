@@ -1,18 +1,16 @@
-use std::iter;
-
 use crate::coord::Point;
 use crate::shape::Segment;
 
 use itertools::Itertools;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub(super) enum Order {
+pub(crate) enum Order {
     Forward,
     Backward,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub(super) struct SegmentRef {
+pub(crate) struct SegmentRef {
     segment_index: usize,
     order: Order,
 }
@@ -22,6 +20,43 @@ impl SegmentRef {
         Self {
             segment_index,
             order,
+        }
+    }
+
+    pub(crate) fn segment_index(&self) -> usize {
+        self.segment_index
+    }
+
+    pub(crate) fn order(&self) -> Order {
+        self.order
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct PointRef {
+    segment_index: usize,
+    segment_pos: usize,
+    position: Point,
+}
+
+impl PointRef {
+    pub(crate) fn segment_index(&self) -> usize {
+        self.segment_index
+    }
+
+    pub(crate) fn segment_pos(&self) -> usize {
+        self.segment_pos
+    }
+
+    pub(crate) fn position(&self) -> &Point {
+        &self.position
+    }
+
+    pub(crate) fn clone_with_offset(&self, offset: usize) -> PointRef {
+        PointRef {
+            segment_index: self.segment_index,
+            segment_pos: self.segment_pos + offset,
+            position: self.position,
         }
     }
 }
@@ -74,11 +109,26 @@ impl SegmentedShape {
         }
     }
 
-    pub(crate) fn bind<'a>(&'a self, segments: &'a [Segment]) -> Shape<'a> {
-        Shape {
-            segments,
-            segmented_shape: self,
+    pub(crate) fn points(&self, segments: &[Segment]) -> Vec<PointRef> {
+        let mut points = Vec::new();
+        for segment_ref in &self.segments {
+            let segment_points = segments[segment_ref.segment_index].iter().enumerate().map(
+                |(segment_pos, position)| PointRef {
+                    segment_index: segment_ref.segment_index,
+                    segment_pos,
+                    position,
+                },
+            );
+            match segment_ref.order {
+                Order::Forward => points.extend(segment_points),
+                Order::Backward => points.extend(segment_points.rev()),
+            }
         }
+        points
+    }
+
+    pub(crate) fn segments(&self) -> &[SegmentRef] {
+        &self.segments
     }
 }
 
@@ -86,32 +136,6 @@ impl SegmentedShape {
 impl From<Vec<SegmentRef>> for SegmentedShape {
     fn from(segments: Vec<SegmentRef>) -> Self {
         Self { segments }
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub(crate) struct Shape<'a> {
-    segments: &'a [Segment],
-    segmented_shape: &'a SegmentedShape,
-}
-
-impl<'a> Shape<'a> {
-    pub(crate) fn iter_count(&self, count: usize) -> impl Iterator<Item = Point> + '_ {
-        let mut points = Vec::new();
-        for segment_ref in &self.segmented_shape.segments {
-            match segment_ref.order {
-                Order::Forward => points.extend(self.segments[segment_ref.segment_index].iter()),
-                Order::Backward => {
-                    points.extend(self.segments[segment_ref.segment_index].iter().rev())
-                }
-            }
-        }
-
-        points.extend(
-            iter::repeat(points.last().unwrap().clone()).take(count.saturating_sub(points.len())),
-        );
-
-        points.into_iter()
     }
 }
 
@@ -213,6 +237,9 @@ pub(crate) mod fixtures {
             landsberger_allee_petersburger_str_lueneburger_str: [
                 hauptbahnhof_landsberger_allee_petersburger_str,            Backward;
                 hauptbahnhof_lueneburger_str,                               Forward;
+            ],
+            strassmannstr_warschauer_str_too_few_points: [
+                strassmannstr_warschauer_str_too_few_points,                Forward;
             ],
         },
         tram_12: {

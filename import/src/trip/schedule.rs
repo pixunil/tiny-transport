@@ -131,19 +131,15 @@ impl Schedule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures::nodes;
-    use crate::trip::node::Node;
-    use simulation::{Direction, Directions};
+    use crate::fixtures::paths;
     use test_utils::{time, times};
 
     #[test]
     fn test_sufficient_stop_times() {
         let durations = times![0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30];
         let mut schedule = Schedule::new(durations.into_iter());
-        let weights = Node::segment_weights(
-            &nodes::s3::hackescher_markt_bellevue(Directions::Both),
-            Direction::Upstream,
-        );
+        let (segments, segment_ids) = paths::s3::segments();
+        let weights = paths::s3::hackescher_markt_bellevue(&segment_ids).segment_weights(&segments);
         let start_time_offset = schedule.adjust_stop_durations(weights.into_iter());
         assert_eq!(start_time_offset, 0);
         let expected_durations = times![0:30, 1:30, 0:48, 1:54, 0:36, 2:06, 0:30];
@@ -154,10 +150,9 @@ mod tests {
     fn test_no_stop_times_upstream() {
         let durations = times![0:00, 2:00, 0:00, 2:00, 0:00, 1:00, 0:00];
         let mut schedule = Schedule::new(durations.into_iter());
-        let weights = Node::segment_weights(
-            &nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both),
-            Direction::Upstream,
-        );
+        let (segments, segment_ids) = paths::tram_12::segments();
+        let weights = paths::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids)
+            .segment_weights(&segments);
         let start_time_offset = schedule.adjust_stop_durations(weights.into_iter());
         assert_eq!(start_time_offset, -20);
         let expected_durations = times![0:20, 2:15, 0:20, 1:05, 0:20, 1:00, 0:20];
@@ -168,10 +163,9 @@ mod tests {
     fn test_no_stop_times_downstream() {
         let durations = times![0:00, 1:00, 0:00, 3:00, 0:00, 2:00, 0:00];
         let mut schedule = Schedule::new(durations.into_iter());
-        let weights = Node::segment_weights(
-            &nodes::tram_12::oranienburger_tor_am_kupfergraben(Directions::Both),
-            Direction::Downstream,
-        );
+        let (segments, segment_ids) = paths::tram_12::segments();
+        let weights = paths::tram_12::am_kupfergraben_oranienburger_tor(&segment_ids)
+            .segment_weights(&segments);
         let start_time_offset = schedule.adjust_stop_durations(weights.into_iter());
         assert_eq!(start_time_offset, -20);
         let expected_durations = times![0:20, 1:15, 0:20, 1:33, 0:20, 2:32, 0:20];

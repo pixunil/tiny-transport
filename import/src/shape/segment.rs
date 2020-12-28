@@ -21,7 +21,9 @@ impl Segment {
         Self::new(split)
     }
 
-    pub(super) fn iter(&self) -> impl Iterator<Item = Point> + DoubleEndedIterator + '_ {
+    pub(crate) fn iter(
+        &self,
+    ) -> impl Iterator<Item = Point> + DoubleEndedIterator + ExactSizeIterator + '_ {
         self.points.iter().copied()
     }
 }
@@ -91,6 +93,9 @@ pub(crate) mod fixtures {
         ],
         landsberger_allee_petersburger_str_warschauer_str: [
             52.522, 13.450; 52.519, 13.453; 52.516, 13.454; 52.512, 13.452; 52.508, 13.450; 52.505, 13.448;
+        ],
+        strassmannstr_warschauer_str_too_few_points: [
+            52.522, 13.450; 52.519, 13.453; 52.516, 13.454; 52.512, 13.452; 52.508, 13.450;
         ],
         landsberger_allee_petersburger_str_revaler_str: [
             52.522, 13.450; 52.519, 13.453; 52.516, 13.454; 52.512, 13.452;

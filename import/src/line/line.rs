@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 
 use crate::create_id_type;
 use crate::location::Linearizer;
+use crate::path::Segment;
 use crate::trip::{Route, Scheduler};
 use simulation::line::Kind;
 use simulation::Color;
@@ -41,6 +42,7 @@ impl Line {
     pub(crate) fn store(
         &self,
         date: NaiveDate,
+        segments: &[Segment],
         linearizer: &mut Linearizer,
         scheduler: &mut Scheduler,
     ) -> storage::Line {
@@ -48,8 +50,8 @@ impl Line {
             .routes()
             .max_by_key(|route| route.num_trips_at(date))
             .unwrap();
-        let nodes = route.store_nodes(linearizer);
-        let trains = route.store_trains(date, scheduler);
+        let nodes = route.store_nodes(segments, linearizer);
+        let trains = route.store_trains(date, segments, scheduler);
         storage::Line::new(
             self.name.clone(),
             self.color.clone(),
@@ -62,6 +64,8 @@ impl Line {
 
 #[cfg(test)]
 pub(crate) mod fixtures {
+    use std::ops::Index;
+
     use super::*;
     use crate::fixtures::routes;
 
@@ -87,11 +91,11 @@ pub(crate) mod fixtures {
         tram_12:            "12",           Tram,               (136, 112, 171);
     }
 
-    pub(crate) fn tram_12_with_route() -> Line {
+    pub(crate) fn tram_12_with_route<'a>(segments: &impl Index<&'a str, Output = usize>) -> Line {
         let mut line = tram_12();
         line.color = Kind::Tram.color();
         line.routes
-            .push(routes::tram_12::oranienburger_tor_am_kupfergraben());
+            .push(routes::tram_12::oranienburger_tor_am_kupfergraben(segments));
         line
     }
 }
@@ -101,7 +105,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
-    use crate::fixtures::lines;
+    use crate::fixtures::{lines, paths};
     use test_utils::map;
 
     #[test]
@@ -112,8 +116,10 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_store() {
-        let line = lines::tram_12_with_route();
+        let (segments, segment_ids) = paths::tram_12::segments();
+        let line = lines::tram_12_with_route(&segment_ids);
         let date = NaiveDate::from_ymd(2019, 1, 1);
         let mut linearizer = Linearizer::new();
         let mut scheduler = Scheduler::new();
@@ -122,7 +128,7 @@ mod tests {
             "am_kupfergraben_oranienburger_tor" => 1,
         };
         assert_eq!(
-            line.store(date, &mut linearizer, &mut scheduler),
+            line.store(date, &segments, &mut linearizer, &mut scheduler),
             storage::fixtures::lines::tram_12(&linearizer.location_ids(), &schedule_ids)
         );
     }

@@ -66,15 +66,15 @@ impl Train {
     fn fill_driving(&self, stopping: u32, driving: u32, nodes: &[Node], durations: &mut Vec<u32>) {
         durations.push(stopping);
 
-        let total_distance = self.segments_between(nodes).sum::<f32>();
-        let times = self.segments_between(nodes).map(|distance| {
+        let total_distance = self.segmentsetween(nodes).sum::<f32>();
+        let times = self.segmentsetween(nodes).map(|distance| {
             let travelled = distance / total_distance;
             (driving as f32 * travelled).round() as u32
         });
         durations.extend(times);
     }
 
-    fn segments_between<'a>(&'a self, nodes: &'a [Node]) -> impl Iterator<Item = f32> + 'a {
+    fn segmentsetween<'a>(&'a self, nodes: &'a [Node]) -> impl Iterator<Item = f32> + 'a {
         nodes
             .iter()
             .filter(move |node| node.allows(self.direction))

@@ -8,9 +8,9 @@ use itertools::Itertools;
 
 use import::coord::{project, project_back, transform, Point};
 use import::line::Line;
+use import::path::Segment;
 use import::trip::Route;
 use import::ImportedDataset;
-use simulation::{Direction, Directions};
 
 arg_enum! {
     #[derive(Debug, Clone, Copy)]
@@ -82,29 +82,6 @@ fn make_identifier(name: &str) -> String {
         .to_string()
 }
 
-struct DirectionVec<T> {
-    upstream: Vec<T>,
-    downstream: Vec<T>,
-}
-
-impl<T: Clone> DirectionVec<T> {
-    fn new() -> Self {
-        Self {
-            upstream: Vec::new(),
-            downstream: Vec::new(),
-        }
-    }
-
-    fn push(&mut self, directions: Directions, value: T) {
-        if directions.allows(Direction::Upstream) {
-            self.upstream.push(value.clone());
-        }
-        if directions.allows(Direction::Downstream) {
-            self.downstream.push(value);
-        }
-    }
-}
-
 struct ShapeDisplay(Vec<(f64, f64)>, Format);
 
 impl fmt::Display for ShapeDisplay {
@@ -147,7 +124,6 @@ impl fmt::Display for StopLocationsDisplay {
 #[derive(PartialEq)]
 struct Node {
     position: (f64, f64),
-    in_directions: Directions,
     location_identifier: Option<String>,
 }
 
@@ -155,20 +131,9 @@ struct NodeDisplay(Node, Format);
 
 impl fmt::Display for NodeDisplay {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let direction_name = match self.0.in_directions {
-            Directions::UpstreamOnly => "UpstreamOnly",
-            Directions::DownstreamOnly => "DownstreamOnly",
-            Directions::Both => "Both",
-        };
-        write!(
-            formatter,
-            "{}, {}",
-            self.1.format_position(self.0.position),
-            direction_name
-        )?;
+        write!(formatter, "{}", self.1.format_position(self.0.position),)?;
         if let Some(location_identifier) = &self.0.location_identifier {
-            let padding = " ".repeat(14 - direction_name.len());
-            write!(formatter, ",{} {};", padding, location_identifier)
+            write!(formatter, ", {};", location_identifier)
         } else {
             write!(formatter, ";")
         }
@@ -214,14 +179,15 @@ impl<'a, W: Write> Inspector<'a, W> {
     fn inspect_route(
         &mut self,
         route: &Route,
+        segments: &[Segment],
         locations: &mut Vec<Location>,
         location_identifiers: &mut HashSet<String>,
     ) -> io::Result<()> {
-        let mut stop_locations = DirectionVec::new();
-        let mut shapes = DirectionVec::new();
+        let mut stop_locations = Vec::new();
+        let mut shapes = Vec::new();
         let mut nodes = Vec::new();
 
-        for node in route.nodes() {
+        for node in route.path().nodes(segments) {
             let mut location_identifier = None;
 
             if let Some(location) = &node.location() {
@@ -235,25 +201,20 @@ impl<'a, W: Write> Inspector<'a, W> {
                         identifier: identifier.clone(),
                     });
                 }
-                stop_locations.push(node.in_directions(), identifier.clone());
+                stop_locations.push(identifier.clone());
                 location_identifier = Some(identifier);
             }
 
             let position = self.format.round_position(node.position());
             nodes.push(Node {
                 position,
-                in_directions: node.in_directions(),
                 location_identifier,
             });
-            shapes.push(node.in_directions(), position);
+            shapes.push(position);
         }
 
-        self.write(StopLocationsDisplay(stop_locations.upstream, self.format))?;
-        self.write(ShapeDisplay(shapes.upstream, self.format))?;
-        stop_locations.downstream.reverse();
-        shapes.downstream.reverse();
-        self.write(StopLocationsDisplay(stop_locations.downstream, self.format))?;
-        self.write(ShapeDisplay(shapes.downstream, self.format))?;
+        self.write(StopLocationsDisplay(stop_locations, self.format))?;
+        self.write(ShapeDisplay(shapes, self.format))?;
 
         if self.format.should_dedup() {
             nodes.dedup();
@@ -264,12 +225,12 @@ impl<'a, W: Write> Inspector<'a, W> {
         Ok(())
     }
 
-    fn inspect_line(&mut self, line: &Line) -> io::Result<()> {
+    fn inspect_line(&mut self, line: &Line, segments: &[Segment]) -> io::Result<()> {
         let mut locations = Vec::new();
         let mut location_identifiers = HashSet::new();
 
         for route in line.routes() {
-            self.inspect_route(route, &mut locations, &mut location_identifiers)?;
+            self.inspect_route(route, segments, &mut locations, &mut location_identifiers)?;
             writeln!(self.output)?;
         }
 
@@ -279,9 +240,13 @@ impl<'a, W: Write> Inspector<'a, W> {
         Ok(())
     }
 
-    fn inspect_lines<'b>(&mut self, lines: impl Iterator<Item = &'b Line>) -> io::Result<()> {
+    fn inspect_lines<'b>(
+        &mut self,
+        lines: impl Iterator<Item = &'b Line>,
+        segments: &[Segment],
+    ) -> io::Result<()> {
         for line in lines {
-            self.inspect_line(line)?;
+            self.inspect_line(line, segments)?;
             writeln!(self.output)?;
         }
         Ok(())
@@ -305,6 +270,6 @@ pub(crate) fn inspect(
         .filter(|line| line.name() == line_name);
 
     let mut inspector = Inspector::new(format, output);
-    inspector.inspect_lines(lines)?;
+    inspector.inspect_lines(lines, dataset.segments())?;
     Ok(())
 }

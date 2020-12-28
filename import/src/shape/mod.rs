@@ -17,11 +17,13 @@ pub(crate) mod fixtures {
 use buffer::Buffer;
 use record::ShapeRecord;
 use segmenter::Segmenter;
-use shape::{Order, SegmentRef};
 
 pub(crate) use buffer::ShapeId;
 pub(crate) use importer::Importer;
 pub(crate) use segment::Segment;
+pub(crate) use shape::Order;
+pub(crate) use shape::PointRef;
+pub(crate) use shape::SegmentRef;
 pub(crate) use shape::SegmentedShape;
 pub(crate) use shapes::Shapes;
 pub use smoother::Mode as SmoothMode;

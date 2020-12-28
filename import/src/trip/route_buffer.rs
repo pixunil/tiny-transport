@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use super::{Route, RouteVariant};
 use crate::location::Location;
-use crate::shape::{Segment, ShapeId, Shapes};
+use crate::path::StopPlacer;
+use crate::shape::{ShapeId, Shapes};
 use simulation::Direction;
 
 #[derive(Debug, PartialEq)]
@@ -47,56 +48,12 @@ impl RouteBuffer {
         }
     }
 
-    pub(super) fn into_routes(mut self, segments: &[Segment]) -> Vec<Route> {
-        let mut differences = self
-            .upstream
-            .iter()
-            .map(|upstream| {
-                self.downstream
-                    .iter()
-                    .map(|downstream| upstream.difference(downstream))
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-
-        fn find_pair(differences: &[Vec<impl Ord>]) -> Option<(usize, usize)> {
-            differences
-                .iter()
-                .enumerate()
-                .flat_map(|(a, sub_differences)| {
-                    sub_differences
-                        .iter()
-                        .enumerate()
-                        .map(move |(b, difference)| (a, b, difference))
-                })
-                .min_by_key(|(_, _, difference)| *difference)
-                .map(|(a, b, _)| (a, b))
-        }
-
-        let mut routes = Vec::new();
-        while let Some((a, b)) = find_pair(&differences) {
-            let merged_route = self
-                .upstream
-                .remove(a)
-                .merge(segments, self.downstream.remove(b));
-            routes.push(merged_route);
-            differences.remove(a);
-            for sub_differences in &mut differences {
-                sub_differences.remove(b);
-            }
-        }
-
-        routes.extend(
-            self.upstream
-                .into_iter()
-                .map(|variant| variant.single(segments, Direction::Upstream)),
-        );
-        routes.extend(
-            self.downstream
-                .into_iter()
-                .map(|variant| variant.single(segments, Direction::Downstream)),
-        );
-        routes
+    pub(super) fn into_routes(self, placer: &mut StopPlacer) -> Vec<Route> {
+        self.upstream
+            .into_iter()
+            .chain(self.downstream)
+            .map(|variant| variant.single(placer))
+            .collect()
     }
 }
 
@@ -144,7 +101,7 @@ pub(crate) mod fixtures {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixtures::{route_buffers, route_variants, routes, shapes, stop_locations};
+    use crate::fixtures::{paths, route_buffers, route_variants, routes, shapes, stop_locations};
     use test_utils::assert_eq_alternate;
 
     #[test]
@@ -199,9 +156,14 @@ mod tests {
     fn test_into_routes_same_terminus() {
         let shapes = shapes::by_id();
         let buffer = route_buffers::tram_12::with_1_upstream_1_downstream(&shapes);
+        let mut placer = StopPlacer::new(&shapes.segments());
+        let (_, segment_ids) = paths::tram_12::segments();
         assert_eq_alternate!(
-            buffer.into_routes(shapes.segments()),
-            vec![routes::tram_12::oranienburger_tor_am_kupfergraben()]
+            buffer.into_routes(&mut placer),
+            vec![
+                routes::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids),
+                routes::tram_12::am_kupfergraben_oranienburger_tor(&segment_ids),
+            ]
         );
     }
 
@@ -216,17 +178,23 @@ mod tests {
                 ),
             ],
             downstream: vec![
+                route_variants::tram_m10::warschauer_str_lueneburger_str(&shapes),
                 route_variants::tram_m10::landsberger_allee_petersburger_str_lueneburger_str(
                     &shapes,
                 ),
-                route_variants::tram_m10::warschauer_str_lueneburger_str(&shapes),
             ],
         };
+        let mut placer = StopPlacer::new(shapes.segments());
+        let (_, segment_ids) = paths::tram_m10::segments();
         assert_eq_alternate!(
-            buffer.into_routes(shapes.segments()),
+            buffer.into_routes(&mut placer),
             vec![
-                routes::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(),
-                routes::tram_m10::clara_jaschke_str_warschauer_str(),
+                routes::tram_m10::clara_jaschke_str_warschauer_str(&segment_ids),
+                routes::tram_m10::clara_jaschke_str_landsberger_allee_petersburger_str(
+                    &segment_ids
+                ),
+                routes::tram_m10::warschauer_str_lueneburger_str(&segment_ids),
+                routes::tram_m10::landsberger_allee_petersburger_str_lueneburger_str(&segment_ids),
             ]
         );
     }

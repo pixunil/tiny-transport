@@ -1,21 +1,22 @@
 use chrono::NaiveDate;
 
-use super::{Node, Scheduler, Trip};
+use super::{Scheduler, Trip};
 use crate::location::Linearizer;
+use crate::path::{Segment, SegmentedPath};
 
 #[derive(Debug, PartialEq)]
 pub struct Route {
-    nodes: Vec<Node>,
+    path: SegmentedPath,
     trips: Vec<Trip>,
 }
 
 impl Route {
-    pub(super) fn new(nodes: Vec<Node>, trips: Vec<Trip>) -> Route {
-        Route { nodes, trips }
+    pub(super) fn new(path: SegmentedPath, trips: Vec<Trip>) -> Route {
+        Route { path, trips }
     }
 
-    pub fn nodes(&self) -> impl Iterator<Item = &Node> {
-        self.nodes.iter()
+    pub fn path(&self) -> &SegmentedPath {
+        &self.path
     }
 
     pub(crate) fn num_trips_at(&self, date: NaiveDate) -> usize {
@@ -25,9 +26,13 @@ impl Route {
             .count()
     }
 
-    pub(crate) fn store_nodes(&self, linearizer: &mut Linearizer) -> Vec<storage::Node> {
-        self.nodes
-            .iter()
+    pub(crate) fn store_nodes(
+        &self,
+        segments: &[Segment],
+        linearizer: &mut Linearizer,
+    ) -> Vec<storage::Node> {
+        self.path
+            .nodes(segments)
             .map(|node| node.store(linearizer))
             .collect()
     }
@@ -35,9 +40,10 @@ impl Route {
     pub(crate) fn store_trains(
         &self,
         date: NaiveDate,
+        segments: &[Segment],
         scheduler: &mut Scheduler,
     ) -> Vec<storage::Train> {
-        scheduler.update_weights(&self.nodes);
+        scheduler.update_weights(&self.path, segments);
         self.trips
             .iter()
             .filter(|trip| trip.available_at(date))
@@ -55,19 +61,21 @@ pub(crate) mod fixtures {
             use test_utils::time;
             vec![ $( trips::$line::$route(time!($($time),*)) ),* ]
         }};
-        ($( $line:ident : { $( $route:ident: $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt );* $(;)? } ),* $(,)?) => {
+        ($( $line:ident : { $( $route:ident: $times:tt );* $(;)? } ),* $(,)?) => {
             $(
                 pub(crate) mod $line {
-                    use crate::fixtures::nodes;
+                    use std::ops::Index;
+
+                    use crate::fixtures::paths;
                     use crate::trip::Route;
-                    use simulation::Directions;
 
                     $(
-                        pub(crate) fn $route() -> Route {
-                            let mut trips = routes!(@trips $line, $upstream, $upstream_times);
-                            trips.append(&mut routes!(@trips $line, $downstream, $downstream_times));
+                        pub(crate) fn $route<'a>(
+                            segments: &impl Index<&'a str, Output = usize>,
+                        ) -> Route {
+                            let trips = routes!(@trips $line, $route, $times);
                             Route {
-                                nodes: nodes::$line::$route(Directions::Both),
+                                path: paths::$line::$route(segments),
                                 trips,
                             }
                         }
@@ -79,17 +87,14 @@ pub(crate) mod fixtures {
 
     routes! {
         tram_m10: {
-            clara_jaschke_str_warschauer_str:
-                clara_jaschke_str_warschauer_str, [],
-                warschauer_str_lueneburger_str, [];
-            clara_jaschke_str_landsberger_allee_petersburger_str:
-                clara_jaschke_str_landsberger_allee_petersburger_str, [],
-                landsberger_allee_petersburger_str_lueneburger_str, [];
+            clara_jaschke_str_warschauer_str: [];
+            warschauer_str_lueneburger_str: [];
+            clara_jaschke_str_landsberger_allee_petersburger_str: [];
+            landsberger_allee_petersburger_str_lueneburger_str: [];
         },
         tram_12: {
-            oranienburger_tor_am_kupfergraben:
-                oranienburger_tor_am_kupfergraben, [9:02:00],
-                am_kupfergraben_oranienburger_tor, [8:34:00];
+            oranienburger_tor_am_kupfergraben: [9:02:00];
+            am_kupfergraben_oranienburger_tor: [8:34:00];
         },
     }
 }

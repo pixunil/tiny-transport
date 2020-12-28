@@ -1,10 +1,11 @@
 pub(crate) use crate::agency::fixtures::agencies;
 pub(crate) use crate::line::fixtures::{incomplete_lines, lines};
 pub(crate) use crate::location::fixtures::locations;
+pub(crate) use crate::path::fixtures::{path_segments, paths};
 pub(crate) use crate::service::fixtures::services;
 pub(crate) use crate::shape::fixtures::{segments, shape_buffers, shapes};
 pub(crate) use crate::trip::fixtures::{
-    nodes, route_buffers, route_variants, routes, trip_buffers, trips,
+    route_buffers, route_variants, routes, trip_buffers, trips,
 };
 
 macro_rules! stop_locations {
@@ -73,6 +74,10 @@ stop_locations! {
             husemannstr, eberswalder_str, friedrich_ludwig_jahn_sportpark, wolliner_str,
             bernauer_str, gedenkstaette_berliner_mauer, nordbahnhof, naturkundemuseum,
             invalidenpark, hauptbahnhof, lesser_ury_weg, lueneburger_str,
+        ],
+        strassmannstr_warschauer_str_too_few_points => [
+            strassmannstr, bersarinplatz, frankfurter_tor, gruenberger_str_warschauer_str,
+            warschauer_str, warschauer_str,
         ],
     },
     tram_12: {
