@@ -2,22 +2,28 @@ use std::iter;
 use std::rc::Rc;
 
 use crate::line::Line;
+use crate::path::Segment;
 use crate::station::Station;
 
 #[derive(Debug, PartialEq)]
 pub struct Dataset {
     stations: Vec<Rc<Station>>,
+    segments: Vec<Segment>,
     lines: Vec<Line>,
 }
 
 impl Dataset {
-    pub fn new(stations: Vec<Rc<Station>>, lines: Vec<Line>) -> Self {
-        Self { stations, lines }
+    pub fn new(stations: Vec<Rc<Station>>, segments: Vec<Segment>, lines: Vec<Line>) -> Self {
+        Self {
+            stations,
+            segments,
+            lines,
+        }
     }
 
     pub fn update(&mut self, time_passed: u32) {
         for line in &mut self.lines {
-            line.update(time_passed);
+            line.update(&self.segments, time_passed);
         }
     }
 
@@ -61,7 +67,7 @@ impl Dataset {
         let mut vertices = Vec::new();
         let mut sizes = Vec::new();
         for line in &self.lines {
-            line.fill_vertices_buffer_with_lengths(&mut vertices, &mut sizes);
+            line.fill_vertices_buffer_with_lengths(&self.segments, &mut vertices, &mut sizes);
         }
         (vertices, sizes)
     }
@@ -92,8 +98,9 @@ impl Dataset {
     pub fn train_vertices(&self) -> Vec<f32> {
         let mut buffer = Vec::new();
         for line in &self.lines {
+            let nodes = line.path().nodes(&self.segments);
             for train in line.active_trains() {
-                train.fill_vertice_buffer(&mut buffer, line.nodes());
+                train.fill_vertice_buffer(&mut buffer, &nodes);
             }
         }
         buffer
@@ -144,17 +151,21 @@ impl Dataset {
 pub mod fixtures {
     use super::*;
     use crate::fixtures::{lines, stations};
+    use common::fixtures_with_ids;
 
     macro_rules! datasets {
-        ( $( $dataset:ident => {
+        ( $( $dataset:ident: {
                 stations: [ $($station:ident),* $(,)? ],
+                segments: [ $($segment:ident),* $(,)? ],
                 lines: [ $($line:ident),* $(,)? ],
             } ),* $(,)? ) => {
             $(
                 pub fn $dataset() -> Dataset {
+                    let (segments, segment_ids) = fixtures_with_ids!(segments::{$($segment),*});
                     Dataset {
                         stations: vec![ $(Rc::new(stations::$station())),* ],
-                        lines: vec![ $(lines::$line()),* ],
+                        segments,
+                        lines: vec![ $(lines::$line(&segment_ids)),* ],
                     }
                 }
             )*
@@ -162,18 +173,25 @@ pub mod fixtures {
     }
 
     datasets! {
-        tram_12 => {
+        tram_12: {
             stations: [
                 oranienburger_tor, friedrichstr, universitaetsstr, am_kupfergraben,
                 georgenstr_am_kupfergraben,
             ],
+            segments: [
+                oranienburger_tor_friedrichstr, universitaetsstr_am_kupfergraben,
+            ],
             lines: [tram_12],
         },
-        hauptbahnhof_friedrichstr => {
+        hauptbahnhof_friedrichstr: {
             stations: [
                 hauptbahnhof, friedrichstr, hackescher_markt, bellevue,
                 naturkundemuseum, franzoesische_str, oranienburger_tor,
-                universitaetsstr, am_kupfergraben, georgenstr_am_kupfergraben,
+                universitaetsstr, am_kupfergraben,
+            ],
+            segments: [
+                hackescher_markt_bellevue, naturkundemuseum_franzoesische_str,
+                oranienburger_tor_friedrichstr, universitaetsstr_am_kupfergraben,
             ],
             lines: [u6, s3, tram_12],
         },
@@ -193,8 +211,8 @@ mod tests {
         assert_eq!(dataset.station_types().len(), 5);
         assert_eq!(dataset.line_count(), 1);
         assert_eq!(dataset.line_colors().len(), 3);
-        assert_eq!(dataset.line_vertices_sizes(), [18, 26]);
-        assert_eq!(dataset.line_vertices().len(), 2 * 44);
+        assert_eq!(dataset.line_vertices_sizes(), [18]);
+        assert_eq!(dataset.line_vertices().len(), 2 * 18);
         assert_eq!(dataset.line_names(), "12".to_string());
     }
 }

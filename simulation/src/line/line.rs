@@ -4,8 +4,7 @@ use na::Vector2;
 
 use super::Kind;
 use crate::color::Color;
-use crate::direction::Direction;
-use crate::node::Node;
+use crate::path::{Node, Segment, SegmentedPath};
 use crate::train::Train;
 
 #[derive(Debug, PartialEq)]
@@ -13,7 +12,7 @@ pub struct Line {
     name: String,
     color: Color,
     kind: Kind,
-    nodes: Vec<Node>,
+    path: SegmentedPath,
     trains: Vec<Train>,
 }
 
@@ -22,14 +21,14 @@ impl Line {
         name: String,
         color: Color,
         kind: Kind,
-        nodes: Vec<Node>,
+        path: SegmentedPath,
         trains: Vec<Train>,
     ) -> Line {
         Line {
             name,
             color,
             kind,
-            nodes,
+            path,
             trains,
         }
     }
@@ -42,8 +41,8 @@ impl Line {
         self.kind
     }
 
-    pub fn nodes(&self) -> &[Node] {
-        &self.nodes
+    pub fn path(&self) -> &SegmentedPath {
+        &self.path
     }
 
     pub fn fill_color_buffer(&self, colors: &mut Vec<f32>) {
@@ -54,45 +53,29 @@ impl Line {
         self.trains.iter().filter(|train| train.is_active())
     }
 
-    pub fn update(&mut self, time_passed: u32) {
+    pub fn update(&mut self, segments: &[Segment], time_passed: u32) {
+        let nodes = self.path.nodes(segments);
         for train in &mut self.trains {
-            train.update(time_passed, &self.nodes);
+            train.update(time_passed, &nodes);
         }
     }
 
     pub fn fill_vertices_buffer_with_lengths(
         &self,
-        vertices: &mut Vec<f32>,
-        lengths: &mut Vec<usize>,
-    ) {
-        self.fill_vertices_buffer_with_lengths_for_direction(
-            Direction::Upstream,
-            vertices,
-            lengths,
-        );
-        self.fill_vertices_buffer_with_lengths_for_direction(
-            Direction::Downstream,
-            vertices,
-            lengths,
-        );
-    }
-
-    fn fill_vertices_buffer_with_lengths_for_direction(
-        &self,
-        direction: Direction,
+        segments: &[Segment],
         vertices: &mut Vec<f32>,
         lengths: &mut Vec<usize>,
     ) {
         let length = vertices.len();
-        self.fill_vertices_buffer_for_direction(direction, vertices);
+        self.fill_vertices_buffer(segments, vertices);
         lengths.push((vertices.len() - length) / 2);
     }
 
-    fn fill_vertices_buffer_for_direction(&self, direction: Direction, vertices: &mut Vec<f32>) {
-        let nodes = self.nodes.iter().filter(|node| node.allows(direction));
+    fn fill_vertices_buffer(&self, segments: &[Segment], vertices: &mut Vec<f32>) {
+        let nodes = self.path.nodes(segments);
 
         let mut segments = nodes
-            .clone()
+            .iter()
             .tuple_windows()
             .map(|(before, after)| after.position() - before.position())
             .collect::<Vec<_>>();
@@ -102,7 +85,7 @@ impl Line {
         segments.insert(0, *segments.first().unwrap());
         segments.insert(segments.len(), *segments.last().unwrap());
 
-        for (node, adjacent) in nodes.zip_eq(segments.windows(2)) {
+        for (node, adjacent) in nodes.iter().zip_eq(segments.windows(2)) {
             let perp = adjacent[0].perp(&adjacent[1]);
             let miter = if perp == 0.0 {
                 Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
@@ -130,25 +113,28 @@ impl Line {
 
 #[cfg(any(test, feature = "fixtures"))]
 pub mod fixtures {
+    use std::ops::Index;
+
     use super::*;
-    use crate::fixtures::{nodes, trains};
+    use crate::fixtures::{paths, trains};
     use common::time;
 
     macro_rules! lines {
         (@trains $line:ident, $route:ident, [ $( $( $(:)? $time:literal )* ),* ]) => {
             $( trains::$line::$route(time!($($time),*)) ),*
         };
-        ($($line:ident: $name:literal, $kind:ident, $upstream:ident, $upstream_times:tt, $downstream:ident, $downstream_times:tt);* $(;)?) => {
+        ($($line:ident: $name:literal, $kind:ident, $route:ident, $times:tt);* $(;)?) => {
             $(
-                pub fn $line() -> Line {
+                pub fn $line<'a>(
+                    segment_ids: &impl Index<&'a str, Output = usize>,
+                ) -> Line {
                     Line {
                         name: $name.to_string(),
                         color: Kind::$kind.color(),
                         kind: Kind::$kind,
-                        nodes: nodes::$line(),
+                        path: paths::$line::$route(segment_ids),
                         trains: vec![
-                            lines!(@trains $line, $upstream, $upstream_times),
-                            lines!(@trains $line, $downstream, $downstream_times),
+                            lines!(@trains $line, $route, $times),
                         ],
                     }
                 }
@@ -158,14 +144,11 @@ pub mod fixtures {
 
     lines! {
         s3:                 "S3",           SuburbanRailway,
-            hackescher_markt_bellevue, [7:24:54],
-            bellevue_hackescher_markt, [7:12:24];
+            hackescher_markt_bellevue, [7:24:54];
         u6:                 "U6",           UrbanRailway,
-            naturkundemuseum_franzoesische_str, [5:55:40],
-            franzoesische_str_naturkundemuseum, [5:29:40];
+            naturkundemuseum_franzoesische_str, [5:55:40];
         tram_12:            "12",           Tram,
-            oranienburger_tor_am_kupfergraben, [9:01:40],
-            am_kupfergraben_oranienburger_tor, [8:33:40];
+            oranienburger_tor_am_kupfergraben, [9:01:40];
     }
 }
 
@@ -175,84 +158,74 @@ mod tests {
     use na::Point2;
 
     use super::*;
-    use crate::direction::Directions;
-    use crate::fixtures::{lines, nodes};
-    use crate::node::Kind as NodeKind;
-    use common::time;
+    use crate::fixtures::{lines, paths};
+    use crate::path::{NodeKind, SegmentRef};
+    use common::{time, Order};
 
     #[test]
     fn test_getters() {
-        let line = lines::tram_12();
+        let (_, segment_ids) = paths::tram_12::segments();
+        let line = lines::tram_12(&segment_ids);
         assert_eq!(line.name(), "12");
         assert_eq!(line.kind(), Kind::Tram);
-        assert_eq!(line.nodes(), &*nodes::tram_12());
+        let expected = &paths::tram_12::oranienburger_tor_am_kupfergraben(&segment_ids);
+        assert_eq!(line.path(), expected);
     }
 
     #[test]
     fn test_fill_color_buffer() {
-        let line = lines::tram_12();
+        let (_, segment_ids) = paths::tram_12::segments();
+        let line = lines::tram_12(&segment_ids);
         let mut colors = Vec::new();
         line.fill_color_buffer(&mut colors);
         assert_relative_eq!(*colors, [0.8, 0.04, 0.13], epsilon = 0.01);
     }
 
     #[test]
+    #[ignore]
     fn test_active_trains() {
-        let mut line = lines::tram_12();
+        let (segments, segment_ids) = paths::tram_12::segments();
+        let mut line = lines::tram_12(&segment_ids);
         assert_eq!(line.active_trains().count(), 0);
-        line.update(time!(8:33:40));
+        line.update(&segments, time!(8:33:40));
         assert_eq!(line.active_trains().count(), 0);
-        line.update(time!(0:01:00));
+        line.update(&segments, time!(0:01:00));
         assert_eq!(line.active_trains().count(), 1);
-        line.update(time!(0:06:00));
+        line.update(&segments, time!(0:06:00));
         assert_eq!(line.active_trains().count(), 0);
-        line.update(time!(0:22:00));
+        line.update(&segments, time!(0:22:00));
         assert_eq!(line.active_trains().count(), 1);
     }
 
     macro_rules! test_vertices {
-        ($nodes:tt, $upstream:tt) => (
-            test_vertices!($nodes, $upstream, $upstream)
-        );
-        ($nodes:tt, $kind:ident, $upstream:tt) => (
-            test_vertices!($nodes, $kind, $upstream, $upstream);
-        );
-        ($nodes:tt, $upstream:tt, $downstream:tt) => (
-            test_vertices!($nodes, Railway, $upstream, $downstream)
+        ($nodes:tt, $vertices:tt) => (
+            test_vertices!($nodes, Railway, $vertices)
         );
         (
-            [$($x:literal, $y:literal, $in_directions:ident);* $(;)?],
+            [$($x:literal, $y:literal);* $(;)?],
             $kind:ident,
-            [$($upstream:literal),* $(,)?],
-            [$($downstream:literal),* $(,)?] $(,)?
+            [$($vertex:literal),* $(,)?]
         ) => (
+            let segments = vec![
+                Segment::new(vec![ $(
+                    Node::new(Point2::new($x, $y), NodeKind::Waypoint)
+                ),* ]),
+            ];
+            let path = SegmentedPath::new(vec![
+                SegmentRef::new(0, Order::Forward),
+            ]);
             let line = Line {
                 name: String::new(),
                 color: Kind::$kind.color(),
                 kind: Kind::$kind,
-                nodes: vec![ $(
-                    Node::new(Point2::new($x, $y), NodeKind::Waypoint, Directions::$in_directions)
-                ),* ],
+                path,
                 trains: Vec::new(),
             };
-            let mut upstream_vertices = Vec::new();
-            line.fill_vertices_buffer_for_direction(Direction::Upstream, &mut upstream_vertices);
-            assert_relative_eq!(
-                *upstream_vertices,
-                [ $( $upstream ),* ]
-            );
-            let mut downstream_vertices = Vec::new();
-            line.fill_vertices_buffer_for_direction(Direction::Downstream, &mut downstream_vertices);
-            assert_relative_eq!(
-                *downstream_vertices,
-                [ $( $downstream ),* ]
-            );
             let mut vertices = Vec::new();
             let mut lengths = Vec::new();
-            line.fill_vertices_buffer_with_lengths(&mut vertices, &mut lengths);
-            assert_eq!(lengths, [upstream_vertices.len() / 2, downstream_vertices.len() / 2]);
-            upstream_vertices.append(&mut downstream_vertices);
-            assert_eq!(vertices, upstream_vertices);
+            line.fill_vertices_buffer_with_lengths(&segments, &mut vertices, &mut lengths);
+            assert_relative_eq!(*vertices, [ $( $vertex ),* ]);
+            assert_eq!(lengths, [vertices.len() / 2]);
         );
     }
 
@@ -264,9 +237,9 @@ mod tests {
     #[test]
     fn test_straight_vertices() {
         test_vertices!([
-               0.0,    0.0, Both;
-             100.0,    0.0, Both;
-             200.0,    0.0, Both;
+               0.0,    0.0;
+             100.0,    0.0;
+             200.0,    0.0;
         ], [
                0.0,   25.0,    0.0,  -25.0,
              100.0,   25.0,  100.0,  -25.0,
@@ -277,9 +250,9 @@ mod tests {
     #[test]
     fn test_different_line_size() {
         test_vertices!([
-               0.0,    0.0, Both;
-             100.0,    0.0, Both;
-             200.0,    0.0, Both;
+               0.0,    0.0;
+             100.0,    0.0;
+             200.0,    0.0;
         ],
         SuburbanRailway,
         [
@@ -292,31 +265,13 @@ mod tests {
     #[test]
     fn test_right_angle_vertices() {
         test_vertices!([
-               0.0,    0.0, Both;
-             100.0,    0.0, Both;
-             100.0,  100.0, Both;
+               0.0,    0.0;
+             100.0,    0.0;
+             100.0,  100.0;
         ], [
                0.0,   25.0,    0.0,  -25.0,
               75.0,   25.0,  125.0,  -25.0,
               75.0,  100.0,  125.0,  100.0,
-        ]);
-    }
-
-    #[test]
-    fn test_different_direction_vertices() {
-        test_vertices!([
-                0.0,    0.0, Both;
-              100.0,    0.0, UpstreamOnly;
-                0.0,  100.0, DownstreamOnly;
-              100.0,  100.0, Both;
-        ], [
-               0.0,   25.0,    0.0,  -25.0,
-              75.0,   25.0,  125.0,  -25.0,
-              75.0,  100.0,  125.0,  100.0,
-        ], [
-             -25.0,    0.0,   25.0,    0.0,
-             -25.0,  125.0,   25.0,   75.0,
-             100.0,  125.0,  100.0,   75.0,
         ]);
     }
 }

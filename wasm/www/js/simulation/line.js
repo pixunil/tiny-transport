@@ -23,11 +23,9 @@ export class LineRenderer extends SimulationRenderer {
         let offset = 0;
         for (let line = 0; line < this.count; line++) {
             this.gl.uniform3fv(this.uniformLocations.color, this.colors.slice(3 * line, 3 * line + 3));
-            for (let track = 0; track < 2; track++) {
-                const trackRunSize = this.trackRunSizes[2 * line + track];
-                this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, trackRunSize);
-                offset += trackRunSize;
-            }
+            const trackRunSize = this.trackRunSizes[line];
+            this.gl.drawArrays(this.gl.TRIANGLE_STRIP, offset, trackRunSize);
+            offset += trackRunSize;
         }
     }
 }

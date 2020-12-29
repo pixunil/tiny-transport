@@ -8,7 +8,7 @@ repository = "https://github.com/pixunil/tiny-transport"
 license = "MIT"
 
 [features]
-fixtures = ["common"]
+fixtures = []
 
 [dependencies]
 itertools = "0.9"
@@ -16,5 +16,5 @@ na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
 serde = "1"
 serde_derive = "1"
 
+common = { package = "tiny-transport-common", path = "../common" }
 simulation = { package = "tiny-transport-simulation", path = "../simulation", features = ["fixtures"] }
-common = { package = "tiny-transport-common", path = "../common", optional = true }

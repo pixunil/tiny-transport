@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use serde_derive::{Deserialize, Serialize};
 
 use crate::path::{Segment, SegmentedPath};
@@ -50,23 +48,18 @@ impl Line {
 
     pub fn load(
         self,
-        stations: &[Rc<simulation::Station>],
-        segments: &[Segment],
+        segments: &[simulation::path::Segment],
         schedules: &[Schedule],
     ) -> simulation::Line {
         let kind = self.kind;
-        let nodes = self
-            .path
-            .nodes(segments)
-            .map(|node| node.load(&stations))
-            .collect::<Vec<_>>();
+        let path = self.path.load();
         let trains = self
             .trains
             .into_iter()
-            .map(|train| train.load(kind, &nodes, schedules))
+            .map(|train| train.load(kind, &path.nodes(segments), schedules))
             .collect();
 
-        simulation::Line::new(self.name, self.color, kind, nodes, trains)
+        simulation::Line::new(self.name, self.color, kind, path, trains)
     }
 }
 
@@ -147,28 +140,20 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_load() {
-        let (stations, station_ids) = fixtures_with_ids!(simulation::stations::{
-            oranienburger_tor,
-            friedrichstr,
-            universitaetsstr,
-            am_kupfergraben,
-            georgenstr_am_kupfergraben,
-        } with Rc);
-        let (segments, segment_ids) = fixtures_with_ids!(segments::{
+        let (segments, segment_ids) = fixtures_with_ids!(simulation::segments::{
             oranienburger_tor_friedrichstr,
             universitaetsstr_am_kupfergraben,
             am_kupfergraben_georgenstr,
-        }, (&station_ids));
+        });
         let (schedules, schedule_ids) = fixtures_with_ids!(schedules::{
            oranienburger_tor_am_kupfergraben,
            am_kupfergraben_oranienburger_tor,
         });
         let line = lines::tram_12(&segment_ids, &schedule_ids);
         assert_eq!(
-            line.load(&stations, &segments, &schedules),
-            simulation::fixtures::lines::tram_12()
+            line.load(&segments, &schedules),
+            simulation::fixtures::lines::tram_12(&segment_ids)
         );
     }
 }

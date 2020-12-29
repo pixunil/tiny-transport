@@ -45,14 +45,18 @@ impl Dataset {
             .zip(station_kinds)
             .map(|(station, kind)| Rc::new(station.load(kind)))
             .collect::<Vec<_>>();
-        let segments = &self.segments;
+        let segments = self
+            .segments
+            .into_iter()
+            .map(|segment| segment.load(&stations))
+            .collect::<Vec<_>>();
         let schedules = &self.schedules;
         let lines = self
             .lines
             .into_iter()
-            .map(|line| line.load(&stations, segments, schedules))
+            .map(|line| line.load(&segments, schedules))
             .collect();
-        simulation::Dataset::new(stations, lines)
+        simulation::Dataset::new(stations, segments, lines)
     }
 }
 
@@ -112,7 +116,6 @@ mod tests {
     use crate::fixtures::datasets;
 
     #[test]
-    #[ignore]
     fn test_load() {
         let dataset = datasets::hauptbahnhof_friedrichstr();
         assert_eq!(

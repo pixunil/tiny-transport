@@ -2,7 +2,7 @@ use na::{Matrix2, Point2, Vector2};
 
 use crate::direction::Direction;
 use crate::line::Kind;
-use crate::node::Node;
+use crate::path::Node;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TrainState {
@@ -13,9 +13,9 @@ enum TrainState {
 }
 
 impl TrainState {
-    fn next(self, direction: Direction, nodes: &[Node]) -> TrainState {
+    fn next(self, nodes: &[&Node]) -> TrainState {
         let (at, already_stopped) = match self {
-            TrainState::WaitingForDispatch => (direction.start(nodes.len()), false),
+            TrainState::WaitingForDispatch => (0, false),
             TrainState::Driving { from: _, to } => (to, false),
             TrainState::Stopped { at } => (at, true),
             TrainState::Finished => return TrainState::Finished,
@@ -23,8 +23,11 @@ impl TrainState {
 
         if !already_stopped && nodes[at].is_stop() {
             TrainState::Stopped { at }
-        } else if let Some(to) = direction.find_next(at, nodes) {
-            TrainState::Driving { from: at, to }
+        } else if at + 1 < nodes.len() {
+            TrainState::Driving {
+                from: at,
+                to: at + 1,
+            }
         } else {
             TrainState::Finished
         }
@@ -53,7 +56,7 @@ impl Train {
         }
     }
 
-    pub fn update(&mut self, time_passed: u32, nodes: &[Node]) {
+    pub fn update(&mut self, time_passed: u32, nodes: &[&Node]) {
         self.current_passed += time_passed;
 
         while self.current < self.durations.len()
@@ -61,7 +64,7 @@ impl Train {
         {
             self.current_passed -= self.durations[self.current];
             self.current += 1;
-            self.state = self.state.next(self.direction, nodes);
+            self.state = self.state.next(nodes);
         }
     }
 
@@ -72,17 +75,17 @@ impl Train {
         }
     }
 
-    pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>, nodes: &[Node]) {
+    pub fn fill_vertice_buffer(&self, buffer: &mut Vec<f32>, nodes: &[&Node]) {
         let (position, orientation) = self.calculate_rectangle(nodes);
         self.write_rectangle(buffer, position, orientation);
     }
 
-    fn calculate_rectangle(&self, nodes: &[Node]) -> (Point2<f32>, Vector2<f32>) {
+    fn calculate_rectangle(&self, nodes: &[&Node]) -> (Point2<f32>, Vector2<f32>) {
         match self.state {
             TrainState::Stopped { at } => {
                 let current = nodes[at].position();
-                let previous = self.direction.find_previous(at, nodes).unwrap_or(at);
-                let next = self.direction.find_next(at, nodes).unwrap_or(at);
+                let previous = at.checked_sub(1).unwrap_or(0);
+                let next = (at + 1).min(nodes.len() - 1);
                 let orientation = nodes[next].position() - nodes[previous].position();
                 (current, orientation.normalize())
             }
@@ -171,7 +174,7 @@ pub mod fixtures {
             [0:00, 1:30, 0:00, 1:30, 0:00, 1:00, 0:00];
         },
         tram_m5: Tram, {
-            zingster_str_perower_platz => Upstream,
+            zingster_str_prerower_platz => Upstream,
             [0:00, 1:00, 0:00, 1:00, 0:00, 0:48, 1:12, 0:00];
         },
         tram_12: Tram, {
@@ -193,82 +196,99 @@ mod tests {
     use approx::assert_relative_eq;
 
     use super::*;
-    use crate::fixtures::{nodes, trains};
+    use crate::fixtures::{paths, trains};
     use common::time;
 
-    fn segment_vector(nodes: &[Node], from: usize, to: usize) -> Vector2<f32> {
+    macro_rules! nodes {
+        ($line:ident :: $route:ident) => {{
+            let (segments, segment_ids) = paths::$line::segments();
+            let path = paths::$line::$route(&segment_ids);
+            (path, segments)
+        }};
+    }
+
+    fn segment_vector(nodes: &[&Node], from: usize, to: usize) -> Vector2<f32> {
         (nodes[to].position() - nodes[from].position()).normalize()
     }
 
     #[test]
     fn test_before_dispatch() {
+        let (path, segments) = nodes!(tram_12::oranienburger_tor_am_kupfergraben);
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(0, &nodes::tram_12());
+        train.update(0, &path.nodes(&segments));
         assert_eq!(train.state, TrainState::WaitingForDispatch);
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_stopped() {
+        let (path, segments) = nodes!(tram_12::oranienburger_tor_am_kupfergraben);
+        let nodes = path.nodes(&segments);
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
         train.durations[1] = 30;
-        train.update(time!(9:02:30), &nodes::tram_12());
+        train.update(time!(9:02:30), &nodes);
         assert_eq!(train.state, TrainState::Stopped { at: 0 });
         assert!(train.is_active());
 
-        let (position, orientation) = train.calculate_rectangle(&nodes::tram_12());
+        let (position, orientation) = train.calculate_rectangle(&nodes);
         assert_relative_eq!(position, Point2::new(-98.0, -1671.0));
-        assert_relative_eq!(orientation, segment_vector(&nodes::tram_12(), 0, 1));
+        assert_relative_eq!(orientation, segment_vector(&nodes, 0, 1));
     }
 
     #[test]
     fn test_driving() {
+        let (path, segments) = nodes!(tram_12::oranienburger_tor_am_kupfergraben);
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(time!(9:02:47), &nodes::tram_12());
+        train.update(time!(9:02:47), &path.nodes(&segments));
         assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
         assert!(train.is_active());
 
-        let (position, orientation) = train.calculate_rectangle(&nodes::tram_12());
+        let (position, orientation) = train.calculate_rectangle(&path.nodes(&segments));
         assert_relative_eq!(position, Point2::new(-101.0, -1560.0));
-        assert_relative_eq!(orientation, segment_vector(&nodes::tram_12(), 0, 1));
+        assert_relative_eq!(orientation, segment_vector(&path.nodes(&segments), 0, 1));
     }
 
     #[test]
-    fn test_upstream_ignores_downstream_only() {
+    fn test_upstream_variant() {
+        let (path, segments) = nodes!(tram_12::oranienburger_tor_am_kupfergraben);
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(time!(9:06:22), &nodes::tram_12());
-        assert_eq!(train.state, TrainState::Driving { from: 7, to: 14 });
+        train.update(time!(9:06:22), &path.nodes(&segments));
+        assert_eq!(train.state, TrainState::Driving { from: 7, to: 8 });
     }
 
     #[test]
-    fn test_downstream_ignores_upstream_only() {
+    fn test_downstream_variant() {
+        let (path, segments) = nodes!(tram_12::am_kupfergraben_oranienburger_tor);
         let mut train = trains::tram_12::am_kupfergraben_oranienburger_tor(time!(8:34:00));
-        train.update(time!(8:36:45), &nodes::tram_12());
-        assert_eq!(train.state, TrainState::Driving { from: 8, to: 5 });
+        train.update(time!(8:36:45), &path.nodes(&segments));
+        assert_eq!(train.state, TrainState::Driving { from: 6, to: 7 });
     }
 
     #[test]
     fn test_finished() {
+        let (path, segments) = nodes!(tram_12::oranienburger_tor_am_kupfergraben);
         let mut train = trains::tram_12::oranienburger_tor_am_kupfergraben(time!(9:02:00));
-        train.update(time!(9:08:00), &nodes::tram_12());
+        train.update(time!(9:08:00), &path.nodes(&segments));
         assert_eq!(train.state, TrainState::Finished);
         assert!(!train.is_active());
     }
 
     #[test]
     fn test_nodes_before_start() {
-        let mut train = trains::tram_m5::zingster_str_perower_platz(time!(8:13:00));
+        let (path, segments) = nodes!(tram_m5::zingster_str_prerower_platz);
+        let mut train = trains::tram_m5::zingster_str_prerower_platz(time!(8:13:00));
         train.durations[1] = 30;
-        train.update(time!(8:13:30), &nodes::tram_m5());
+        train.update(time!(8:13:30), &path.nodes(&segments));
         assert_eq!(train.state, TrainState::Driving { from: 0, to: 1 });
         assert!(train.is_active());
     }
 
     #[test]
     fn test_nodes_after_terminus() {
+        let (path, segments) = nodes!(bus_m82::weskammstr_waldsassener_str);
         let mut train = trains::bus_m82::weskammstr_waldsassener_str(time!(9:46:00));
         train.durations[12] = 30;
-        train.update(time!(9:47:00), &nodes::bus_m82());
+        train.update(time!(9:47:00), &path.nodes(&segments));
         assert_eq!(train.state, TrainState::Driving { from: 8, to: 9 });
         assert!(train.is_active());
     }

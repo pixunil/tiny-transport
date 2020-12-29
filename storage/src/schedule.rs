@@ -60,7 +60,7 @@ pub mod fixtures {
         [0:00, 1:30, 0:00, 1:00, 0:00, 1:30, 0:00],
         franzoesische_str_naturkundemuseum:
         [0:00, 1:30, 0:00, 1:30, 0:00, 1:00, 0:00],
-        zingster_str_perower_platz:
+        zingster_str_prerower_platz:
         [0:00, 1:00, 0:00, 1:00, 0:00, 2:00, 0:00],
         oranienburger_tor_am_kupfergraben:
         [0:20, 2:15, 0:20, 1:05, 0:20, 1:00, 0:20],
