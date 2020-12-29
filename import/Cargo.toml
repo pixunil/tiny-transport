@@ -13,15 +13,14 @@ default = []
 progress = ["console", "indicatif"]
 
 [dependencies]
-approx = "0.3"
 bincode = "1"
-console = { version = "0.11", optional = true }
+console = { version = "0.14", optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 csv = "1"
 geomorph = "1.1"
 indicatif = { version = "0.15", optional = true }
 itertools = "0.9"
-na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
+na = { package = "nalgebra", version = "0.23", features = ["serde-serialize"] }
 ordered-float = "1.0"
 serde = "1"
 serde_derive = "1"
@@ -32,4 +31,5 @@ simulation = { package = "tiny-transport-simulation", path = "../simulation" }
 storage = { package = "tiny-transport-storage", path = "../storage", features = ["fixtures"] }
 
 [dev-dependencies]
+approx = "0.4"
 serde_test = "1"

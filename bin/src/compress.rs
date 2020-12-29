@@ -15,7 +15,7 @@ pub(crate) fn compress(
 
     for entry in fs::read_dir(directory)? {
         let entry = entry?;
-        zip.start_file_from_path(entry.file_name().as_ref(), options)?;
+        zip.start_file(entry.file_name().into_string().unwrap(), options)?;
 
         let data = fs::read(entry.path())?;
         zip.write_all(&data)?;

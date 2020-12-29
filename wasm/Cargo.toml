@@ -16,11 +16,11 @@ default = []
 [dependencies]
 bincode = "1"
 console_error_panic_hook = { version = "0.1.6", optional = true }
-na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
+na = { package = "nalgebra", version = "0.23", features = ["serde-serialize"] }
 wasm-bindgen = "0.2"
 
 simulation = { package = "tiny-transport-simulation", path = "../simulation" }
 storage = { package = "tiny-transport-storage", path = "../storage" }
 
 [dev-dependencies]
-approx = "0.3"
+approx = "0.4"

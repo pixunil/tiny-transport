@@ -12,7 +12,7 @@ fixtures = []
 
 [dependencies]
 itertools = "0.9"
-na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
+na = { package = "nalgebra", version = "0.23", features = ["serde-serialize"] }
 serde = "1"
 serde_derive = "1"
 
