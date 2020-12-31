@@ -27,9 +27,15 @@ jobs:
         - cargo clippy --tests
         - cargo fmt --all -- --check
     - name: Coverage
+      addons:
+        apt:
+          packages:
+            - libssl-dev
+      before_script:
+        - cargo install cargo-tarpaulin
       script:
-        - docker run --security-opt seccomp=unconfined -v "${PWD}:/volume" xd009642/tarpaulin sh -c "cargo tarpaulin" &&
-          bash <(curl -s https://codecov.io/bash)
+        - cargo tarpaulin
+        - bash <(curl -s https://codecov.io/bash)
     - name: Build
       install:
         - cargo install wasm-pack
