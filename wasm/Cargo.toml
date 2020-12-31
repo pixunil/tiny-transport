@@ -24,3 +24,6 @@ storage = { package = "tiny-transport-storage", path = "../storage" }
 
 [dev-dependencies]
 approx = "0.4"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-mutable-globals"]
