@@ -1,7 +1,7 @@
 import {View} from "../../wasm/tiny_transport_wasm.js";
 import {Canvas} from "../base/canvas.js";
 import {Framebuffer} from "../base/framebuffer.js";
-import {LineRenderer} from "./line.js";
+import {SegmentRenderer} from "./segment.js";
 import {TrainRenderer} from "./train.js";
 import {StationRenderer} from "./station.js";
 
@@ -14,7 +14,7 @@ export class SimulationCanvas extends Canvas {
         this.view.viewProjection = this.view.calculateViewProjection();
 
         this.renderer = {
-            line: new LineRenderer(this.view),
+            segment: new SegmentRenderer(this.view),
             train: new TrainRenderer(this.view),
             station: new StationRenderer(this.view),
         };
@@ -22,7 +22,7 @@ export class SimulationCanvas extends Canvas {
 
     async setUp(assets) {
         await Promise.all([
-            this.renderer.line.setUp(this.gl, assets.line),
+            this.renderer.segment.setUp(this.gl, assets.segment),
             this.renderer.train.setUp(this.gl, assets.train),
             this.renderer.station.setUp(this.gl, assets.station),
             this.setUpFramebuffers(),
@@ -47,7 +47,7 @@ export class SimulationCanvas extends Canvas {
     async setUpWithModel(model) {
         this.model = model;
         await Promise.all([
-            this.renderer.line.fillBuffers(this.model),
+            this.renderer.segment.fillBuffers(this.model),
             this.renderer.station.fillBuffers(this.model),
             this.renderer.train.generateTextures(this.model),
         ]);
@@ -110,7 +110,7 @@ export class SimulationCanvas extends Canvas {
         super.draw();
         this.framebuffers.get("color").bind(["color"]);
         this.framebuffers.get("color").clear("color", [0.9, 0.95, 0.95, 1.0])
-        this.renderer.line.run();
+        this.renderer.segment.run();
         this.renderer.train.run();
         this.framebuffers.get("color").blit(this.framebuffers.get("color-id"), "color", ["color"]);
 

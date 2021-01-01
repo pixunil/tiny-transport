@@ -51,8 +51,25 @@ impl Dataset {
         buffer
     }
 
-    pub fn line_count(&self) -> usize {
-        self.lines.len()
+    pub fn segment_count(&self) -> usize {
+        self.segments.len()
+    }
+
+    fn segment_vertices_with_sizes(&self) -> (Vec<f32>, Vec<usize>) {
+        let mut vertices = Vec::new();
+        let mut sizes = Vec::new();
+        for segment in &self.segments {
+            segment.fill_vertices_buffer_with_lengths(&mut vertices, &mut sizes);
+        }
+        (vertices, sizes)
+    }
+
+    pub fn segment_sizes(&self) -> Vec<usize> {
+        self.segment_vertices_with_sizes().1
+    }
+
+    pub fn segment_vertices(&self) -> Vec<f32> {
+        self.segment_vertices_with_sizes().0
     }
 
     pub fn line_colors(&self) -> Vec<f32> {
@@ -61,23 +78,6 @@ impl Dataset {
             line.fill_color_buffer(&mut colors);
         }
         colors
-    }
-
-    fn line_vertices_with_sizes(&self) -> (Vec<f32>, Vec<usize>) {
-        let mut vertices = Vec::new();
-        let mut sizes = Vec::new();
-        for line in &self.lines {
-            line.fill_vertices_buffer_with_lengths(&self.segments, &mut vertices, &mut sizes);
-        }
-        (vertices, sizes)
-    }
-
-    pub fn line_vertices_sizes(&self) -> Vec<usize> {
-        self.line_vertices_with_sizes().1
-    }
-
-    pub fn line_vertices(&self) -> Vec<f32> {
-        self.line_vertices_with_sizes().0
     }
 
     pub fn line_names(&self) -> String {
@@ -209,10 +209,10 @@ mod tests {
         assert_eq!(dataset.station_count(), 5);
         assert_eq!(dataset.station_positions().len(), 2 * 5);
         assert_eq!(dataset.station_types().len(), 5);
-        assert_eq!(dataset.line_count(), 1);
+        assert_eq!(dataset.segment_count(), 2);
+        assert_eq!(dataset.segment_sizes(), [12, 6]);
+        assert_eq!(dataset.segment_vertices().len(), 2 * 18);
         assert_eq!(dataset.line_colors().len(), 3);
-        assert_eq!(dataset.line_vertices_sizes(), [18]);
-        assert_eq!(dataset.line_vertices().len(), 2 * 18);
         assert_eq!(dataset.line_names(), "12".to_string());
     }
 }

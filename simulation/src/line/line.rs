@@ -1,10 +1,6 @@
-use itertools::Itertools;
-
-use na::Vector2;
-
 use super::Kind;
 use crate::color::Color;
-use crate::path::{Node, Segment, SegmentedPath};
+use crate::path::{Segment, SegmentedPath};
 use crate::train::Train;
 
 #[derive(Debug, PartialEq)]
@@ -59,56 +55,6 @@ impl Line {
             train.update(time_passed, &nodes);
         }
     }
-
-    pub fn fill_vertices_buffer_with_lengths(
-        &self,
-        segments: &[Segment],
-        vertices: &mut Vec<f32>,
-        lengths: &mut Vec<usize>,
-    ) {
-        let length = vertices.len();
-        self.fill_vertices_buffer(segments, vertices);
-        lengths.push((vertices.len() - length) / 2);
-    }
-
-    fn fill_vertices_buffer(&self, segments: &[Segment], vertices: &mut Vec<f32>) {
-        let nodes = self.path.nodes(segments);
-
-        let mut segments = nodes
-            .iter()
-            .tuple_windows()
-            .map(|(before, after)| after.position() - before.position())
-            .collect::<Vec<_>>();
-        if segments.is_empty() {
-            return;
-        }
-        segments.insert(0, *segments.first().unwrap());
-        segments.insert(segments.len(), *segments.last().unwrap());
-
-        for (node, adjacent) in nodes.iter().zip_eq(segments.windows(2)) {
-            let perp = adjacent[0].perp(&adjacent[1]);
-            let miter = if perp == 0.0 {
-                Vector2::new(-adjacent[0].y, adjacent[0].x).normalize()
-            } else {
-                let preceding = adjacent[0] * adjacent[1].norm();
-                let following = adjacent[1] * adjacent[0].norm();
-                (following - preceding) / perp
-            };
-
-            self.add_node_vertices_to_buffer(node, miter, vertices);
-        }
-    }
-
-    fn add_node_vertices_to_buffer(
-        &self,
-        node: &Node,
-        mut miter: Vector2<f32>,
-        vertices: &mut Vec<f32>,
-    ) {
-        miter *= self.kind.line_width() * 0.5;
-        vertices.extend((node.position() + miter).iter());
-        vertices.extend((node.position() - miter).iter());
-    }
 }
 
 #[cfg(any(test, feature = "fixtures"))]
@@ -155,12 +101,10 @@ pub mod fixtures {
 #[cfg(test)]
 mod tests {
     use approx::assert_relative_eq;
-    use na::Point2;
 
     use super::*;
     use crate::fixtures::{lines, paths};
-    use crate::path::{NodeKind, SegmentRef};
-    use common::{time, Order};
+    use common::time;
 
     #[test]
     fn test_getters() {
@@ -195,83 +139,5 @@ mod tests {
         assert_eq!(line.active_trains().count(), 0);
         line.update(&segments, time!(0:22:00));
         assert_eq!(line.active_trains().count(), 1);
-    }
-
-    macro_rules! test_vertices {
-        ($nodes:tt, $vertices:tt) => (
-            test_vertices!($nodes, Railway, $vertices)
-        );
-        (
-            [$($x:literal, $y:literal);* $(;)?],
-            $kind:ident,
-            [$($vertex:literal),* $(,)?]
-        ) => (
-            let segments = vec![
-                Segment::new(vec![ $(
-                    Node::new(Point2::new($x, $y), NodeKind::Waypoint)
-                ),* ]),
-            ];
-            let path = SegmentedPath::new(vec![
-                SegmentRef::new(0, Order::Forward),
-            ]);
-            let line = Line {
-                name: String::new(),
-                color: Kind::$kind.color(),
-                kind: Kind::$kind,
-                path,
-                trains: Vec::new(),
-            };
-            let mut vertices = Vec::new();
-            let mut lengths = Vec::new();
-            line.fill_vertices_buffer_with_lengths(&segments, &mut vertices, &mut lengths);
-            assert_relative_eq!(*vertices, [ $( $vertex ),* ]);
-            assert_eq!(lengths, [vertices.len() / 2]);
-        );
-    }
-
-    #[test]
-    fn test_empty_vertices() {
-        test_vertices!([], []);
-    }
-
-    #[test]
-    fn test_straight_vertices() {
-        test_vertices!([
-               0.0,    0.0;
-             100.0,    0.0;
-             200.0,    0.0;
-        ], [
-               0.0,   25.0,    0.0,  -25.0,
-             100.0,   25.0,  100.0,  -25.0,
-             200.0,   25.0,  200.0,  -25.0,
-        ]);
-    }
-
-    #[test]
-    fn test_different_line_size() {
-        test_vertices!([
-               0.0,    0.0;
-             100.0,    0.0;
-             200.0,    0.0;
-        ],
-        SuburbanRailway,
-        [
-               0.0,   20.0,    0.0,  -20.0,
-             100.0,   20.0,  100.0,  -20.0,
-             200.0,   20.0,  200.0,  -20.0,
-        ]);
-    }
-
-    #[test]
-    fn test_right_angle_vertices() {
-        test_vertices!([
-               0.0,    0.0;
-             100.0,    0.0;
-             100.0,  100.0;
-        ], [
-               0.0,   25.0,    0.0,  -25.0,
-              75.0,   25.0,  125.0,  -25.0,
-              75.0,  100.0,  125.0,  100.0,
-        ]);
     }
 }

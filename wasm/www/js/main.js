@@ -79,9 +79,9 @@ const assets = {
         vertex: fetchSource("shader/clock.vert.glsl"),
         fragment: fetchSource("shader/clock.frag.glsl"),
     },
-    line: {
-        vertex: fetchSource("shader/line.vert.glsl"),
-        fragment: fetchSource("shader/line.frag.glsl"),
+    segment: {
+        vertex: fetchSource("shader/segment.vert.glsl"),
+        fragment: fetchSource("shader/segment.frag.glsl"),
     },
     train: {
         vertex: fetchSource("shader/train.vert.glsl"),

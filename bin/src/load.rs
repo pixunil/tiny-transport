@@ -12,9 +12,9 @@ pub(crate) fn load(binary: impl AsRef<Path>) -> Result<(), Box<dyn Error>> {
         .load();
 
     println!(
-        "Loaded {} stations and {} lines",
+        "Loaded {} stations and {} segments",
         dataset.station_count(),
-        dataset.line_count(),
+        dataset.segment_count(),
     );
     Ok(())
 }

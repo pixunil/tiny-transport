@@ -43,10 +43,10 @@ delegate! {
     pub fn station_positions(&self) -> Vec<f32>; [stationPositions]
     pub fn station_types(&self) -> Vec<u8>; [stationTypes]
 
-    pub fn line_count(&self) -> usize; [lineCount]
-    pub fn line_colors(&self) -> Vec<f32>; [lineColors]
-    pub fn line_vertices_sizes(&self) -> Vec<usize>; [lineVerticesSizes]
-    pub fn line_vertices(&self) -> Vec<f32>; [lineVertices]
+    pub fn segment_count(&self) -> usize; [segmentCount]
+    pub fn segment_sizes(&self) -> Vec<usize>; [segmentSizes]
+    pub fn segment_vertices(&self) -> Vec<f32>; [segmentVertices]
+
     pub fn line_names(&self) -> String; [lineNames]
 
     pub fn train_count(&self) -> usize; [trainCount]
