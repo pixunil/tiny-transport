@@ -22,7 +22,7 @@ geomorph = "1.1"
 indicatif = { version = "0.15", optional = true }
 itertools = "0.9"
 na = { package = "nalgebra", version = "0.21", features = ["serde-serialize"] }
-ordered-float = "1.0"
+ordered-float = "2.0"
 serde = "1"
 serde_derive = "1"
 zip = { version = "0.5", default-features = false, features = ["bzip2"] }
